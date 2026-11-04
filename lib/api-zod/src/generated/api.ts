@@ -8,6 +8,53 @@
 import * as zod from 'zod';
 
 
+export const prepareNativeMessageBodyOneRecipientEmailMax = 254;
+
+export const prepareNativeMessageBodyOneRecipientNameMax = 120;
+
+export const prepareNativeMessageBodyOneSubjectMax = 200;
+
+export const prepareNativeMessageBodyOneBodyMax = 50000;
+
+export const prepareNativeMessageBodyTwoComposeKeyMin = 16;
+export const prepareNativeMessageBodyTwoComposeKeyMax = 100;
+
+export const prepareNativeMessageBodyTwoUrlsItemMax = 2000;
+
+export const prepareNativeMessageBodyTwoUrlsMax = 100;
+
+
+
+export const PrepareNativeMessageBody = zod.object({
+  "recipientEmail": zod.string().email().max(prepareNativeMessageBodyOneRecipientEmailMax),
+  "recipientName": zod.string().max(prepareNativeMessageBodyOneRecipientNameMax),
+  "subject": zod.string().min(1).max(prepareNativeMessageBodyOneSubjectMax),
+  "body": zod.string().min(1).max(prepareNativeMessageBodyOneBodyMax),
+  "trackOpens": zod.boolean(),
+  "trackClicks": zod.boolean()
+}).and(zod.object({
+  "senderEmail": zod.string().email(),
+  "composeKey": zod.string().min(prepareNativeMessageBodyTwoComposeKeyMin).max(prepareNativeMessageBodyTwoComposeKeyMax),
+  "urls": zod.array(zod.string().max(prepareNativeMessageBodyTwoUrlsItemMax)).max(prepareNativeMessageBodyTwoUrlsMax)
+}))
+
+export const PrepareNativeMessageResponse = zod.object({
+  "messageId": zod.string(),
+  "pixelUrl": zod.string().nullable(),
+  "markerUrl": zod.string(),
+  "links": zod.array(zod.object({
+  "url": zod.string(),
+  "trackingUrl": zod.string()
+}))
+})
+
+
+export const SyncNativeMessagesResponse = zod.object({
+  "confirmed": zod.number().int(),
+  "pending": zod.number().int()
+})
+
+
 export const GetOverviewResponse = zod.object({
   "isDemo": zod.boolean(),
   "totalSent": zod.number().int(),
@@ -45,7 +92,8 @@ export const ListMessagesResponseItem = zod.object({
   "clicks": zod.number().int(),
   "lastActivityAt": zod.string().nullable(),
   "starred": zod.boolean(),
-  "isDemo": zod.boolean()
+  "isDemo": zod.boolean(),
+  "deliverySource": zod.enum(['web', 'gmail']).optional()
 })
 export const ListMessagesResponse = zod.array(ListMessagesResponseItem)
 
@@ -84,7 +132,8 @@ export const CreateMessageResponse = zod.object({
   "clicks": zod.number().int(),
   "lastActivityAt": zod.string().nullable(),
   "starred": zod.boolean(),
-  "isDemo": zod.boolean()
+  "isDemo": zod.boolean(),
+  "deliverySource": zod.enum(['web', 'gmail']).optional()
 })
 
 
@@ -108,7 +157,8 @@ export const GetMessageResponse = zod.object({
   "clicks": zod.number().int(),
   "lastActivityAt": zod.string().nullable(),
   "starred": zod.boolean(),
-  "isDemo": zod.boolean()
+  "isDemo": zod.boolean(),
+  "deliverySource": zod.enum(['web', 'gmail']).optional()
 }),
   "events": zod.array(zod.object({
   "id": zod.string(),
@@ -170,7 +220,8 @@ export const UpdateMessageResponse = zod.object({
   "clicks": zod.number().int(),
   "lastActivityAt": zod.string().nullable(),
   "starred": zod.boolean(),
-  "isDemo": zod.boolean()
+  "isDemo": zod.boolean(),
+  "deliverySource": zod.enum(['web', 'gmail']).optional()
 })
 
 
@@ -200,7 +251,8 @@ export const SendMessageResponse = zod.object({
   "clicks": zod.number().int(),
   "lastActivityAt": zod.string().nullable(),
   "starred": zod.boolean(),
-  "isDemo": zod.boolean()
+  "isDemo": zod.boolean(),
+  "deliverySource": zod.enum(['web', 'gmail']).optional()
 })
 
 

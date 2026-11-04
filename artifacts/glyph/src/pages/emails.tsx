@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Avatar, Caveat, DemoTag, EmptyState, ErrorState, SectionHead, SignInNudge, StatusPill } from '@/components/bits';
 import { ComposeDialog } from '@/components/compose-dialog';
+import { GMAIL_URL, SyncGmailButton } from '@/components/gmail-sync';
 import { ago, errorText, stamp, usePoll, useInvalidateAll, useSession } from '@/lib/glyph';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -53,9 +54,10 @@ export default function Emails() {
         title={<span className="flex items-center gap-3">Emails {isDemo && <DemoTag />}</span>}
         right={
           isSignedIn ? (
+            <div className="flex flex-wrap gap-2"><SyncGmailButton className="py-2.5" />
             <button data-testid="button-compose" onClick={() => setCompose(true)} className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 active:scale-[0.98]">
-              <PenLine className="size-4" /> Compose
-            </button>
+              <PenLine className="size-4" /> Web composer
+            </button></div>
           ) : null
         }
       />
@@ -83,7 +85,7 @@ export default function Emails() {
           ) : !list.data?.length ? (
             <EmptyState
               title={debounced || status !== 'all' ? 'No matches' : 'No tracked emails'}
-              body={debounced || status !== 'all' ? 'Try a different search or filter.' : 'Compose a message to one recipient and it will appear here.'}
+              body={debounced || status !== 'all' ? 'Try a different search or filter.' : 'Messages you glyph inside Gmail appear here. The web composer above is a secondary option.'}
               action={isSignedIn && !debounced && status === 'all' ? <button onClick={() => setCompose(true)} data-testid="button-compose-empty" className="rounded-sm bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">Compose</button> : undefined}
             />
           ) : (
@@ -95,6 +97,7 @@ export default function Emails() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="truncate text-sm font-medium">{m.recipientName || m.recipientEmail}</span>
+                        {m.deliverySource === 'gmail' && <span className="rounded-sm bg-secondary px-1 font-mono text-[9px] uppercase text-muted-foreground">gmail</span>}
                         {m.starred && <Star className="size-3 fill-primary text-primary" />}
                         <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground">{ago(m.sentAt ?? m.createdAt)}</span>
                       </div>
@@ -142,6 +145,8 @@ function Detail({ id }: { id: string }) {
   if (q.isError || !q.data) return <div className="p-6"><ErrorState error={errorText(q.error)} onRetry={() => q.refetch()} /></div>;
   const { message: m, events, links } = q.data;
   const canMutate = isSignedIn && !m.isDemo;
+  const native = m.deliverySource === 'gmail';
+  const awaiting = native && m.status !== 'sent';
 
   const doDelete = () =>
     del.mutate({ id }, {
@@ -149,7 +154,7 @@ function Detail({ id }: { id: string }) {
       onError: (e) => toast({ title: 'Delete failed', description: errorText(e), variant: 'destructive' }),
       onSettled: () => setConfirmDel(false),
     });
-  const doSend = () =>
+  const doSend = () => native ? undefined :
     send.mutate({ id }, {
       onSuccess: (r: Message) => { invalidate(); toast({ title: r.status === 'sent' ? 'Sent through Gmail' : `Status: ${r.status}`, description: `${r.recipientEmail} · ${r.subject}` }); },
       onError: (e) => { invalidate(); toast({ title: 'Send failed', description: errorText(e), variant: 'destructive' }); },
@@ -160,7 +165,7 @@ function Detail({ id }: { id: string }) {
     <div className="rise">
       <div className="border-b border-border p-5 md:p-6">
         <Link href="/emails" data-testid="link-back" className="mb-3 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground lg:hidden"><ArrowLeft className="size-3" /> All emails</Link>
-        <div className="flex flex-wrap items-center gap-2"><StatusPill status={m.status} />{m.isDemo && <DemoTag />}</div>
+        <div className="flex flex-wrap items-center gap-2">{awaiting ? <span className="inline-flex items-center gap-1.5 rounded-sm bg-[hsl(40_70%_90%)] px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-[hsl(32_70%_28%)]" data-testid="status-awaiting-gmail"><span className="size-1.5 animate-pulse rounded-full bg-current" />Awaiting Gmail send</span> : <StatusPill status={m.status} />}{native && <span className="font-mono text-[10px] uppercase text-muted-foreground">via Gmail</span>}{m.isDemo && <DemoTag />}</div>
         <h2 className="font-display mt-3 text-2xl font-bold md:text-3xl" data-testid="text-subject">{m.subject}</h2>
         <div className="mt-2 text-sm text-muted-foreground">
           to <span className="text-foreground" data-testid="text-recipient">{m.recipientName ? `${m.recipientName} <${m.recipientEmail}>` : m.recipientEmail}</span>
@@ -170,16 +175,17 @@ function Detail({ id }: { id: string }) {
             <div key={k as string} className="bg-card p-3"><div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{k}</div><div className="mt-1 font-mono text-sm tabular-nums">{v}</div></div>
           ))}
         </div>
-        {['draft', 'failed'].includes(m.status) && (
+        {awaiting && <div className="mt-4 space-y-3"><Caveat>Drafted in Gmail with Add glyph. It counts as sent only after Glyph finds its marker in your Gmail Sent folder. Send it from Gmail, then sync.</Caveat><div className="flex flex-wrap gap-2"><SyncGmailButton disabled={!canMutate} /><a href={GMAIL_URL} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-sm border border-border px-3 py-1.5 text-sm hover:border-foreground/40">Open Gmail</a></div></div>}
+        {!native && ['draft', 'failed'].includes(m.status) && (
           <div className="mt-4 flex flex-wrap gap-2">
             <button data-testid="button-edit-draft" disabled={!canMutate} onClick={() => setEdit(true)} className="inline-flex items-center gap-1.5 rounded-sm border border-border px-3 py-1.5 text-sm hover:border-foreground/40 disabled:opacity-40"><Pencil className="size-3.5" /> Edit</button>
             <button data-testid="button-send-draft" disabled={!canMutate || m.status === 'failed'} onClick={() => setConfirmSend(true)} className="inline-flex items-center gap-1.5 rounded-sm bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-40"><Send className="size-3.5" /> Send</button>
             <button data-testid="button-delete-draft" disabled={!canMutate} onClick={() => setConfirmDel(true)} className="ml-auto inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-40"><Trash2 className="size-3.5" /> Delete</button>
           </div>
         )}
-        {!canMutate && m.status === 'draft' && <p className="mt-2 text-xs text-muted-foreground">Sample drafts are read-only. Sign in with the Gmail owner account to edit or send.</p>}
-        {m.status === 'failed' && <p className="mt-2 text-xs text-destructive">Gmail rejected the send. Edit and save this draft before trying again.</p>}
-        {['uncertain', 'sending'].includes(m.status) && <div className="mt-4 space-y-3"><Caveat>Gmail has not confirmed this send. Check your Sent folder before creating another email to avoid a duplicate.</Caveat><button type="button" disabled={!canMutate || send.isPending} onClick={doSend} className="rounded-sm border border-border px-3 py-1.5 text-sm disabled:opacity-40">Check Gmail send status</button></div>}
+        {!native && !canMutate && m.status === 'draft' && <p className="mt-2 text-xs text-muted-foreground">Sample drafts are read-only. Sign in with the Gmail owner account to edit or send.</p>}
+        {!native && m.status === 'failed' && <p className="mt-2 text-xs text-destructive">Gmail rejected the send. Edit and save this draft before trying again.</p>}
+        {!native && ['uncertain', 'sending'].includes(m.status) && <div className="mt-4 space-y-3"><Caveat>Gmail has not confirmed this send. Check your Sent folder before creating another email to avoid a duplicate.</Caveat><button type="button" disabled={!canMutate || send.isPending} onClick={doSend} className="rounded-sm border border-border px-3 py-1.5 text-sm disabled:opacity-40">Check Gmail send status</button></div>}
       </div>
 
       <div className="grid xl:grid-cols-[1fr_300px]">
@@ -204,7 +210,7 @@ function Detail({ id }: { id: string }) {
         <div className="p-5 md:p-6">
           <div className="mb-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Signal trail</div>
           {!events.length ? (
-            <p className="text-sm text-muted-foreground">{m.status === 'draft' ? 'Not sent yet.' : 'Quiet so far. No pixel loads or clicks recorded.'}</p>
+            <p className="text-sm text-muted-foreground">{m.status !== 'sent' && native ? 'Waiting for Gmail Sent confirmation.' : m.status === 'draft' ? 'Not sent yet.' : 'Quiet so far. No pixel loads or clicks recorded.'}</p>
           ) : (
             <ol className="relative space-y-4 border-l border-border pl-4">
               {events.map((e) => (

@@ -5,10 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export interface ActionResult {
-  ok: boolean;
-}
-
 export interface MessageInput {
   /** @maxLength 254 */
   recipientEmail: string;
@@ -28,6 +24,42 @@ export interface MessageInput {
   trackClicks: boolean;
 }
 
+export type NativeMessageInput = MessageInput & {
+  senderEmail: string;
+  /**
+     * @minLength 16
+     * @maxLength 100
+     */
+  composeKey: string;
+  /**
+     * @maxItems 100
+     * @items.maxLength 2000
+     */
+  urls: string[];
+};
+
+export interface NativeLink {
+  url: string;
+  trackingUrl: string;
+}
+
+export interface NativeTracking {
+  messageId: string;
+  /** @nullable */
+  pixelUrl: string | null;
+  markerUrl: string;
+  links: NativeLink[];
+}
+
+export interface NativeSync {
+  confirmed: number;
+  pending: number;
+}
+
+export interface ActionResult {
+  ok: boolean;
+}
+
 export type MessageStatus = typeof MessageStatus[keyof typeof MessageStatus];
 
 
@@ -37,6 +69,14 @@ export const MessageStatus = {
   sent: 'sent',
   failed: 'failed',
   uncertain: 'uncertain',
+} as const;
+
+export type MessageDeliverySource = typeof MessageDeliverySource[keyof typeof MessageDeliverySource];
+
+
+export const MessageDeliverySource = {
+  web: 'web',
+  gmail: 'gmail',
 } as const;
 
 export interface Message {
@@ -57,6 +97,7 @@ export interface Message {
   lastActivityAt: string | null;
   starred: boolean;
   isDemo: boolean;
+  deliverySource?: MessageDeliverySource;
 }
 
 export type ActivityType = typeof ActivityType[keyof typeof ActivityType];

@@ -101,6 +101,7 @@ router.patch("/glyph/messages/:id", async (req, res): Promise<void> => {
   if (!parsed.success || /[\r\n]/.test(parsed.data?.recipientEmail ?? "")) { res.status(400).json({ error: "Enter a valid recipient, subject and message." }); return; }
   const row = await ownMessage(ownerId, id);
   if (!row) { res.status(404).json({ error: "Email not found" }); return; }
+  if (row.deliverySource === "gmail") { res.status(409).json({ error: "Edit this email in Gmail, then add its glyph again." }); return; }
   if (!["draft", "failed"].includes(row.status)) { res.status(409).json({ error: "Only unsent drafts can be edited." }); return; }
   const updated = await db.update(glyphMessages).set({ ...parsed.data, status: "draft" })
     .where(and(eq(glyphMessages.id, id), eq(glyphMessages.ownerId, ownerId), inArray(glyphMessages.status, ["draft", "failed"]))).returning();
@@ -109,7 +110,7 @@ router.patch("/glyph/messages/:id", async (req, res): Promise<void> => {
 });
 router.delete("/glyph/messages/:id", async (req, res): Promise<void> => {
   const ownerId = userId(req)!, id = String(req.params.id);
-  const deleted = await db.delete(glyphMessages).where(and(eq(glyphMessages.id, id), eq(glyphMessages.ownerId, ownerId), inArray(glyphMessages.status, ["draft", "failed"]))).returning();
+  const deleted = await db.delete(glyphMessages).where(and(eq(glyphMessages.id, id), eq(glyphMessages.ownerId, ownerId), eq(glyphMessages.deliverySource, "web"), inArray(glyphMessages.status, ["draft", "failed"]))).returning();
   if (!deleted.length) { res.status(409).json({ error: "Only unsent drafts can be deleted." }); return; }
   res.status(204).end();
 });
@@ -118,6 +119,7 @@ router.post("/glyph/messages/:id/send", async (req, res): Promise<void> => {
   const ownerId = userId(req)!, id = String(req.params.id);
   const message = await ownMessage(ownerId, id);
   if (!message) { res.status(404).json({ error: "Email not found" }); return; }
+  if (message.deliverySource === "gmail") { res.status(409).json({ error: "Use Gmail's own Send button for this email. Glyph never sends native drafts through the API." }); return; }
   if (message.status === "sent") { res.json(SendMessageResponse.parse(await responseMessage(id, ownerId))); return; }
   if (["sending", "uncertain"].includes(message.status)) {
     const gmailId = await findSentMessage(message.rfcMessageId);

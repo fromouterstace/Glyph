@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { MessageDeliverySource } from './messageDeliverySource';
 import type { MessageStatus } from './messageStatus';
 
 export interface Message {
@@ -25,4 +26,5 @@ export interface Message {
   lastActivityAt: string | null;
   starred: boolean;
   isDemo: boolean;
+  deliverySource?: MessageDeliverySource;
 }

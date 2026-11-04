@@ -11,6 +11,7 @@ import Dashboard from '@/pages/dashboard';
 import Emails from '@/pages/emails';
 import ActivityPage from '@/pages/activity';
 import SettingsPage from '@/pages/settings';
+import GmailPage from '@/pages/gmail';
 import { Shell } from '@/components/shell';
 import { GlyphMark } from '@/components/bits';
 
@@ -164,6 +165,7 @@ const wrap = (C: ComponentType) => () => <Shell><C /></Shell>;
 const EmailsRoute = wrap(Emails);
 const ActivityRoute = wrap(ActivityPage);
 const SettingsRoute = wrap(SettingsPage);
+const GmailRoute = wrap(GmailPage);
 
 function RoutedErrorBoundary({ children }: { children: ReactNode }) {
   const [location] = useLocation();
@@ -198,6 +200,7 @@ function ClerkProviderWithRoutes() {
               <Route path="/emails/:id" component={EmailsRoute} />
               <Route path="/activity" component={ActivityRoute} />
               <Route path="/settings" component={SettingsRoute} />
+              <Route path="/gmail" component={GmailRoute} />
               <Route path="/sign-in/*?" component={SignInPage} />
               <Route path="/sign-up/*?" component={SignUpPage} />
               <Route component={NotFound} />

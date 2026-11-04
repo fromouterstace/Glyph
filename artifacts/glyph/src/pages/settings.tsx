@@ -3,6 +3,8 @@ import { CheckCircle2, CircleSlash, BellRing, Globe } from 'lucide-react';
 import { useGetSettings, useGetConnection, useUpdateSettings, type SettingsInput } from '@workspace/api-client-react';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Link } from 'wouter';
+import { SyncGmailButton } from '@/components/gmail-sync';
 import { Caveat, DemoTag, ErrorState, SectionHead, SignInNudge } from '@/components/bits';
 import { errorText, useInvalidateAll, useSession } from '@/lib/glyph';
 import { useToast } from '@/hooks/use-toast';
@@ -66,6 +68,7 @@ export default function SettingsPage() {
                 {c.data.email && <div className="font-mono text-xs" data-testid="text-connection-email">{c.data.email}</div>}
                 <p className="text-muted-foreground" data-testid="text-connection-message">{c.data.message}</p>
                 <p className="text-xs text-muted-foreground">To send, sign in with a verified account whose email matches the connected Gmail mailbox. Other accounts see only their own (empty) data and cannot send.</p>
+                <div className="flex flex-wrap items-center gap-3 pt-2"><SyncGmailButton disabled={locked} /><Link href="/gmail" className="text-xs font-semibold text-primary hover:underline">Gmail extension setup</Link></div>
               </div>
             </div>
           )}
@@ -76,7 +79,7 @@ export default function SettingsPage() {
         <>
           <section className="border border-border bg-card">
             <Head title="Tracking defaults" />
-            <Toggle id="default-opens" label="Embed open glyph" desc="Adds the 1x1 pixel to new drafts." checked={form.defaultTrackOpens} disabled={locked} onChange={(v) => set('defaultTrackOpens', v)} />
+            <Toggle id="default-opens" label="Embed open glyph" desc="Adds the 1x1 pixel when you click Add glyph in Gmail or compose here." checked={form.defaultTrackOpens} disabled={locked} onChange={(v) => set('defaultTrackOpens', v)} />
             <Toggle id="default-clicks" label="Track links" desc="Rewrites URLs in the body through a redirect." checked={form.defaultTrackClicks} disabled={locked} onChange={(v) => set('defaultTrackClicks', v)} />
             <div className="border-t border-border p-5">
               <label className="flex items-center gap-2 text-sm font-medium"><Globe className="size-4" /> Tracking base URL</label>
@@ -93,7 +96,7 @@ export default function SettingsPage() {
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-5 text-sm">
               <div>
                 <div className="flex items-center gap-2 font-medium"><BellRing className="size-4" /> Browser notifications</div>
-                <p className="text-xs text-muted-foreground">Only new live events while Glyph is open. History and sample data never alert.</p>
+                <p className="text-xs text-muted-foreground">Only new live events while this tab is open. The Gmail extension also notifies while your browser and its connection tab are running. Sample data never alerts.</p>
               </div>
               {perm === 'granted' ? <span className="font-mono text-xs text-accent-foreground" data-testid="text-notify-permission">Enabled</span>
                 : perm === 'denied' ? <span className="text-xs text-muted-foreground" data-testid="text-notify-permission">Blocked in browser settings</span>

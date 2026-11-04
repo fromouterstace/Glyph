@@ -11,6 +11,29 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /glyph/native/prepare:
+    post:
+      operationId: prepareNativeMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NativeMessageInput" }
+      responses:
+        "200":
+          description: Tracking material for a Gmail compose; not proof of sending
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NativeTracking" }
+  /glyph/native/sync:
+    post:
+      operationId: syncNativeMessages
+      responses:
+        "200":
+          description: Confirm native Gmail sends against Gmail Sent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NativeSync" }
   /glyph/overview:
     get:
       operationId: getOverview
@@ -152,6 +175,40 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    NativeMessageInput:
+      allOf:
+        - { $ref: "#/components/schemas/MessageInput" }
+        - type: object
+          required: [senderEmail, composeKey, urls]
+          properties:
+            senderEmail: { type: string, format: email }
+            composeKey: { type: string, minLength: 16, maxLength: 100 }
+            urls:
+              type: array
+              maxItems: 100
+              items: { type: string, maxLength: 2000 }
+    NativeTracking:
+      type: object
+      required: [messageId, pixelUrl, markerUrl, links]
+      properties:
+        messageId: { type: string }
+        pixelUrl: { type: [string, "null"] }
+        markerUrl: { type: string }
+        links:
+          type: array
+          items: { $ref: "#/components/schemas/NativeLink" }
+    NativeLink:
+      type: object
+      required: [url, trackingUrl]
+      properties:
+        url: { type: string }
+        trackingUrl: { type: string }
+    NativeSync:
+      type: object
+      required: [confirmed, pending]
+      properties:
+        confirmed: { type: integer }
+        pending: { type: integer }
     ActionResult:
       type: object
       required: [ok]
@@ -186,6 +243,7 @@ components:
         lastActivityAt: { type: [string, "null"] }
         starred: { type: boolean }
         isDemo: { type: boolean }
+        deliverySource: { type: string, enum: [web, gmail] }
     MessageDetail:
       type: object
       required: [message, events, links]

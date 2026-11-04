@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useClerk, useUser } from '@clerk/react';
-import { LayoutGrid, Mail, Radio, Settings2, LogOut, LogIn, Menu, X } from 'lucide-react';
+import { LayoutGrid, Mail, Radio, Settings2, Puzzle, LogOut, LogIn, Menu, X } from 'lucide-react';
 import { useListActivity, useGetSettings, useGetOverview, getListActivityQueryKey, getGetOverviewQueryKey } from '@workspace/api-client-react';
 import { cn } from '@/lib/utils';
 import { basePath, usePoll, useSession } from '@/lib/glyph';
@@ -41,6 +41,7 @@ function AlertWatcher() {
 
 const nav = [
   { href: '/app', label: 'Signals', icon: LayoutGrid, publicHref: '/' },
+  { href: '/gmail', label: 'Gmail', icon: Puzzle },
   { href: '/emails', label: 'Emails', icon: Mail },
   { href: '/activity', label: 'Activity', icon: Radio, badge: true },
   { href: '/settings', label: 'Settings', icon: Settings2 },

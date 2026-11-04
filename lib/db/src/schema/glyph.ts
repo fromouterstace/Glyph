@@ -1,4 +1,4 @@
-import { pgTable, text, boolean, timestamp, integer, index } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, timestamp, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 export const glyphMessages = pgTable("glyph_messages", {
@@ -14,9 +14,11 @@ export const glyphMessages = pgTable("glyph_messages", {
   pixelToken: text("pixel_token").notNull().unique(),
   gmailId: text("gmail_id"),
   rfcMessageId: text("rfc_message_id").notNull(),
+  deliverySource: text("delivery_source").notNull().default("web"),
+  nativeComposeKey: text("native_compose_key"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   sentAt: timestamp("sent_at", { withTimezone: true }),
-}, (t) => [index("glyph_messages_owner_idx").on(t.ownerId)]);
+}, (t) => [index("glyph_messages_owner_idx").on(t.ownerId), uniqueIndex("glyph_native_compose_idx").on(t.ownerId, t.nativeComposeKey)]);
 
 export const glyphLinks = pgTable("glyph_links", {
   id: text("id").primaryKey(),

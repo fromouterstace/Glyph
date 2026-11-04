@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import { Link } from 'wouter';
-import { ArrowUpRight, PenLine, MousePointerClick, Eye, Bot } from 'lucide-react';
+import { ArrowUpRight, Download, MousePointerClick, Eye, Bot } from 'lucide-react';
 import {
   useGetOverview,
   useListActivity,
@@ -11,7 +10,7 @@ import {
 } from '@workspace/api-client-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, Caveat, DailyBars, DemoTag, EmptyState, ErrorState, Stat, StatusPill } from '@/components/bits';
-import { ComposeDialog } from '@/components/compose-dialog';
+import { GMAIL_URL, SyncGmailButton } from '@/components/gmail-sync';
 import { ago, errorText, pct, usePoll, useSession } from '@/lib/glyph';
 import { cn } from '@/lib/utils';
 
@@ -22,7 +21,6 @@ export default function Dashboard() {
   const act = useListActivity({ query: { refetchInterval: poll, queryKey: getListActivityQueryKey() } });
   const msgs = useListMessages();
   const conn = useGetConnection();
-  const [compose, setCompose] = useState(false);
   const o = ov.data;
   const isDemo = o?.isDemo ?? !isSignedIn;
   const empty = o && !o.isDemo && o.totalSent === 0 && (msgs.data?.length ?? 0) === 0;
@@ -39,14 +37,16 @@ export default function Dashboard() {
             {isSignedIn ? 'What your emails did next.' : <>See what happened<br />after you hit Send.</>}
           </h1>
           <p className="mt-4 max-w-xl text-sm text-muted-foreground md:text-base">
-            Glyph drops a tiny tracking pixel and wraps your links, then turns what comes back into signals you can act on. Honest ones: a signal means an image loaded or a link resolved, never a guaranteed read.
+            Write in Gmail as usual. The Glyph extension drops a tiny pixel and wraps your links in the draft, then this dashboard turns what comes back into signals you can act on. Honest ones: a signal means an image loaded or a link resolved, never a guaranteed read.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {isSignedIn ? (
-            <button data-testid="button-compose" onClick={() => setCompose(true)} className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-transform hover:bg-primary/90 active:scale-[0.98]">
-              <PenLine className="size-4" /> New tracked email
-            </button>
+            <>
+              <Link href="/gmail" data-testid="link-install-gmail" className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-transform hover:bg-primary/90 active:scale-[0.98]"><Download className="size-4" /> Install for Gmail</Link>
+              <a href={GMAIL_URL} target="_blank" rel="noreferrer" data-testid="link-open-gmail-hero" className="inline-flex items-center gap-2 rounded-sm border border-border bg-card px-4 py-2.5 text-sm font-medium hover:border-foreground/40">Open Gmail <ArrowUpRight className="size-4" /></a>
+              <SyncGmailButton className="py-2.5" />
+            </>
           ) : (
             <>
               <Link href="/sign-in" data-testid="link-signin-hero" className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Sign in with Gmail owner</Link>
@@ -73,7 +73,7 @@ export default function Dashboard() {
             ))
           ) : (
             <>
-              <Stat label="Sent" value={o.totalSent} hint="through Gmail" />
+              <Stat label="Sent" value={o.totalSent} hint="confirmed in Gmail" />
               <Stat label="Open signals" value={o.totalOpens} hint="pixel loads" delay={40} />
               <Stat label="Click signals" value={o.totalClicks} hint="link redirects" delay={80} />
               <Stat label="Open-signal rate" value={pct(o.openRate)} accent delay={120} hint="of tracked sends" />
@@ -87,11 +87,11 @@ export default function Dashboard() {
         <div className="border border-border bg-card">
           <EmptyState
             title="Nothing sent yet. That's honest."
-            body={<>Your live dashboard starts empty, no seeded events. Write one email to one person; when their client loads the glyph or they click a link, it lands here within seconds.</>}
-            action={<button data-testid="button-compose-empty" onClick={() => setCompose(true)} className="mt-2 rounded-sm bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Write the first one</button>}
+            body={<>Your live dashboard starts empty, no seeded events. Install the Gmail extension, compose to one person in Gmail, click Add glyph, and send with Gmail. Once the send shows up in your Sent folder, signals land here.</>}
+            action={<div className="mt-2 flex flex-wrap justify-center gap-2"><Link href="/gmail" data-testid="link-install-empty" className="rounded-sm bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Install for Gmail</Link><a href={GMAIL_URL} target="_blank" rel="noreferrer" className="rounded-sm border border-border px-4 py-2 text-sm font-medium">Open Gmail</a></div>}
           />
           <ol className="grid border-t border-border text-sm md:grid-cols-3">
-            {['Sign in with the email that owns the connected Gmail.', 'Publish the app so tracking links outlive preview URLs.', 'Compose, review the recipient, then send.'].map((s, i) => (
+            {['Load the unpacked extension in Chrome or Edge and connect it to this origin.', 'Sign in on the connection tab with the email that owns your Gmail.', 'In Gmail: one To recipient, Add glyph, then Gmail Send.'].map((s, i) => (
               <li key={i} className="flex gap-3 border-b border-border p-4 md:border-b-0 md:border-r last:border-r-0">
                 <span className="font-mono text-xs text-primary">0{i + 1}</span>{s}
               </li>
@@ -171,7 +171,6 @@ export default function Dashboard() {
         <strong>How to read these numbers.</strong> Apple Mail Privacy Protection and Gmail's image proxy can preload or cache the pixel, inflating or hiding opens. Security scanners can follow links before a human does; those are flagged as automated in Activity. Replies and bounces aren't tracked.
       </Caveat>
 
-      <ComposeDialog open={compose} onOpenChange={setCompose} />
     </div>
   );
 }

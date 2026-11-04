@@ -11,6 +11,7 @@ export function publicMessage(message: GlyphMessage, events: GlyphEvent[]) {
     opens: signals.filter((e) => e.type === "open" && !e.automated).length,
     clicks: signals.filter((e) => e.type === "click" && !e.automated).length,
     lastActivityAt: (signals[0]?.occurredAt.toISOString() ?? null) as string | null, starred: false, isDemo: false,
+    deliverySource: message.deliverySource as "web" | "gmail",
   };
 }
 
@@ -70,7 +71,7 @@ export function demoData() {
     body: `Hi ${recipientName.split(" ")[0]},\n\nThanks for the conversation earlier. I thought you might like a closer look at what we’re building.\n\nHere’s an overview: https://example.com/overview\n\nWould you have 15 minutes this week to catch up?\n\nBest,\nThe Glyph team`,
     trackOpens: true, trackClicks: true, status: "sent" as const,
     createdAt: ago(minutes + 60), sentAt: ago(minutes), opens, clicks,
-    lastActivityAt: opens ? ago(Math.max(2, minutes - 20)) : null, starred: false, isDemo: true,
+    lastActivityAt: opens ? ago(Math.max(2, minutes - 20)) : null, starred: false, isDemo: true, deliverySource: "web" as const,
   }));
   const events = messages.flatMap((m, i) => {
     const base = { messageId: m.id, recipientName: m.recipientName, recipientEmail: m.recipientEmail, subject: m.subject,

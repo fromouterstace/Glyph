@@ -1,0 +1,85 @@
+import { useState, type ReactNode } from 'react';
+import { Link } from 'wouter';
+import { Download, Copy, Check, ArrowUpRight, CheckCircle2, CircleSlash } from 'lucide-react';
+import { useGetConnection, getGetConnectionQueryKey } from '@workspace/api-client-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Caveat, SectionHead } from '@/components/bits';
+import { GMAIL_URL, SyncGmailButton } from '@/components/gmail-sync';
+import { useSession } from '@/lib/glyph';
+
+const zipUrl = `${import.meta.env.BASE_URL}glyph-extension.zip`;
+
+export default function GmailPage() {
+  const { isSignedIn } = useSession();
+  const c = useGetConnection({ query: { enabled: isSignedIn, queryKey: getGetConnectionQueryKey() } });
+  const origin = window.location.origin;
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(origin); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* ignore */ }
+  };
+
+  const steps: { t: string; d: ReactNode }[] = [
+    { t: 'Download and extract', d: <>Get the ZIP below and extract it. You will get a folder named <code className="font-mono">glyph-extension</code>.</> },
+    { t: 'Enable Developer mode', d: <>Open <code className="font-mono">chrome://extensions</code> or <code className="font-mono">edge://extensions</code> and switch on Developer mode.</> },
+    { t: 'Load unpacked', d: <>Click Load unpacked and choose the extracted <code className="font-mono">glyph-extension</code> folder. Pin the extension to your toolbar.</> },
+    { t: 'Connect to this Glyph', d: <>Open the extension popup, paste the origin below, then click Connect.
+      <span className="mt-2 flex items-center gap-2 rounded-sm border border-border bg-background px-3 py-2">
+        <code className="min-w-0 flex-1 truncate font-mono text-xs" data-testid="text-origin">{origin}</code>
+        <button type="button" onClick={copy} data-testid="button-copy-origin" className="inline-flex items-center gap-1 rounded-sm px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10">{copied ? <><Check className="size-3" /> Copied</> : <><Copy className="size-3" /> Copy</>}</button>
+      </span></> },
+    { t: 'Sign in on the connection tab', d: <>A Glyph connection tab opens. Sign in with the verified email that matches your Gmail. Keep that tab open; it can sit in the background while the extension works.</> },
+    { t: 'Compose in Gmail', d: <>Reload Gmail. Compose to exactly one To recipient, no CC or BCC. Click Add glyph in the compose window, then send with Gmail's own Send button or Ctrl/Cmd+Enter.</> },
+  ];
+
+  return (
+    <div className="max-w-4xl space-y-8">
+      <SectionHead kicker="Native Gmail" title="Track from inside Gmail." right={
+        <div className="flex flex-wrap gap-2">
+          <a href={zipUrl} download data-testid="link-download-extension" className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"><Download className="size-4" /> Download extension</a>
+          <a href={GMAIL_URL} target="_blank" rel="noreferrer" data-testid="link-open-gmail" className="inline-flex items-center gap-2 rounded-sm border border-border bg-card px-4 py-2.5 text-sm font-medium hover:border-foreground/40">Open Gmail <ArrowUpRight className="size-4" /></a>
+        </div>
+      } />
+      <p className="max-w-2xl text-sm text-muted-foreground">Write in Gmail like you always do. The Glyph extension adds a pixel and wraps links in the draft only when you click Add glyph. It never sends through the API and never intercepts Send. Glyph stays here as your reporting and connection companion.</p>
+
+      {isSignedIn && (
+        <section className="border border-border bg-card p-5" data-testid="section-linked-mailbox">
+          {c.isLoading ? <Skeleton className="h-12" /> : c.data && (
+            <div className="flex flex-wrap items-center gap-4">
+              <span className={`flex size-10 items-center justify-center rounded-sm ${c.data.authorized ? 'bg-accent text-accent-foreground' : 'bg-secondary text-muted-foreground'}`}>{c.data.authorized ? <CheckCircle2 className="size-5" /> : <CircleSlash className="size-5" />}</span>
+              <div className="min-w-0 flex-1 text-sm">
+                <div className="font-medium">{c.data.authorized ? 'Linked mailbox' : 'Mailbox does not match this account'}</div>
+                {c.data.email && <div className="font-mono text-xs">{c.data.email}</div>}
+                {!c.data.authorized && <p className="text-xs text-muted-foreground">{c.data.message}</p>}
+              </div>
+              <SyncGmailButton />
+            </div>
+          )}
+        </section>
+      )}
+
+      <ol className="border-l border-t border-border bg-card">
+        {steps.map((s, i) => (
+          <li key={i} className="grid grid-cols-[48px_1fr] border-b border-r border-border" data-testid={`step-${i + 1}`}>
+            <span className="border-r border-border p-4 font-mono text-xs text-primary">0{i + 1}</span>
+            <div className="p-4"><div className="font-display text-base font-bold">{s.t}</div><div className="mt-1 text-sm text-muted-foreground">{s.d}</div></div>
+          </li>
+        ))}
+      </ol>
+
+      <section className="grid gap-px border border-border bg-border text-sm md:grid-cols-2">
+        {[
+          ['When is it sent?', 'A native draft becomes sent only after Glyph finds its marker in your Gmail Sent folder. Until then it stays Awaiting Gmail send. Use Sync Gmail status to check now.'],
+          ['Notifications', 'The extension raises browser notifications for opens and clicks while the browser and the connection tab are running.'],
+          ['Where it works', 'Desktop Chrome and Edge only. Gmail DOM integration is experimental and may break when Gmail changes its layout.'],
+          ['Plain-text mode', 'Gmail plain-text compose cannot carry a pixel or wrapped links, so those messages are not tracked.'],
+        ].map(([k, v]) => (
+          <div key={k} className="bg-card p-5"><div className="font-mono text-[10px] uppercase tracking-wider text-primary">{k}</div><p className="mt-2 text-muted-foreground">{v}</p></div>
+        ))}
+      </section>
+
+      <Caveat>
+        <strong>Developer build, not a store listing.</strong> This is a local unpacked extension, not published on the Chrome Web Store. Long-term it needs a stable published origin; a preview URL works temporarily with a preview session and will break when it changes. {!isSignedIn && <Link href="/sign-in" className="font-semibold text-primary hover:underline">Sign in to connect.</Link>}
+      </Caveat>
+    </div>
+  );
+}

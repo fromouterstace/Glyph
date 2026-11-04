@@ -2,6 +2,7 @@ import { Router } from "express";
 import { createHash, randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db, glyphEvents, glyphLinks, glyphMessages } from "@workspace/db";
+import { syncNative } from "../lib/gmail-native";
 
 const router = Router();
 const transparentGif = Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64");
@@ -23,7 +24,17 @@ router.get("/glyph/t/:token", async (req, res): Promise<void> => {
     try {
       const token = String(req.params.token).replace(/\.gif$/, "");
       if (/^[a-f0-9]{48}$/.test(token)) {
-        const [message] = await db.select().from(glyphMessages).where(eq(glyphMessages.pixelToken, token));
+        let [message] = await db.select().from(glyphMessages).where(eq(glyphMessages.pixelToken, token));
+        // A directly embedded compose image is fetched by the sender's browser.
+        // Do not count that as recipient engagement or scan Sent unnecessarily.
+        const composeReferrer = /^https:\/\/mail\.google\.com(?:\/|$)/.test(req.get("referer") ?? "");
+        if (message?.deliverySource === "gmail" && message.status === "draft" && composeReferrer) {
+          res.send(transparentGif); return;
+        }
+        if (message?.deliverySource === "gmail" && message.status === "draft") {
+          await syncNative(message.ownerId, true);
+          [message] = await db.select().from(glyphMessages).where(eq(glyphMessages.pixelToken, token));
+        }
         if (message?.trackOpens && ["sent", "sending", "uncertain"].includes(message.status))
           await recordSignal(message.id, token, "open", req.get("user-agent") ?? "", null);
       }
@@ -38,10 +49,20 @@ router.get("/glyph/l/:token", async (req, res): Promise<void> => {
   if (!/^[a-f0-9]{48}$/.test(token)) { res.status(404).send("Link not found"); return; }
   const [row] = await db.select({ link: glyphLinks, message: glyphMessages }).from(glyphLinks)
     .innerJoin(glyphMessages, eq(glyphLinks.messageId, glyphMessages.id)).where(eq(glyphLinks.token, token));
-  if (!row || !["sent", "sending", "uncertain"].includes(row.message.status)) { res.status(404).send("Link not found"); return; }
+  if (!row) { res.status(404).send("Link not found"); return; }
+  if (row.message.deliverySource === "gmail" && row.message.status === "draft") {
+    try {
+      await syncNative(row.message.ownerId, true);
+      const [current] = await db.select().from(glyphMessages).where(eq(glyphMessages.id, row.message.id));
+      row.message = current;
+    } catch (err) { req.log.warn({ err }, "Native send verification deferred"); }
+  }
+  const canRecord = ["sent", "sending", "uncertain"].includes(row.message.status);
+  // Links must still work during Gmail's Undo Send delay or while confirmation is pending.
+  if (!canRecord && row.message.deliverySource !== "gmail") { res.status(404).send("Link not found"); return; }
   const url = new URL(row.link.url);
   if (!["https:", "http:"].includes(url.protocol)) { res.status(400).send("Invalid link"); return; }
-  if (req.method !== "HEAD" && row.message.trackClicks) {
+  if (req.method !== "HEAD" && canRecord && row.message.trackClicks) {
     try { await recordSignal(row.message.id, token, "click", req.get("user-agent") ?? "", row.link.url); }
     catch (err) { req.log.warn({ err }, "Click signal could not be recorded"); }
   }

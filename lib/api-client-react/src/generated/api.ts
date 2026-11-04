@@ -33,6 +33,9 @@ import type {
   Message,
   MessageDetail,
   MessageInput,
+  NativeMessageInput,
+  NativeSync,
+  NativeTracking,
   Overview,
   Settings,
   SettingsInput
@@ -64,6 +67,156 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getPrepareNativeMessageUrl = () => {
+
+
+
+
+  return `/api/glyph/native/prepare`
+}
+
+export const prepareNativeMessage = async (nativeMessageInput: NativeMessageInput, options?: Parameters<typeof customFetch>[1]): Promise<NativeTracking> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<NativeTracking>(getPrepareNativeMessageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(nativeMessageInput)
+  }
+);}
+
+
+
+
+
+export const getPrepareNativeMessageMutationKey = () => ['prepareNativeMessage'] as const;
+
+export const getPrepareNativeMessageMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof prepareNativeMessage>>, TError,PrepareNativeMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof prepareNativeMessage>>, TError,PrepareNativeMessageMutationVariables, TContext> => {
+
+const mutationKey = getPrepareNativeMessageMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof prepareNativeMessage>>, PrepareNativeMessageMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  prepareNativeMessage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PrepareNativeMessageMutationResult = NonNullable<Awaited<ReturnType<typeof prepareNativeMessage>>>
+    export type PrepareNativeMessageMutationBody = BodyType<NativeMessageInput>
+    export type PrepareNativeMessageMutationError = ErrorType<unknown>
+    export type PrepareNativeMessageMutationVariables = {data: BodyType<NativeMessageInput>}
+
+    export const usePrepareNativeMessage = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof prepareNativeMessage>>, TError,PrepareNativeMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof prepareNativeMessage>>,
+        TError,
+        PrepareNativeMessageMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPrepareNativeMessageMutationOptions(options), queryClient);
+    }
+
+export const getSyncNativeMessagesUrl = () => {
+
+
+
+
+  return `/api/glyph/native/sync`
+}
+
+export const syncNativeMessages = async ( options?: Parameters<typeof customFetch>[1]): Promise<NativeSync> => {
+
+  return customFetch<NativeSync>(getSyncNativeMessagesUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getSyncNativeMessagesMutationKey = () => ['syncNativeMessages'] as const;
+
+export const getSyncNativeMessagesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncNativeMessages>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof syncNativeMessages>>, TError,void, TContext> => {
+
+const mutationKey = getSyncNativeMessagesMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncNativeMessages>>, void> = () => {
+
+
+          return  syncNativeMessages(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SyncNativeMessagesMutationResult = NonNullable<Awaited<ReturnType<typeof syncNativeMessages>>>
+
+    export type SyncNativeMessagesMutationError = ErrorType<unknown>
+
+
+    export const useSyncNativeMessages = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncNativeMessages>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof syncNativeMessages>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getSyncNativeMessagesMutationOptions(options), queryClient);
+    }
 
 export const getGetOverviewUrl = () => {
 

@@ -39,17 +39,21 @@ Gmail-connected sales email tracking: a glyph is the tracking pixel; tracked lin
 
 ## Product
 
-Compose, save, edit, and delete unsent drafts; explicitly confirm and send through Gmail; track image requests and link redirects; view engagement history and notification preferences. This is a web composer connected to Gmail, not a Gmail browser extension. Image caching, proxies, and security scanning make engagement approximate, not guaranteed read receipts.
+The primary product is a desktop Gmail browser extension. Its Add glyph control augments Gmail's own rich-text compose; Gmail still handles Send and keyboard shortcuts. The web app is the reporting, installation and connection companion. A legacy web composer remains secondary. Image caching, proxies, and security scanning make engagement approximate, not guaranteed read receipts.
 
 ## User preferences
 
 The product is called Glyph; “glyph” is the name of its tracking pixel.
+The user clarified: "It should be native to gmail in the browser." Prioritize Gmail-native workflows over a separate composer.
 
 ## Gotchas
 
 - Use a durable published HTTPS origin for reliable external tracking. Blank tracking origin uses the current browser origin, which is temporary in preview.
 - Do not seed live mailbox data or send test emails without the user's explicit confirmation of recipient and content.
-- Notifications are in-app/browser while the app is running; offline email/push delivery and reply/bounce detection are not implemented.
+- Native extension source is in `extensions/glyph-gmail`; `node extensions/build.mjs` produces the downloadable ZIP at web app predev/prebuild time. Generated PNG icons and ZIP need not be committed.
+- The extension asks for optional access only to the selected Glyph origin, then uses an open signed-in Glyph tab as a same-origin cookie-auth bridge. No long-lived app/Gmail credentials are copied into the extension. Keep the tab open for preparation and notifications.
+- Native messages start as pending drafts and are confirmed only by marker verification in Gmail Sent, never by a Send click. Sync scans the last 25 sent messages in seven days; use promptly. Never send native drafts through the API.
+- Browser notifications operate while browser/connection tab are running; offline email/push delivery and reply/bounce detection are not implemented.
 
 ## Pointers
 
