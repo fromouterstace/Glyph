@@ -1,0 +1,1 @@
+- [Email tracking accuracy](email-tracking-accuracy.md) — engagement signals must not be presented as verified reading or recipient identity.

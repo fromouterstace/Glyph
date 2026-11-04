@@ -11,6 +11,132 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /glyph/overview:
+    get:
+      operationId: getOverview
+      responses:
+        "200":
+          description: Engagement overview, anonymous requests return labeled sample data
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Overview" }
+  /glyph/messages:
+    get:
+      operationId: listMessages
+      parameters:
+        - { name: search, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Message" }
+    post:
+      operationId: createMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MessageInput" }
+      responses:
+        "201":
+          description: Draft saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+  /glyph/messages/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getMessage
+      responses:
+        "200":
+          description: Message detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageDetail" }
+    patch:
+      operationId: updateMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MessageInput" }
+      responses:
+        "200":
+          description: Draft updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+    delete:
+      operationId: deleteMessage
+      responses:
+        "204": { description: Draft deleted }
+  /glyph/messages/{id}/send:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: sendMessage
+      responses:
+        "200":
+          description: Message sent through Gmail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+  /glyph/activity:
+    get:
+      operationId: listActivity
+      responses:
+        "200":
+          description: Most recent engagement signals
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Activity" }
+  /glyph/activity/read:
+    post:
+      operationId: markActivityRead
+      responses:
+        "200":
+          description: Activity marked read
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ActionResult" }
+  /glyph/settings:
+    get:
+      operationId: getSettings
+      responses:
+        "200":
+          description: Preferences
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Settings" }
+    patch:
+      operationId: updateSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SettingsInput" }
+      responses:
+        "200":
+          description: Preferences saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Settings" }
+  /glyph/connection:
+    get:
+      operationId: getConnection
+      responses:
+        "200":
+          description: Gmail connection; mailbox ownership verified before access
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Connection" }
   /healthz:
     get:
       operationId: healthCheck
@@ -26,6 +152,120 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    ActionResult:
+      type: object
+      required: [ok]
+      properties:
+        ok: { type: boolean }
+    MessageInput:
+      type: object
+      required: [recipientEmail, recipientName, subject, body, trackOpens, trackClicks]
+      properties:
+        recipientEmail: { type: string, format: email, maxLength: 254 }
+        recipientName: { type: string, maxLength: 120 }
+        subject: { type: string, minLength: 1, maxLength: 200 }
+        body: { type: string, minLength: 1, maxLength: 50000 }
+        trackOpens: { type: boolean }
+        trackClicks: { type: boolean }
+    Message:
+      type: object
+      required: [id, recipientEmail, recipientName, subject, body, trackOpens, trackClicks, status, createdAt, sentAt, opens, clicks, lastActivityAt, starred, isDemo]
+      properties:
+        id: { type: string }
+        recipientEmail: { type: string }
+        recipientName: { type: string }
+        subject: { type: string }
+        body: { type: string }
+        trackOpens: { type: boolean }
+        trackClicks: { type: boolean }
+        status: { type: string, enum: [draft, sending, sent, failed, uncertain] }
+        createdAt: { type: string }
+        sentAt: { type: [string, "null"] }
+        opens: { type: integer }
+        clicks: { type: integer }
+        lastActivityAt: { type: [string, "null"] }
+        starred: { type: boolean }
+        isDemo: { type: boolean }
+    MessageDetail:
+      type: object
+      required: [message, events, links]
+      properties:
+        message: { $ref: "#/components/schemas/Message" }
+        events:
+          type: array
+          items: { $ref: "#/components/schemas/Activity" }
+        links:
+          type: array
+          items: { $ref: "#/components/schemas/TrackedLink" }
+    TrackedLink:
+      type: object
+      required: [id, url, clicks]
+      properties:
+        id: { type: string }
+        url: { type: string }
+        clicks: { type: integer }
+    Activity:
+      type: object
+      required: [id, messageId, recipientName, recipientEmail, subject, type, occurredAt, url, automated, source, read, isDemo]
+      properties:
+        id: { type: string }
+        messageId: { type: string }
+        recipientName: { type: string }
+        recipientEmail: { type: string }
+        subject: { type: string }
+        type: { type: string, enum: [open, click, sent] }
+        occurredAt: { type: string }
+        url: { type: [string, "null"] }
+        automated: { type: boolean }
+        source: { type: string }
+        read: { type: boolean }
+        isDemo: { type: boolean }
+    Overview:
+      type: object
+      required: [isDemo, totalSent, totalOpens, totalClicks, openRate, clickRate, unreadCount, daily]
+      properties:
+        isDemo: { type: boolean }
+        totalSent: { type: integer }
+        totalOpens: { type: integer }
+        totalClicks: { type: integer }
+        openRate: { type: number }
+        clickRate: { type: number }
+        unreadCount: { type: integer }
+        daily:
+          type: array
+          items: { $ref: "#/components/schemas/DailyStat" }
+    DailyStat:
+      type: object
+      required: [date, sent, opens, clicks]
+      properties:
+        date: { type: string }
+        sent: { type: integer }
+        opens: { type: integer }
+        clicks: { type: integer }
+    SettingsInput:
+      type: object
+      required: [notifyOpens, notifyClicks, defaultTrackOpens, defaultTrackClicks, trackingBaseUrl]
+      properties:
+        notifyOpens: { type: boolean }
+        notifyClicks: { type: boolean }
+        defaultTrackOpens: { type: boolean }
+        defaultTrackClicks: { type: boolean }
+        trackingBaseUrl: { type: string, maxLength: 500 }
+    Settings:
+      allOf:
+        - { $ref: "#/components/schemas/SettingsInput" }
+        - type: object
+          required: [isDemo]
+          properties:
+            isDemo: { type: boolean }
+    Connection:
+      type: object
+      required: [connected, email, authorized, message]
+      properties:
+        connected: { type: boolean }
+        authorized: { type: boolean }
+        email: { type: [string, "null"] }
+        message: { type: string }
     HealthStatus:
       type: object
       properties:

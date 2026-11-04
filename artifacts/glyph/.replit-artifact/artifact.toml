@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Glyph"
+description = "Gmail sales email tracking with glyph pixels, tracked links, engagement activity and sender alerts."
+version = "1.0.0"
+id = "artifacts/glyph"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26253
+
+[services.development]
+run = "pnpm --filter @workspace/glyph run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/glyph", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/glyph/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26253"
+BASE_PATH = "/"
