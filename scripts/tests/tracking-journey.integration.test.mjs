@@ -53,6 +53,46 @@ for (const source of ['web', 'gmail']) {
   });
 }
 
+test('native draft pixel bursts use one durable reconciliation slot and preserve responses', async () => {
+  const owner = h.identity();
+  const message = await messageFixture(h.sql, {
+    ownerId: owner,
+    source: 'gmail',
+    status: 'draft',
+  });
+  const callsBefore = edge.proxy.mock.calls.length;
+  const responses = await Promise.all(
+    Array.from({ length: 8 }, () => h.request(`/t/${message.token}.gif`)),
+  );
+  expect(responses.every((response) => response.status === 200)).toBe(true);
+  await Promise.all(responses.map((response) => response.arrayBuffer()));
+  expect(
+    (
+      await h.sql(
+        'SELECT window_count, day_count FROM glyph_tracking_budgets WHERE message_id=$1 AND kind=$2',
+        [message.id, 'reconcile'],
+      )
+    ).rows,
+  ).toEqual([{ window_count: 1, day_count: 1 }]);
+  expect(
+    edge.proxy.mock.calls
+      .slice(callsBefore)
+      .filter(([, path]) => path.includes('/messages?')).length,
+  ).toBeLessThanOrEqual(1);
+
+  const linkToken = fixtureId().replaceAll('-', '').padStart(48, '0');
+  await h.sql(
+    'INSERT INTO glyph_links(id,message_id,token,url) VALUES ($1,$2,$3,$4)',
+    [fixtureId(), message.id, linkToken, 'https://example.invalid/proposal'],
+  );
+  const redirect = await h.request(`/l/${linkToken}`, { redirect: 'manual' });
+  expect([redirect.status, redirect.headers.get('location')]).toEqual([
+    302,
+    'https://example.invalid/proposal',
+  ]);
+  expect(edge.proxy.mock.calls.length).toBeLessThanOrEqual(callsBefore + 2);
+});
+
 function reply(id, original, sentAt, sender = 'recipient@example.invalid') {
   return {
     id,

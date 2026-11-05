@@ -1,10 +1,11 @@
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { db, glyphEvents, glyphLinks, glyphMessages } from '@workspace/db';
 import { syncNative } from '../lib/gmail-native';
 import { transparentGif } from '../lib/tracking-pixel';
 import { logSafeError } from '../lib/logger';
+import { consumeTrackingBudget } from '../lib/tracking-budget';
 
 const router = Router();
 
@@ -13,7 +14,7 @@ async function recordSignal(
   type: 'open' | 'click',
   agent: string,
   url: string | null,
-): Promise<void> {
+): Promise<boolean> {
   const automated =
     /bot|crawler|spider|scanner|safelinks|proofpoint|barracuda|mimecast|headless|preview/i.test(
       agent,
@@ -24,6 +25,7 @@ async function recordSignal(
     : proxy
       ? 'Google image proxy — open signal only'
       : 'Unverified client request';
+  if (!(await consumeTrackingBudget(messageId, type))) return false;
   const id = randomUUID();
   await db.insert(glyphEvents).values({
     id,
@@ -34,6 +36,7 @@ async function recordSignal(
     source,
     fingerprint: id,
   });
+  return true;
 }
 
 async function recordOpen(
@@ -44,8 +47,82 @@ async function recordOpen(
   if (!message.trackOpens) return 'tracking_disabled';
   if (!['sent', 'sending', 'uncertain'].includes(message.status))
     return 'send_not_confirmed';
-  await recordSignal(message.id, 'open', agent, null);
-  return 'recorded';
+  return (await recordSignal(message.id, 'open', agent, null))
+    ? 'recorded'
+    : 'event_budget_exceeded';
+}
+
+async function reconcileNativeDraft(
+  message: typeof glyphMessages.$inferSelect | undefined,
+  req: Request,
+) {
+  if (
+    !message ||
+    message.deliverySource !== 'gmail' ||
+    message.status !== 'draft'
+  )
+    return { message, limited: false, failed: false };
+  if (!(await consumeTrackingBudget(message.id, 'reconcile')))
+    return { message, limited: true, failed: false };
+  try {
+    await syncNative(message.ownerId, true);
+    const [current] = await db
+      .select()
+      .from(glyphMessages)
+      .where(eq(glyphMessages.id, message.id));
+    return { message: current ?? message, limited: false, failed: false };
+  } catch (err) {
+    logSafeError(req.log, err, 'Native send verification deferred', 'warn');
+    return { message, limited: false, failed: true };
+  }
+}
+
+async function processPixelRequest(req: Request): Promise<void> {
+  const token = String(req.params.token).replace(/\.gif$/, '');
+  if (!/^[a-f0-9]{48}$/.test(token)) return;
+  const [selected] = await db
+    .select()
+    .from(glyphMessages)
+    .where(eq(glyphMessages.pixelToken, token));
+  let message: typeof glyphMessages.$inferSelect | undefined = selected;
+  const composeReferrer = /^https:\/\/mail\.google\.com(?:\/|$)/.test(
+    req.get('referer') ?? '',
+  );
+  if (
+    message?.deliverySource === 'gmail' &&
+    message.status === 'draft' &&
+    composeReferrer
+  ) {
+    req.log.info(
+      { messageId: message.id, outcome: 'sender_compose_ignored' },
+      'Tracking pixel request',
+    );
+    return;
+  }
+  const reconciliation = await reconcileNativeDraft(message, req);
+  if (reconciliation.limited) {
+    req.log.info(
+      {
+        messageId: message?.id ?? null,
+        outcome: 'native_reconciliation_budget_exceeded',
+      },
+      'Tracking pixel request',
+    );
+    return;
+  }
+  if (reconciliation.failed) return;
+  message = reconciliation.message;
+  const outcome = await recordOpen(message, req.get('user-agent') ?? '');
+  req.log.info(
+    {
+      messageId: message?.id ?? null,
+      outcome,
+      googleImageProxy: /googleimageproxy|ggpht|google.*proxy/i.test(
+        req.get('user-agent') ?? '',
+      ),
+    },
+    'Tracking pixel request',
+  );
 }
 
 router.get('/glyph/t/:token', async (req, res): Promise<void> => {
@@ -58,48 +135,7 @@ router.get('/glyph/t/:token', async (req, res): Promise<void> => {
   });
   if (req.method !== 'HEAD') {
     try {
-      const token = String(req.params.token).replace(/\.gif$/, '');
-      if (/^[a-f0-9]{48}$/.test(token)) {
-        let [message] = await db
-          .select()
-          .from(glyphMessages)
-          .where(eq(glyphMessages.pixelToken, token));
-        // A directly embedded compose image is fetched by the sender's browser.
-        // Do not count that as recipient engagement or scan Sent unnecessarily.
-        const composeReferrer = /^https:\/\/mail\.google\.com(?:\/|$)/.test(
-          req.get('referer') ?? '',
-        );
-        if (
-          message?.deliverySource === 'gmail' &&
-          message.status === 'draft' &&
-          composeReferrer
-        ) {
-          req.log.info(
-            { messageId: message.id, outcome: 'sender_compose_ignored' },
-            'Tracking pixel request',
-          );
-          res.send(transparentGif);
-          return;
-        }
-        if (message?.deliverySource === 'gmail' && message.status === 'draft') {
-          await syncNative(message.ownerId, true);
-          [message] = await db
-            .select()
-            .from(glyphMessages)
-            .where(eq(glyphMessages.pixelToken, token));
-        }
-        const outcome = await recordOpen(message, req.get('user-agent') ?? '');
-        req.log.info(
-          {
-            messageId: message?.id ?? null,
-            outcome,
-            googleImageProxy: /googleimageproxy|ggpht|google.*proxy/i.test(
-              req.get('user-agent') ?? '',
-            ),
-          },
-          'Tracking pixel request',
-        );
-      }
+      await processPixelRequest(req);
     } catch (err) {
       logSafeError(req.log, err, 'Pixel signal could not be recorded', 'warn');
     }
@@ -127,21 +163,17 @@ router.get('/glyph/l/:token', async (req, res): Promise<void> => {
     res.status(404).send('Link not found');
     return;
   }
-  if (
-    req.method !== 'HEAD' &&
-    row.message.deliverySource === 'gmail' &&
-    row.message.status === 'draft'
-  ) {
-    try {
-      await syncNative(row.message.ownerId, true);
-      const [current] = await db
-        .select()
-        .from(glyphMessages)
-        .where(eq(glyphMessages.id, row.message.id));
-      if (current) row.message = current;
-    } catch (err) {
-      logSafeError(req.log, err, 'Native send verification deferred', 'warn');
-    }
+  if (req.method !== 'HEAD') {
+    const reconciliation = await reconcileNativeDraft(row.message, req);
+    row.message = reconciliation.message ?? row.message;
+    if (reconciliation.limited)
+      req.log.info(
+        {
+          messageId: row.message.id,
+          outcome: 'native_reconciliation_budget_exceeded',
+        },
+        'Tracking link request',
+      );
   }
   const canRecord = ['sent', 'sending', 'uncertain'].includes(
     row.message.status,
@@ -158,12 +190,17 @@ router.get('/glyph/l/:token', async (req, res): Promise<void> => {
   }
   if (req.method !== 'HEAD' && canRecord && row.message.trackClicks) {
     try {
-      await recordSignal(
+      const recorded = await recordSignal(
         row.message.id,
         'click',
         req.get('user-agent') ?? '',
         row.link.url,
       );
+      if (!recorded)
+        req.log.info(
+          { messageId: row.message.id, outcome: 'event_budget_exceeded' },
+          'Tracking link request',
+        );
     } catch (err) {
       logSafeError(req.log, err, 'Click signal could not be recorded', 'warn');
     }

@@ -3,10 +3,14 @@ import {
   text,
   boolean,
   timestamp,
+  integer,
   index,
   uniqueIndex,
+  primaryKey,
+  check,
 } from 'drizzle-orm/pg-core';
 import { createInsertSchema } from 'drizzle-zod';
+import { sql } from 'drizzle-orm';
 
 export const glyphMessages = pgTable(
   'glyph_messages',
@@ -68,6 +72,34 @@ export const glyphEvents = pgTable(
   (t) => [
     index('glyph_events_message_idx').on(t.messageId),
     index('glyph_events_time_idx').on(t.occurredAt),
+  ],
+);
+
+export const glyphTrackingBudgets = pgTable(
+  'glyph_tracking_budgets',
+  {
+    messageId: text('message_id')
+      .notNull()
+      .references(() => glyphMessages.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull(),
+    windowBucket: integer('window_bucket').notNull(),
+    windowCount: integer('window_count').notNull(),
+    dayBucket: integer('day_bucket').notNull(),
+    dayCount: integer('day_count').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.messageId, t.kind] }),
+    check(
+      'glyph_tracking_budgets_kind_check',
+      sql`${t.kind} in ('open', 'click', 'reconcile')`,
+    ),
+    check(
+      'glyph_tracking_budgets_counts_check',
+      sql`${t.windowCount} >= 1 and ${t.dayCount} >= 1`,
+    ),
   ],
 );
 

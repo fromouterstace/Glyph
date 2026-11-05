@@ -115,7 +115,9 @@ export default function ActivityPage() {
         follow-ups are skipped. Gmail sync scans only your 100 most recent
         received messages from the last 30 days. Pixel counts are measured image
         requests and are never inferred from replies. No signal here is a
-        guaranteed read.
+        guaranteed read. During exceptional request bursts, safety limits may
+        still serve an image or redirect without recording another event, so
+        counts can understate excess requests.
       </Caveat>
       <div className="flex flex-wrap gap-1">
         {FILTERS.map((x) => (

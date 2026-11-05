@@ -260,6 +260,15 @@ already installed extension or publish the setup-page changes.
 
 **Risk addressed:** SEC-03.
 
+**Workspace status (2026-11-05):** Implemented and burst-tested against the
+development PostgreSQL database. Atomic message-scoped budgets cap pixel events
+at 120 per fixed 60-second window and 2,000 per UTC day, click events at 300 per
+60-second window and 5,000 per UTC day, and Gmail Sent reconciliation at one
+check per 5-second window and 50 per message per UTC day. Throttled pixels still
+return the transparent image; throttled links still redirect; neither creates
+an extra event or provider check. The development schema was updated. Production
+schema/app and published-edge behavior have not been updated or verified.
+
 **Implementation**
 
 - Set a documented budget for tracking requests and expensive native Sent

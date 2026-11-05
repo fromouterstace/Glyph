@@ -39,13 +39,21 @@ product policy.
   event. It is **not** proof that a human opened or read a message, who fetched it,
   or how many distinct people saw it. Image proxies, caching, sender previews,
   forwarded mail, security scanners, and clients that block images affect results.
-- Count pixel requests, not inferred opens. Each eligible request is an event;
-  repeat loads are not silently collapsed into a unique-person count. A source may
-  be labeled as an image proxy or suspected automation, but source classification
-  is a request-metadata heuristic, not trustworthy identity verification.
+- Count pixel requests, not inferred opens. Each eligible request admitted by the
+  persisted safety budget is a separate event; repeat loads are not silently
+  collapsed into a unique-person count. A source may be labeled as an image proxy
+  or suspected automation, but source classification is a request-metadata
+  heuristic, not trustworthy identity verification.
 - A tracked-link signal means Glyph received a redirect request. Link scanners,
   previews, forwarding, and automation can generate it; it does not prove a
   recipient intentionally clicked.
+- Enforce message-scoped PostgreSQL budgets across API instances: pixel loads
+  120 per 60-second window and 2,000 per UTC day; clicks 300 per 60-second window
+  and 5,000 per UTC day; Gmail Sent reconciliation one request per 5-second
+  window and 50 per tracked message per UTC day. A rate-limited pixel still
+  returns the transparent image and a rate-limited link still redirects, but no
+  extra activity event is recorded and no extra Sent scan is triggered. High
+  volume bursts can therefore be undercounted; never label them as recorded.
 - Sent, pixel, click, reply, automated, held/uncertain, and failed are independent
   states/signals. Never infer a pixel open from a click, send, reply, or elapsed
   time. Never create or backfill opens to make the interface appear consistent.

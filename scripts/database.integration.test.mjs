@@ -14,6 +14,10 @@ import {
   messageFixture,
   fixtureId,
 } from './lib/database-fixture.mjs';
+import {
+  consumeTrackingBudget,
+  TRACKING_BUDGETS,
+} from '../artifacts/api-server/src/lib/tracking-budget.ts';
 
 let database, server, base;
 const logs = [];
@@ -95,6 +99,74 @@ test('repeated pixel loads are separate events, not deduplicated into one open',
   const message = await messageFixture(sql);
   await Promise.all([pixel(message), pixel(message)]);
   assert.equal(await count(message), 2);
+});
+
+test('a concurrent pixel burst is capped while every request still receives the image', async () => {
+  const message = await messageFixture(sql);
+  const requests = Array.from(
+    { length: TRACKING_BUDGETS.open.windowLimit + 8 },
+    () => pixel(message),
+  );
+  const responses = await Promise.all(requests);
+  assert.ok(responses.every((response) => response.status === 200));
+  await Promise.all(responses.map((response) => response.arrayBuffer()));
+  assert.equal(await count(message), TRACKING_BUDGETS.open.windowLimit);
+  assert.ok(
+    logs.some(
+      (entry) =>
+        entry.msg === 'Tracking pixel request' &&
+        entry.messageId === message.id &&
+        entry.outcome === 'event_budget_exceeded',
+    ),
+  );
+});
+
+test('a limited click still redirects and does not create an event', async () => {
+  const message = await messageFixture(sql);
+  const token = fixtureId().replaceAll('-', '').padStart(48, '0');
+  const destination = 'https://example.invalid/rate-limited';
+  await sql(
+    'INSERT INTO glyph_links(id,message_id,token,url) VALUES ($1,$2,$3,$4)',
+    [fixtureId(), message.id, token, destination],
+  );
+  const now = Date.now();
+  for (let i = 0; i < TRACKING_BUDGETS.click.windowLimit; i++)
+    assert.equal(await consumeTrackingBudget(message.id, 'click', now), true);
+  const response = await fetch(`${base}/api/glyph/l/${token}`, {
+    redirect: 'manual',
+  });
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get('location'), destination);
+  assert.equal(await count(message), 0);
+});
+
+test('concurrent budget admissions are atomic and recover at fixed-window boundaries', async () => {
+  const message = await messageFixture(sql);
+  const now = Date.UTC(2026, 0, 1);
+  const burst = await Promise.all(
+    Array.from({ length: 8 }, () =>
+      consumeTrackingBudget(message.id, 'reconcile', now),
+    ),
+  );
+  assert.equal(burst.filter(Boolean).length, 1);
+  for (let i = 1; i < TRACKING_BUDGETS.reconcile.dayLimit; i++)
+    assert.equal(
+      await consumeTrackingBudget(
+        message.id,
+        'reconcile',
+        now + i * TRACKING_BUDGETS.reconcile.windowSeconds * 1000,
+      ),
+      true,
+    );
+  const dayCapAt = now + TRACKING_BUDGETS.reconcile.dayLimit * 5000;
+  assert.equal(
+    await consumeTrackingBudget(message.id, 'reconcile', dayCapAt),
+    false,
+  );
+  assert.equal(
+    await consumeTrackingBudget(message.id, 'reconcile', now + 86_400_000),
+    true,
+  );
 });
 
 test('HEAD cannot manufacture a pixel-load event', async () => {
