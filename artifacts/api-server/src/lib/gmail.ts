@@ -7,8 +7,7 @@ import { createGmailReadGate } from './gmail-rate-limit';
 const connectors = new ReplitConnectors();
 const readGate = createGmailReadGate();
 let profileCache:
-  | { connectionId: string; email: string; until: number }
-  | undefined;
+  { connectionId: string; email: string; until: number } | undefined;
 const userCache = new Map<string, { authorized: boolean; until: number }>();
 const profileTtlMs = 15_000;
 let activeMailboxIdentity: string | undefined;
@@ -73,12 +72,14 @@ export async function mailboxContext(
   forceProfile = false,
 ): Promise<MailboxContext> {
   const connectionId = await activeGmailConnectionId();
+  const cachedProfile = profileCache;
   if (
     !forceProfile &&
-    profileCache?.until > Date.now() &&
-    profileCache.connectionId === connectionId
+    cachedProfile &&
+    cachedProfile.until > Date.now() &&
+    cachedProfile.connectionId === connectionId
   )
-    return observeMailboxIdentity(connectionId, profileCache.email);
+    return observeMailboxIdentity(connectionId, cachedProfile.email);
 
   try {
     const response = await gmailRequest('/profile');

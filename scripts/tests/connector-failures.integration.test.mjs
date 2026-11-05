@@ -129,7 +129,7 @@ test('mailbox authorization refreshes identity and separates account caches', as
 });
 
 test('unknown connector identity fails closed and clears cached ownership', async () => {
-  edge.proxy.mockResolvedValue(json({ emailAddress: mailbox }));
+  edge.proxy.mockImplementation(async () => json({ emailAddress: mailbox }));
   edge.getUser.mockResolvedValue({
     emailAddresses: [
       { emailAddress: mailbox, verification: { status: 'verified' } },

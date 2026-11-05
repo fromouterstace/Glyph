@@ -95,6 +95,13 @@ product policy.
   provider profile address to make the comparison; never disclose a mismatched
   mailbox or its message data. Do not let an arbitrary signed-in user send or
   inspect the connected mailbox. Dashboard records remain owner-scoped.
+- Treat a mailbox reconnect or account switch as an authorization boundary.
+  Revalidate the current Gmail connector identity and provider profile before
+  sensitive mailbox work; fail closed if either is unknown or changes during
+  verification. Scope authorization, Sent-candidate, and reply-metadata caches
+  to both the connector identity and mailbox identity. Never log or persist the
+  mailbox identity as operational diagnostic data, and never reuse cached
+  authorization or message metadata across identities.
 - Public tracking routes are intentionally unauthenticated so a recipient's mail
   client can fetch the pixel or redirect a tracked link. Accept only valid,
   high-entropy opaque tokens that resolve to the specific stored tracking record.

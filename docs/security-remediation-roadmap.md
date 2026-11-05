@@ -1,7 +1,7 @@
 # Glyph security remediation roadmap
 
-**Status:** Phases 1 and 2 are implemented and verified in the workspace; neither
-has been published or deployed.
+**Status:** Phases 1 and 2, and Phase 5's workspace implementation, are verified
+in the workspace; none of that work has been published or deployed.
 **Basis:** Manual security audit dated 2026-11-05  
 **Audience assumption:** The person implementing the work and anyone reviewing
 security priorities.  
@@ -330,6 +330,10 @@ separately authorized for production.
 ### 5. Bind authorization and sync caches to the active mailbox
 
 **Risk addressed:** SEC-04, conditional on connector account change.
+
+**Status:** Implemented and verified in the workspace on 2026-11-05. The
+controlled production reconnect/release gate remains outstanding; no live
+connector switch was performed.
 
 **Implementation**
 
