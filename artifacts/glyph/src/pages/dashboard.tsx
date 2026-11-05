@@ -252,13 +252,13 @@ export default function Dashboard() {
       <Caveat>
         <strong>How to read these numbers.</strong> Apple Mail Privacy
         Protection and Gmail's image proxy can preload or cache the pixel,
-        inflating or hiding pixel-load counts. Security scanners can follow links before a
-        human does; those are flagged as automated in Activity. Replies are
-        detected by standard Message-ID reference headers during Gmail sync,
-        from any recipient mail service, within your 100 most recent received
-        messages of the last 30 days. Pixel totals include measured image
-        requests only, never inferred reads from clicks or replies; 0 does not
-        mean unread. Bounces aren't tracked.
+        inflating or hiding pixel-load counts. Security scanners can follow
+        links before a human does; those are flagged as automated in Activity.
+        Replies are detected by standard Message-ID reference headers during
+        Gmail sync, from any recipient mail service, within your 100 most recent
+        received messages of the last 30 days. Pixel totals include measured
+        image requests only, never inferred reads from clicks or replies; 0 does
+        not mean unread. Bounces aren't tracked.
       </Caveat>
     </div>
   );

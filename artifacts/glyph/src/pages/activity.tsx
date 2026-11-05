@@ -111,15 +111,14 @@ export default function ActivityPage() {
         MPP) may load pixels without a human, and security scanners often
         request links seconds after delivery. Those are marked <em>auto</em>.
         Pixel and click signals are not attributed to an individual recipient.
-        <strong> Replies</strong> are matched by
-        standard In-Reply-To/References headers, so they work whatever mail
-        service the recipient uses; auto-replies, bounces and your own
-        follow-ups are skipped. Gmail sync scans only your 100 most recent
-        received messages from the last 30 days. Pixel counts are measured image
-        requests and are never inferred from replies. No signal here is a
-        guaranteed read. During exceptional request bursts, safety limits may
-        still serve an image or redirect without recording another event, so
-        counts can understate excess requests.
+        <strong>Replies</strong> are matched by standard In-Reply-To/References
+        headers, so they work whatever mail service the recipient uses;
+        auto-replies, bounces and your own follow-ups are skipped. Gmail sync
+        scans only your 100 most recent received messages from the last 30 days.
+        Pixel counts are measured image requests and are never inferred from
+        replies. No signal here is a guaranteed read. During exceptional request
+        bursts, safety limits may still serve an image or redirect without
+        recording another event, so counts can understate excess requests.
       </Caveat>
       <div className="flex flex-wrap gap-1">
         {FILTERS.map((x) => (
@@ -134,11 +133,7 @@ export default function ActivityPage() {
                 : 'text-muted-foreground hover:bg-muted',
             )}
           >
-            {x === 'human'
-              ? 'unflagged'
-              : x === 'open'
-                ? 'pixel loads'
-                : x}
+            {x === 'human' ? 'unflagged' : x === 'open' ? 'pixel loads' : x}
           </button>
         ))}
       </div>
