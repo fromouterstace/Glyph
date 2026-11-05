@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const send = async (action, extra = {}) => {
-  const response = await chrome.runtime.sendMessage({
+  const response = await globalThis.glyphMessaging.send({
     channel: 'glyph:background',
     action,
     ...extra,

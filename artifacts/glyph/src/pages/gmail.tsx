@@ -237,10 +237,11 @@ export default function GmailPage() {
         data-testid="section-update-extension"
       >
         <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
-          Already installed? Update to v0.3.0
+          Already installed? Update to v0.3.1
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
-          Required to block preview connections and mismatched tracking URLs.
+          Fixes stale extension messaging after updates and blocks preview
+          connections or mismatched tracking URLs.
         </p>
         <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm">
           <li>Download the new ZIP above and extract it.</li>
@@ -265,6 +266,15 @@ export default function GmailPage() {
           </li>
         </ol>
       </section>
+      <Caveat>
+        <strong>Extension updated while Gmail was open?</strong> Chrome can
+        invalidate the script in an existing Gmail tab. Wait until Gmail saves
+        your draft, then reload that Gmail tab. The new extension offers a
+        Reload Gmail action rather than displaying a sendMessage error. If the
+        problem continues, reload Glyph in chrome://extensions, reopen its
+        popup, and reconnect to the published app. No reload happens
+        automatically.
+      </Caveat>
       <section className="grid gap-px border border-border bg-border text-sm md:grid-cols-2">
         {[
           [

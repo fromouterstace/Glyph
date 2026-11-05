@@ -1,9 +1,21 @@
 (() => {
+  globalThis.glyphCompose?.dispose();
+  let disposed = false;
+  const cleanups = new Set();
+  const listen = (target, event, handler, options) => {
+    target.addEventListener(event, handler, options);
+    const cleanup = () => {
+      target.removeEventListener(event, handler, options);
+      cleanups.delete(cleanup);
+    };
+    cleanups.add(cleanup);
+    return cleanup;
+  };
   const states = new WeakMap();
   const live = new Set();
   const emailPattern = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
   const request = async (action, data) => {
-    const result = await chrome.runtime.sendMessage({
+    const result = await globalThis.glyphMessaging.send({
       channel: 'glyph:background',
       action,
       data,
@@ -14,6 +26,32 @@
       );
     return result.data;
   };
+  function showRecovery(
+    state,
+    error = globalThis.glyphMessaging.unavailable(),
+  ) {
+    if (state.disconnected || disposed) return;
+    state.disconnected = true;
+    if (state.attached) {
+      restore(state);
+      state.body.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    state.button.disabled = true;
+    state.recovery.hidden = false;
+    setStatus(state, error.message, true);
+  }
+  function preparationFailed(state, error) {
+    if (disposed) return;
+    if (state.changes.length) restore(state);
+    if (error.name === 'GlyphExtensionUnavailable') showRecovery(state, error);
+    else
+      setStatus(
+        state,
+        error.message ||
+          'Unable to prepare tracking. Your email has not been sent.',
+        true,
+      );
+  }
   function validEmail(value) {
     const address = String(value || '').trim();
     return emailPattern.test(address) ? address.toLowerCase() : null;
@@ -183,7 +221,7 @@
     }
   }
   async function apply(state) {
-    if (state.busy) return;
+    if (disposed || state.busy || state.disconnected) return;
     if (state.attached) {
       restore(state);
       setStatus(state, 'Glyph removed. Gmail Send is unchanged.');
@@ -229,7 +267,9 @@
         trackClicks: state.clicks.checked,
         urls: linkCandidates(state.body),
       });
-      if (!state.body.isConnected || before !== snapshot(state))
+      if (state.disconnected || !globalThis.glyphMessaging.available())
+        throw globalThis.glyphMessaging.unavailable();
+      if (disposed || !state.body.isConnected || before !== snapshot(state))
         throw new Error(
           'The draft changed while preparing. Click Add glyph again.',
         );
@@ -264,19 +304,15 @@
       state.button.textContent = 'Remove glyph';
       setStatus(state, `Glyph ready · ${to[0]} · use Gmail Send`);
     } catch (error) {
-      if (state.changes.length) restore(state);
-      setStatus(
-        state,
-        error.message ||
-          'Unable to prepare tracking. Your email has not been sent.',
-        true,
-      );
+      preparationFailed(state, error);
     } finally {
       state.busy = false;
-      state.button.disabled = false;
+      state.button.disabled = !!state.disconnected;
     }
   }
   function attach(body, root) {
+    const handlers = [];
+    const on = (...args) => handlers.push(listen(...args));
     const toolbar = document.createElement('div');
     toolbar.className = 'glyph-native-toolbar';
     toolbar.setAttribute('contenteditable', 'false');
@@ -298,11 +334,22 @@
     button.type = 'button';
     button.textContent = 'Add glyph';
     const status = document.createElement('span');
+    const recovery = document.createElement('button');
+    recovery.type = 'button';
+    recovery.textContent = 'Reload Gmail';
+    recovery.className = 'glyph-native-recovery';
+    recovery.hidden = true;
+    recovery.title = 'Wait until Gmail saves this draft, then reload the page.';
+    on(recovery, 'click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      window.location.reload();
+    });
     status.className = 'glyph-native-status';
     status.setAttribute('role', 'status');
     status.setAttribute('aria-live', 'polite');
     status.textContent = 'Rich-text mode · 1 recipient';
-    toolbar.append(button, status);
+    toolbar.append(button, recovery, status);
     const caveat = document.createElement('small');
     caveat.textContent =
       'Signals only, not verified reads. Proxies, scanners and forwarding can affect attribution.';
@@ -320,22 +367,27 @@
       composeKey: crypto.randomUUID(),
       busy: false,
       attached: false,
+      recovery,
+      disconnected: false,
+      handlers,
     };
     states.set(body, state);
     live.add(state);
-    button.addEventListener('click', (event) => {
+    on(button, 'click', (event) => {
       event.preventDefault();
       event.stopPropagation();
       void apply(state);
     });
     for (const input of [opens, clicks])
-      input.addEventListener('change', () => {
+      on(input, 'change', () => {
+        if (disposed) return;
         if (state.attached) {
           restore(state);
           setStatus(state, 'Tracking changed — add glyph again.');
         }
       });
-    body.addEventListener('input', () => {
+    on(body, 'input', () => {
+      if (disposed) return;
       if (!state.busy && state.attached) {
         restore(state);
         setStatus(state, 'Edited — add glyph again.');
@@ -343,19 +395,40 @@
     });
     request('context')
       .then(({ settings }) => {
-        if (!state.attached && !state.busy) {
+        if (
+          !disposed &&
+          !state.disconnected &&
+          !state.attached &&
+          !state.busy
+        ) {
           opens.checked = settings.defaultTrackOpens;
           clicks.checked = settings.defaultTrackClicks;
         }
       })
-      .catch(() =>
-        setStatus(state, 'Connect via the Glyph extension popup.', true),
-      );
+      .catch((error) => {
+        if (disposed) return;
+        if (error.name === 'GlyphExtensionUnavailable')
+          showRecovery(state, error);
+        else
+          setStatus(
+            state,
+            error.message || 'Connect via the Glyph extension popup.',
+            true,
+          );
+      });
   }
   function scan() {
+    if (disposed) return;
     for (const state of live) {
       if (!state.body.isConnected) {
+        for (const cleanup of state.handlers) cleanup();
+        state.toolbar.remove();
+        states.delete(state.body);
         live.delete(state);
+        continue;
+      }
+      if (!globalThis.glyphMessaging.available()) {
+        showRecovery(state);
         continue;
       }
       if (state.attached && !state.busy && state.snapshot !== snapshot(state)) {
@@ -388,6 +461,10 @@
   // Check synchronously before Gmail handles Send or a shortcut. Never cancel
   // the event: if a recipient/subject changed, send the user's untracked draft.
   function invalidateChanged() {
+    if (!globalThis.glyphMessaging.available()) {
+      for (const state of live) showRecovery(state);
+      return;
+    }
     for (const state of live) {
       if (state.attached && !state.busy && state.snapshot !== snapshot(state)) {
         restore(state);
@@ -400,22 +477,35 @@
     }
   }
   for (const event of ['click', 'keydown', 'input', 'change']) {
-    document.addEventListener(event, invalidateChanged, true);
+    listen(document, event, invalidateChanged, true);
   }
   let queued = false;
-  new MutationObserver(() => {
+  const observer = new MutationObserver(() => {
     if (queued) return;
     queued = true;
     setTimeout(() => {
       queued = false;
       scan();
     }, 250);
-  }).observe(document.documentElement, {
+  });
+  observer.observe(document.documentElement, {
     childList: true,
     subtree: true,
     characterData: true,
     attributes: true,
     attributeFilter: ['email', 'data-recipient-id', 'href', 'src'],
   });
+  globalThis.glyphCompose = {
+    dispose() {
+      disposed = true;
+      observer.disconnect();
+      for (const cleanup of cleanups) cleanup();
+      for (const state of live) {
+        if (state.attached) restore(state);
+        state.toolbar.remove();
+      }
+      live.clear();
+    },
+  };
   scan();
 })();

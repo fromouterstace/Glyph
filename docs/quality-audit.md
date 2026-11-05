@@ -181,3 +181,17 @@ would not move the token to the production database. Keep old development
 records intact; do not manufacture opens. Direct HTTP/GIF checks and origin
 regressions cannot establish that a fresh recipient Gmail proxy has loaded a
 real production pixel; that requires observing a genuine new recipient request.
+
+## Extension runtime recovery
+
+Extension v0.3.1 guards Chrome messaging in both Gmail and the popup. Missing
+Chrome/runtime/sendMessage APIs, invalidated contexts, missing receiving ends,
+and closed message channels produce actionable manual recovery instead of raw
+JavaScript errors. Reinjection disposes old observers and listeners and removes
+duplicate generated controls. If the runtime is lost before native Send, only
+Glyph-generated tracking is removed; Gmail's own Send is not canceled.
+
+Chrome may require a Gmail-tab reload after an extension update. The UI tells
+users to wait for Gmail to save the draft and offers Reload Gmail, never an
+automatic reload. The package must include messaging.js before gmail.js and
+before popup.js. Updating app code does not update an unpacked browser extension.

@@ -8,6 +8,162 @@ const source = await readFile(
   'utf8',
 );
 const wait = (ms = 25) => new Promise((resolve) => setTimeout(resolve, ms));
+const messagingSource = await readFile(
+  new URL('../extensions/glyph-gmail/messaging.js', import.meta.url),
+  'utf8',
+);
+
+test('missing Chrome runtime at startup has safe recovery without editing or sending', async (t) => {
+  for (const options of [{ noRuntime: true }, { noChrome: true }]) {
+    const f = fixture(t, options);
+    await wait();
+    assert.equal(f.button().disabled, true);
+    assert.equal(
+      f.document.querySelector('.glyph-native-recovery').hidden,
+      false,
+    );
+    assert.match(
+      f.document.querySelector('.glyph-native-status').textContent,
+      /reload Gmail/i,
+    );
+    assert.equal(f.body.innerHTML, f.original);
+    assert.equal(f.calls.length, 0);
+    let sent = 0;
+    f.document.getElementById('send0').addEventListener('click', () => sent++);
+    f.document.getElementById('send0').click();
+    assert.equal(sent, 1);
+  }
+});
+
+test('losing sendMessage after Gmail opens never leaks the raw TypeError', async (t) => {
+  const f = fixture(t);
+  await wait();
+  delete f.window.chrome.runtime.sendMessage;
+  await f.add();
+  const status = f.document.querySelector('.glyph-native-status').textContent;
+  assert.match(status, /wait until Gmail saves your draft/i);
+  assert.doesNotMatch(status, /Cannot read properties/);
+  assert.equal(
+    f.document.querySelector('.glyph-native-recovery').hidden,
+    false,
+  );
+  assert.equal(f.body.innerHTML, f.original);
+});
+
+test('context invalidation during preparation preserves the draft and shows recovery', async (t) => {
+  const f = fixture(t, {
+    beforeResponse: async () => {
+      throw new Error('Extension context invalidated.');
+    },
+  });
+  await f.add();
+  assert.match(
+    f.document.querySelector('.glyph-native-status').textContent,
+    /reload Gmail/i,
+  );
+  assert.equal(f.body.innerHTML, f.original);
+  assert.equal(f.body.querySelector('.glyph-native-footer'), null);
+  assert.equal(f.button().disabled, true);
+});
+
+test('background transport errors become actionable recovery messages', async (t) => {
+  const f = fixture(t, {
+    runtimeEnvelopeError:
+      "Cannot read properties of undefined (reading 'sendMessage')",
+  });
+  await wait();
+  assert.match(
+    f.document.querySelector('.glyph-native-status').textContent,
+    /reload Gmail/i,
+  );
+  assert.doesNotMatch(
+    f.document.querySelector('.glyph-native-status').textContent,
+    /Cannot read properties/,
+  );
+});
+
+test('closed ports and missing receivers recover without changing draft content', async (t) => {
+  for (const message of [
+    'Could not establish connection. Receiving end does not exist.',
+    'The message port closed before a response was received.',
+    'The message channel closed before a response was received.',
+  ]) {
+    const f = fixture(t, {
+      beforeResponse: async () => {
+        throw new Error(message);
+      },
+    });
+    await f.add();
+    assert.match(
+      f.document.querySelector('.glyph-native-status').textContent,
+      /reload Gmail/i,
+    );
+    assert.equal(f.body.innerHTML, f.original);
+    assert.equal(f.button().disabled, true);
+  }
+});
+
+test('a disposed in-flight script cannot attach stale tracking after reinjection', async (t) => {
+  const f = fixture(t, {
+    beforeResponse: async (window) => window.eval(source),
+  });
+  await f.add();
+  assert.equal(f.document.querySelectorAll('.glyph-native-toolbar').length, 1);
+  assert.equal(f.body.querySelector('.glyph-native-footer'), null);
+  assert.equal(f.body.innerHTML, f.original);
+});
+
+test('manifest and popup load guarded messaging before its callers', async () => {
+  const manifest = JSON.parse(
+    await readFile(
+      new URL('../extensions/glyph-gmail/manifest.json', import.meta.url),
+      'utf8',
+    ),
+  );
+  assert.deepEqual(manifest.content_scripts[0].js, [
+    'messaging.js',
+    'gmail.js',
+  ]);
+  const popup = await readFile(
+    new URL('../extensions/glyph-gmail/popup.html', import.meta.url),
+    'utf8',
+  );
+  assert.ok(popup.indexOf('src="messaging.js"') >= 0);
+  assert.ok(
+    popup.indexOf('src="messaging.js"') < popup.indexOf('src="popup.js"'),
+  );
+});
+
+test('lost runtime removes only generated tracking before native Send proceeds', async (t) => {
+  const f = fixture(t);
+  await f.add();
+  assert.ok(f.body.querySelector('.glyph-native-footer'));
+  delete f.window.chrome.runtime.id;
+  let sent = 0;
+  f.document.getElementById('send0').addEventListener('click', () => sent++);
+  f.document.getElementById('send0').click();
+  assert.equal(sent, 1);
+  assert.equal(f.body.querySelector('.glyph-native-footer'), null);
+  assert.equal(f.body.querySelector('a').href, 'https://example.com/pitch');
+  assert.match(f.body.textContent, /Hi there/);
+  assert.equal(f.button().disabled, true);
+});
+
+test('script reinjection cleans up the old toolbar and handlers', async (t) => {
+  const f = fixture(t);
+  await f.add();
+  const oldButton = f.button();
+  f.window.eval(source);
+  await wait();
+  assert.equal(f.document.querySelectorAll('.glyph-native-toolbar').length, 1);
+  assert.equal(f.body.querySelector('.glyph-native-footer'), null);
+  const before = f.calls.length;
+  oldButton.click();
+  await wait();
+  assert.equal(f.calls.length, before);
+  await f.add();
+  assert.equal(f.body.querySelectorAll('.glyph-native-footer').length, 1);
+});
 function editor(index = 0) {
   return `<div class="M9" id="compose${index}"><input name="subjectbox" value="A proposal">
     <div email="recipient@example.com" id="recipient${index}"></div>
@@ -19,13 +175,19 @@ function fixture(t, options = {}) {
     `<a aria-label="Google Account: Owner (owner@example.com)" href="https://accounts.google.com/SignOutOptions"></a>${editor()}${options.two ? editor(1) : ''}`,
     { url: 'https://mail.google.com/mail/u/0/', runScripts: 'outside-only' },
   );
-  t.after(() => dom.window.close());
+  t.after(() => {
+    dom.window.glyphCompose?.dispose();
+    dom.window.close();
+  });
   const calls = [];
   const original = dom.window.document.getElementById('body0').innerHTML;
   dom.window.chrome = {
     runtime: {
+      id: 'glyph-test-extension',
       sendMessage: async (message) => {
         calls.push(message);
+        if (options.runtimeEnvelopeError)
+          return { ok: false, error: options.runtimeEnvelopeError };
         if (message.action === 'context')
           return {
             ok: true,
@@ -59,6 +221,9 @@ function fixture(t, options = {}) {
       },
     },
   };
+  if (options.noRuntime) delete dom.window.chrome.runtime;
+  if (options.noChrome) delete dom.window.chrome;
+  dom.window.eval(messagingSource);
   dom.window.eval(source);
   const document = dom.window.document;
   return {

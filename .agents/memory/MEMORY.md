@@ -4,3 +4,4 @@
 - [Editable form lifetimes](form-state-lifecycle.md) — preserve edits during polling; reset forms and confirmations when message identity changes.
 - [Quality-tooling checks](quality-tooling.md) — audit the complete tooling dependency graph and verify formatting independently of writing it.
 - [Database-backed activity](database-backed-activity.md) — persist actual message and engagement data in PostgreSQL; never substitute hardcoded sample records.
+- [Extension lifecycle](extension-lifecycle.md) — extension updates can invalidate open Gmail tabs; guard messaging and offer draft-safe manual recovery.
