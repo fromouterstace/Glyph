@@ -1,34 +1,55 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-// The shared preview proxy. Use a token that never identifies a real message:
-// these HTTP checks must not create engagement events for the user's emails.
-const base = 'http://127.0.0.1:80';
-const pixel = `${base}/api/glyph/t/${'0'.repeat(48)}.gif`;
+// These checks never target production or request a real customer's pixel.
+const base = process.env.GLYPH_HTTP_BASE_URL || 'http://127.0.0.1:80';
+const origin = new URL(base);
+if (!['127.0.0.1', 'localhost', '[::1]'].includes(origin.hostname))
+  throw new Error(
+    'HTTP contract tests require a local running app, never production.',
+  );
+const pixel = `${base}/api/glyph/t/not-a-customer-pixel.gif`;
+const request = (url, options = {}) =>
+  fetch(url, { signal: AbortSignal.timeout(5_000), ...options });
 
-test('anonymous activity reads contain no fabricated account data', async () => {
-  const [
-    messagesResponse,
-    activityResponse,
-    overviewResponse,
-    sampleIdResponse,
-  ] = await Promise.all([
-    fetch(`${base}/api/glyph/messages`),
-    fetch(`${base}/api/glyph/activity`),
-    fetch(`${base}/api/glyph/overview`),
-    fetch(`${base}/api/glyph/messages/demo-1`),
-  ]);
-  assert.equal(messagesResponse.status, 200);
-  assert.equal(activityResponse.status, 200);
-  assert.equal(overviewResponse.status, 200);
-  assert.equal(sampleIdResponse.status, 404);
-  assert.deepEqual(await messagesResponse.json(), []);
-  assert.deepEqual(await activityResponse.json(), []);
-  const overview = await overviewResponse.json();
+test('test-harness identity headers cannot authenticate against the running application', async () => {
+  const response = await request(`${base}/api/glyph/messages`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-test-user': 'fixture-owner',
+      origin: base,
+    },
+    body: '{}',
+  });
+  assert.equal(response.status, 401);
+});
+
+for (const path of ['messages', 'activity']) {
+  test(`anonymous ${path} contains no fabricated account records`, async () => {
+    const response = await request(`${base}/api/glyph/${path}`);
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), []);
+  });
+}
+
+test('a fabricated message ID cannot return a fake detail record', async () => {
+  const response = await request(`${base}/api/glyph/messages/demo-1`);
+  assert.equal(response.status, 404);
+});
+
+test('anonymous overview has read-only zero account totals', async () => {
+  const response = await request(`${base}/api/glyph/overview`);
+  const overview = await response.json();
   assert.equal(overview.readOnly, true);
-  assert.equal(overview.totalSent, 0);
-  assert.equal(overview.totalOpens, 0);
-  assert.equal(overview.totalClicks, 0);
+  assert.deepEqual(
+    [overview.totalSent, overview.totalOpens, overview.totalClicks],
+    [0, 0, 0],
+  );
+});
+
+test('anonymous daily history contains no fabricated engagement signals', async () => {
+  const overview = await (await request(`${base}/api/glyph/overview`)).json();
   assert.equal(overview.daily.length, 14);
   assert.ok(
     overview.daily.every(
@@ -46,7 +67,7 @@ for (const [method, path] of [
   ['PATCH', '/settings'],
 ]) {
   test(`anonymous ${method} ${path} is rejected before any write`, async () => {
-    const response = await fetch(`${base}/api/glyph${path}`, {
+    const response = await request(`${base}/api/glyph${path}`, {
       method,
       redirect: 'manual',
       headers: {
@@ -62,7 +83,7 @@ for (const [method, path] of [
 
 for (const accept of ['image/*', '*/*', 'text/html']) {
   test(`public pixel returns an image, not a sign-in handshake, for ${accept}`, async () => {
-    const response = await fetch(pixel, {
+    const response = await request(pixel, {
       redirect: 'manual',
       headers: {
         accept,
@@ -80,7 +101,7 @@ for (const accept of ['image/*', '*/*', 'text/html']) {
 }
 
 test('HEAD on the public pixel returns no body or authentication redirect', async () => {
-  const response = await fetch(pixel, {
+  const response = await request(pixel, {
     method: 'HEAD',
     redirect: 'manual',
     headers: { accept: 'text/html' },
@@ -91,7 +112,7 @@ test('HEAD on the public pixel returns no body or authentication redirect', asyn
 });
 
 test('invalid public click tokens give an explicit 404, not a sign-in redirect', async () => {
-  const response = await fetch(`${base}/api/glyph/l/not-a-token`, {
+  const response = await request(`${base}/api/glyph/l/not-a-token`, {
     redirect: 'manual',
     headers: { accept: 'text/html' },
   });
@@ -100,7 +121,7 @@ test('invalid public click tokens give an explicit 404, not a sign-in redirect',
 });
 
 test('moving public tracking outside Clerk does not permit anonymous message preparation', async () => {
-  const response = await fetch(`${base}/api/glyph/native/prepare`, {
+  const response = await request(`${base}/api/glyph/native/prepare`, {
     method: 'POST',
     redirect: 'manual',
     headers: {

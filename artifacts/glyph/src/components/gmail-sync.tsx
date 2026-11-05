@@ -28,10 +28,11 @@ export function SyncGmailButton({
           : 'No new sends confirmed';
         const pending = `${r.pending} still awaiting Gmail send.`;
         if (r.replyCheckError) {
+          const paused = r.replyCheckError.includes('temporarily rate-limited');
           toast({
-            title: `${sends}. Reply check failed`,
+            title: `${sends}. Reply checks ${paused ? 'paused' : 'failed'}`,
             description: `${pending} Replies could not be checked: ${r.replyCheckError}`,
-            variant: 'destructive',
+            variant: paused ? 'default' : 'destructive',
           });
           return;
         }
@@ -39,16 +40,19 @@ export function SyncGmailButton({
           ? `${r.repliesDetected} new repl${r.repliesDetected === 1 ? 'y' : 'ies'} detected.`
           : 'No new replies detected.';
         const partial = r.replyCheckPartial
-          ? ' Partial check: only the 100 most recent received messages of the last 30 days were scanned; older replies may be missed.'
+          ? ' Partial check: headers are processed in batches across syncs, covering up to the 100 most recent received messages of the last 30 days. Some replies remain unchecked.'
           : '';
         toast({ title: sends, description: `${pending} ${replies}${partial}` });
       },
-      onError: (e) =>
+      onError: (e) => {
+        const description = errorText(e);
+        const paused = description.includes('temporarily rate-limited');
         toast({
-          title: 'Sync failed',
-          description: errorText(e),
-          variant: 'destructive',
-        }),
+          title: paused ? 'Gmail checks paused' : 'Sync failed',
+          description,
+          variant: paused ? 'default' : 'destructive',
+        });
+      },
     });
   return (
     <button

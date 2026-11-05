@@ -1,5 +1,9 @@
 # Glyph code-quality audit
 
+> This dated report is a historical audit snapshot, not a current test-count or
+> production-status claim. See [Glyph's engineering canon](glyph-canon.md) and
+> [testing gates](testing-canon.md) for the maintained rules and live scope.
+
 Date: November 4, 2026, America/Los_Angeles.
 
 ## Scope

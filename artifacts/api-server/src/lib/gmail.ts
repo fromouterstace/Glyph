@@ -2,8 +2,10 @@ import { ReplitConnectors } from '@replit/connectors-sdk';
 import { clerkClient } from '@clerk/express';
 import { randomBytes } from 'node:crypto';
 import { logger } from './logger';
+import { createGmailReadGate } from './gmail-rate-limit';
 
 const connectors = new ReplitConnectors();
+const readGate = createGmailReadGate();
 let profileCache: { email: string; until: number } | undefined;
 const userCache = new Map<string, { authorized: boolean; until: number }>();
 
@@ -11,7 +13,12 @@ export async function gmailRequest(
   path: string,
   init: NonNullable<Parameters<typeof connectors.proxy>[2]> = {},
 ) {
-  return connectors.proxy('google-mail', `/gmail/v1/users/me${path}`, init);
+  const request = () =>
+    connectors.proxy('google-mail', `/gmail/v1/users/me${path}`, init);
+  // Never retry or deduplicate sends/writes: that could send duplicate emails.
+  return (init.method ?? 'GET').toUpperCase() === 'GET'
+    ? readGate.run(request)
+    : request();
 }
 
 export async function mailboxEmail(): Promise<string> {

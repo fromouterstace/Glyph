@@ -1,5 +1,8 @@
 # Glyph for Gmail — developer build
 
+Maintainers: follow [Glyph's product and safety canon](../../docs/glyph-canon.md)
+when changing permissions, the app-origin bridge, tracking, or release behavior.
+
 1. Extract the downloaded archive.
 2. Open `chrome://extensions` or `edge://extensions`, enable Developer mode, select **Load unpacked**, and choose the extracted `glyph-extension` folder.
 3. Pin Glyph. Enter your Glyph app's HTTPS origin in its popup and click Connect. Approve access to that origin only.

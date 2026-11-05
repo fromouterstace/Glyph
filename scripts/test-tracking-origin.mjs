@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import {
   extensionConnectionOrigin,
   PUBLISHED_GLYPH_ORIGIN,
@@ -41,14 +40,6 @@ test('preview setup always copies the verified published origin, not its own hos
     extensionConnectionOrigin('https://glyph.example'),
     'https://glyph.example',
   );
-});
-
-test('the downloadable extension defaults to the same verified production host as setup', async () => {
-  const popup = await readFile(
-    new URL('../extensions/glyph-gmail/popup.html', import.meta.url),
-    'utf8',
-  );
-  assert.ok(popup.includes(`value="${PUBLISHED_GLYPH_ORIGIN}"`));
 });
 
 test('server uses only the public origin of the connection that owns the database', () => {

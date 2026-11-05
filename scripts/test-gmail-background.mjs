@@ -2,12 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
+import FakeTimers from '@sinonjs/fake-timers';
 
 const source = await readFile(
   new URL('../extensions/glyph-gmail/background.js', import.meta.url),
   'utf8',
 );
+// Test harness construction is reusable setup, not a single test case.
+// eslint-disable-next-line max-lines-per-function
 function fixture(options = {}) {
+  const clock = FakeTimers.createClock(Date.UTC(2026, 10, 4, 12));
   let listener;
   const stored = { origin: 'https://glyph.example', ...options.stored };
   const calls = [],
@@ -83,7 +87,7 @@ function fixture(options = {}) {
       setBadgeBackgroundColor: async () => {},
     },
   };
-  vm.runInNewContext(source, { chrome, URL, Set, Date, Error });
+  vm.runInNewContext(source, { chrome, URL, Set, Date: clock.Date, Error });
   const gmail = {
     id: chrome.runtime.id,
     tab: { url: 'https://mail.google.com/mail/u/0/' },

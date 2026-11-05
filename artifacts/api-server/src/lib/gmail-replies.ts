@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import { db, glyphMessages, glyphEvents } from '@workspace/db';
 import { gmailRequest, mailboxEmail } from './gmail';
+import { createHeaderReader, scanHeaderPage } from './reply-header-scan';
 import {
   headerValue,
   matchReply,
@@ -72,6 +73,10 @@ async function scanReplies(ownerId: string): Promise<ReplySyncResult> {
     replyCheckPartial: false,
     replyCheckError: null,
   };
+  const readHeader = createHeaderReader(metadata, (id) => {
+    const cached = metadataCache.get(id);
+    return !!cached && Date.now() - cached.at < 300_000;
+  });
   try {
     const originals = await db
       .select()
@@ -95,7 +100,11 @@ async function scanReplies(ownerId: string): Promise<ReplySyncResult> {
         result.replyCheckPartial = true;
         continue;
       }
-      const sent = await metadata(original.gmailId);
+      const sent = await readHeader(original.gmailId);
+      if (!sent) {
+        result.replyCheckPartial = true;
+        return result;
+      }
       const id = headerValue(sent.payload?.headers ?? [], 'message-id');
       if (messageIds(id).length !== 1) {
         result.replyCheckPartial = true;
@@ -132,16 +141,21 @@ async function scanReplies(ownerId: string): Promise<ReplySyncResult> {
         nextPageToken?: string;
       };
       const ids = listed.messages ?? [];
-      for (let offset = 0; offset < ids.length; offset += 5) {
-        const messages = await Promise.all(
-          ids.slice(offset, offset + 5).map(({ id }) => metadata(id)),
-        );
-        result.repliesDetected += await recordReplies(
-          messages,
-          originals,
-          mailbox,
-          ownerId,
-        );
+      const complete = await scanHeaderPage(
+        ids.map(({ id }) => id),
+        readHeader,
+        async (candidate) => {
+          result.repliesDetected += await recordReplies(
+            [candidate],
+            originals,
+            mailbox,
+            ownerId,
+          );
+        },
+      );
+      if (!complete) {
+        result.replyCheckPartial = true;
+        return result;
       }
       pageToken = listed.nextPageToken;
       if (!pageToken) break;

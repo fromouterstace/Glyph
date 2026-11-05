@@ -6,9 +6,9 @@
   "scripts": {
     "test": "vitest run --config vitest.config.ts",
     "predev": "node ../../extensions/build.mjs",
-    "prebuild": "node ../../extensions/build.mjs",
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
-    "build": "vite build --config vite.config.ts",
+    "build": "pnpm --dir ../.. check && pnpm run build:artifact",
+    "build:artifact": "node ../../extensions/build.mjs && vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

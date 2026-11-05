@@ -1,0 +1,44 @@
+name: Glyph quality
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: glyph_test
+          POSTGRES_PASSWORD: local_ci_fixture_only
+          POSTGRES_DB: glyph_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U glyph_test -d glyph_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://glyph_test:local_ci_fixture_only@localhost:5432/glyph_test
+      PORT: '3000'
+      BASE_PATH: /
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint, formatting, strict types, risk-weighted coverage and builds
+        run: pnpm build
+      - name: PostgreSQL contracts and real tracking-route persistence
+        run: pnpm check:integration

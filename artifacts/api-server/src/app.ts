@@ -3,6 +3,8 @@ import pinoHttp from 'pino-http';
 import router from './routes';
 import glyphTrackingRouter from './routes/glyph-tracking';
 import { logger } from './lib/logger';
+import { GmailRateLimitError } from './lib/gmail-rate-limit';
+import { serializeRequestLog, serializeResponseLog } from './lib/request-log';
 import { clerkMiddleware } from '@clerk/express';
 import { publishableKeyFromHost } from '@clerk/shared/keys';
 import {
@@ -17,20 +19,8 @@ app.use(
   pinoHttp({
     logger,
     serializers: {
-      req(req) {
-        return {
-          id: req.id,
-          method: req.method,
-          url: req.url
-            ?.split('?')[0]
-            .replace(/(\/glyph\/[tl]\/)[^/]+/g, '$1[redacted]'),
-        };
-      },
-      res(res) {
-        return {
-          statusCode: res.statusCode,
-        };
-      },
+      req: serializeRequestLog,
+      res: serializeResponseLog,
     },
   }),
 );
@@ -58,6 +48,18 @@ app.use(
     res: express.Response,
     _next: express.NextFunction,
   ) => {
+    if (err instanceof GmailRateLimitError && !res.headersSent) {
+      const seconds = Math.max(1, Math.ceil((err.retryAt - Date.now()) / 1000));
+      req.log.warn(
+        { retryAfterSeconds: seconds },
+        'Gmail reads paused by rate limit',
+      );
+      res
+        .set('Retry-After', String(seconds))
+        .status(429)
+        .json({ error: err.message });
+      return;
+    }
     req.log.error({ err }, 'Request failed');
     if (!res.headersSent)
       res.status(500).json({

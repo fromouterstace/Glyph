@@ -57,6 +57,44 @@ export default defineConfig(
     languageOptions: { globals: { chrome: 'readonly' } },
   },
   {
+    files: [
+      'scripts/test-*.mjs',
+      'scripts/*.test.mjs',
+      'scripts/tests/**/*.test.mjs',
+      'artifacts/glyph/tests/**/*.{ts,tsx}',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'MemberExpression[property.name=/^(only|skip|todo|skipIf|runIf)$/]',
+          message:
+            'Focused, skipped, or TODO tests cannot pass a release gate.',
+        },
+        {
+          selector:
+            'CallExpression[callee.name=/^(test|it|describe)$/] > ObjectExpression > Property[key.name=/^(only|skip|todo)$/]',
+          message:
+            'Test options must not hide focused, skipped, or TODO cases.',
+        },
+      ],
+      'max-lines-per-function': [
+        'error',
+        { max: 50, skipBlankLines: true, skipComments: true },
+      ],
+    },
+  },
+  {
+    files: ['scripts/tests/**/*.integration.test.mjs'],
+    rules: {
+      'max-lines-per-function': [
+        'error',
+        { max: 150, skipBlankLines: true, skipComments: true },
+      ],
+    },
+  },
+  {
     files: ['artifacts/api-server/src/**/*.ts'],
     languageOptions: {
       parserOptions: {

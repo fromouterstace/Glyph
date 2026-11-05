@@ -92,6 +92,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+// This callback organizes focused cases; the 50-line limit applies to each test.
+// eslint-disable-next-line max-lines-per-function
 describe('composer sessions', () => {
   it('creates a new draft without sending', async () => {
     mocks.create.mockResolvedValueOnce(message);
