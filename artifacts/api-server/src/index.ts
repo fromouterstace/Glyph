@@ -1,5 +1,7 @@
 import app from './app';
-import { logger, logSafeError } from './lib/logger';
+import { logger } from './lib/logger';
+import { pool } from '@workspace/db';
+import { startManagedServer } from './lib/server-lifecycle';
 
 const rawPort = process.env['PORT'];
 
@@ -15,11 +17,9 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-app.listen(port, (err) => {
-  if (err) {
-    logSafeError(logger, err, 'Error listening on port');
-    process.exit(1);
-  }
-
-  logger.info({ port }, 'Server listening');
+startManagedServer({
+  app,
+  port,
+  logger,
+  closeDependencies: () => pool.end(),
 });

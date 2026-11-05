@@ -5,6 +5,18 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type ReadinessStatusStatus = typeof ReadinessStatusStatus[keyof typeof ReadinessStatusStatus];
+
+
+export const ReadinessStatusStatus = {
+  ready: 'ready',
+  not_ready: 'not_ready',
+} as const;
+
+export interface ReadinessStatus {
+  status: ReadinessStatusStatus;
+}
+
 export interface MessageInput {
   /** @maxLength 254 */
   recipientEmail: string;

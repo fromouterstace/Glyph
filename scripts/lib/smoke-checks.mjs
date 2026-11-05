@@ -43,6 +43,10 @@ export async function runSmoke({ base, fetchImpl = fetch, report = () => {} }) {
       done: () => report({ path, status, elapsedMs: Date.now() - started }),
     };
   };
+  const readiness = await read('/api/readyz', 200);
+  assert.deepEqual(JSON.parse(readiness.body.toString()), { status: 'ready' });
+  assert.equal(readiness.response.headers.get('cache-control'), 'no-store');
+  readiness.done();
   let shell;
   for (const path of pages) {
     const result = await read(path, 200);

@@ -8,7 +8,7 @@ try {
     report: (result) => console.log(JSON.stringify(result)),
   });
   console.log(
-    'Smoke passed: HTTP delivery only; browser sign-in, database readiness, Gmail and real recipient delivery are not established.',
+    'Smoke passed: HTTP delivery and bounded database readiness; browser sign-in, Gmail and real recipient delivery are not established.',
   );
 } catch (error) {
   console.error(`Smoke failed: ${error.message}`);

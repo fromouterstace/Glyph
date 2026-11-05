@@ -250,6 +250,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthStatus'
+  /readyz:
+    get:
+      operationId: readinessCheck
+      tags: [health]
+      summary: Bounded database and critical-schema readiness check
+      description: Public operational status only. Returns 503 during draining or when PostgreSQL or critical tables cannot be reached within the probe budget. Does not test Gmail.
+      responses:
+        '200':
+          description: Ready to serve database-backed requests
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReadinessStatus' }
+        '503':
+          description: Database unavailable, critical schema missing, or server draining
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReadinessStatus' }
 components:
   responses:
     Unauthorized:
@@ -262,6 +279,11 @@ components:
             properties:
               error: { type: string }
   schemas:
+    ReadinessStatus:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [ready, not_ready] }
     NativeMessageInput:
       allOf:
         - { $ref: '#/components/schemas/MessageInput' }

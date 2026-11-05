@@ -39,6 +39,7 @@ import type {
   NativeSync,
   NativeTracking,
   Overview,
+  ReadinessStatus,
   Settings,
   SettingsInput,
   UnauthorizedResponse
@@ -1449,6 +1450,108 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getHealthCheckQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReadinessCheckUrl = () => {
+
+
+
+
+  return `/api/readyz`
+}
+
+/**
+ * Public operational status only. Returns 503 during draining or when PostgreSQL or critical tables cannot be reached within the probe budget. Does not test Gmail.
+ * @summary Bounded database and critical-schema readiness check
+ */
+export const readinessCheck = async ( options?: Parameters<typeof customFetch>[1]): Promise<ReadinessStatus> => {
+
+  return customFetch<ReadinessStatus>(getReadinessCheckUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getReadinessCheckQueryKey = () => {
+    return [
+    `/api/readyz`
+    ] as const;
+    }
+
+
+export const getReadinessCheckQueryOptions = <TData = Awaited<ReturnType<typeof readinessCheck>>, TError = ErrorType<ReadinessStatus>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof readinessCheck>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getReadinessCheckQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof readinessCheck>>> = ({ signal }) => readinessCheck({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof readinessCheck>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ReadinessCheckQueryResult = NonNullable<Awaited<ReturnType<typeof readinessCheck>>>
+export type ReadinessCheckQueryError = ErrorType<ReadinessStatus>
+
+
+export function useReadinessCheck<TData = Awaited<ReturnType<typeof readinessCheck>>, TError = ErrorType<ReadinessStatus>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof readinessCheck>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof readinessCheck>>,
+          TError,
+          Awaited<ReturnType<typeof readinessCheck>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useReadinessCheck<TData = Awaited<ReturnType<typeof readinessCheck>>, TError = ErrorType<ReadinessStatus>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof readinessCheck>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof readinessCheck>>,
+          TError,
+          Awaited<ReturnType<typeof readinessCheck>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useReadinessCheck<TData = Awaited<ReturnType<typeof readinessCheck>>, TError = ErrorType<ReadinessStatus>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof readinessCheck>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Bounded database and critical-schema readiness check
+ */
+
+export function useReadinessCheck<TData = Awaited<ReturnType<typeof readinessCheck>>, TError = ErrorType<ReadinessStatus>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof readinessCheck>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getReadinessCheckQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

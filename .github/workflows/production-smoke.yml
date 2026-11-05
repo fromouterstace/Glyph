@@ -1,0 +1,76 @@
+name: Glyph production smoke
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: glyph-production-smoke
+  cancel-in-progress: false
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      issues: write
+    env:
+      GLYPH_SMOKE_ORIGIN: ${{ vars.GLYPH_SMOKE_ORIGIN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # Smoke uses only Node built-ins. No install, Gmail access or credentials.
+      - name: Read-only production smoke
+        id: probe
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          date -u +"Started %Y-%m-%dT%H:%M:%SZ" | tee production-smoke.log
+          if [[ -z "$GLYPH_SMOKE_ORIGIN" ]]; then
+            echo "Set repository variable GLYPH_SMOKE_ORIGIN to the verified published HTTPS origin." | tee -a production-smoke.log
+            exit 1
+          fi
+          node scripts/smoke-check.mjs "$GLYPH_SMOKE_ORIGIN" 2>&1 | tee -a production-smoke.log
+      - name: Retain timestamped smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-smoke-${{ github.run_id }}
+          path: production-smoke.log
+          retention-days: 14
+      - name: Open one failure incident or close it after recovery
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          SMOKE_OUTCOME: ${{ steps.probe.outcome }}
+        with:
+          script: |
+            const title = 'Glyph production smoke is failing';
+            const marker = '<!-- glyph-production-smoke -->';
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              ...context.repo, state: 'open', per_page: 100
+            });
+            const incident = issues.find(issue =>
+              !issue.pull_request && issue.title === title && issue.body?.includes(marker));
+            const run = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            if (process.env.SMOKE_OUTCOME !== 'success' && !incident) {
+              await github.rest.issues.create({
+                ...context.repo, title,
+                body: `${marker}\nRead-only smoke failed. Inspect the timestamped evidence in ${run}.\nThis checks HTTP delivery/readiness/auth boundaries, not real Gmail delivery or browser sign-in.`
+              });
+            } else if (process.env.SMOKE_OUTCOME === 'success' && incident) {
+              await github.rest.issues.createComment({
+                ...context.repo, issue_number: incident.number,
+                body: `Read-only smoke recovered: ${run}. This does not prove live-provider delivery.`
+              });
+              await github.rest.issues.update({
+                ...context.repo, issue_number: incident.number, state: 'closed'
+              });
+            }
+      - name: Fail the workflow on an unhealthy result
+        if: always() && steps.probe.outcome != 'success'
+        run: exit 1

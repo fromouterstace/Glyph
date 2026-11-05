@@ -164,12 +164,27 @@ query strings or subpaths. The default is the local proxy on port 80.
 
 This command issues only anonymous GETs. It uses deliberately invalid tracking
 tokens, so it cannot create customer engagement or follow a customer link. It
-checks HTML shells and directly referenced local JavaScript/CSS, not execution of
-JavaScript, transitive chunks, sign-in, user isolation after sign-in, database
-readiness, Gmail authorization, notification delivery or valid-token persistence.
+checks bounded PostgreSQL/critical-table readiness, HTML shells and directly
+referenced local JavaScript/CSS, not execution of JavaScript, transitive chunks,
+sign-in, user isolation after sign-in, every schema column, Gmail authorization,
+notification delivery or valid-token persistence.
 An HTML fallback for a missing asset/ZIP fails. An account-read 200 or redirect
 fails even when its result appears empty. Do not relax those assertions to make
 an older published release appear healthy.
 
 See [smoke and server-health audit](smoke-health-audit.md) for the current evidence
 and the distinction between liveness, readiness and a successful user journey.
+
+## Operational recovery and release observation
+
+The integration gate now also runs real-child-process shutdown and recovery
+contracts with isolated PostgreSQL schemas. Readiness has fake-clock timeout,
+late-client cleanup and waiter-coalescing tests, and is required in the
+critical-source coverage inventory. Actual extension background runtimes are
+recreated with persisted storage to verify notification cursor recovery without
+claiming real Chrome/OS delivery.
+
+Scheduled external smoke and explicit seven-day release observation commands are
+documented in [the operations runbook](operations-runbook.md). A workflow file is
+not evidence a scheduler is active; a recorded publication is not a completed
+regression observation. Live Gmail evidence remains separately permission-gated.

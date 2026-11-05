@@ -63,6 +63,7 @@ function makeChrome(options, stored, state, listeners) {
       update: async () => {},
       create: async (tab) => state.openedTabs.push(tab),
       sendMessage: async (_id, msg) => {
+        if (options.unavailable) throw new Error('Synthetic API unavailable');
         state.calls.push([msg.action, msg.data]);
         return {
           ok: true,
@@ -355,4 +356,75 @@ test('future unknown event types never become false click notifications', async 
     f.calls.some((c) => c[0] === 'notification'),
     false,
   );
+});
+
+test('restarting the background preserves seen replies and notifies only newly arrived signals', async () => {
+  const reply = (id) => ({
+    id,
+    type: 'reply',
+    subject: 'Fixture',
+    read: false,
+  });
+  const first = fixture({
+    stored: { seenEvents: [], mailbox: 'owner@example.com' },
+    settings: { notifyReplies: true },
+    events: [reply('before-restart')],
+  });
+  await first.request('sync');
+  assert.equal(
+    first.calls.filter(([action]) => action === 'notification').length,
+    1,
+  );
+  const restarted = fixture({
+    stored: first.stored,
+    settings: { notifyReplies: true },
+    events: [reply('after-restart'), reply('before-restart')],
+  });
+  await restarted.started();
+  await restarted.request('sync');
+  assert.equal(
+    restarted.calls.filter(([action]) => action === 'notification').length,
+    1,
+  );
+  assert.deepEqual(Array.from(restarted.stored.seenEvents), [
+    'after-restart',
+    'before-restart',
+  ]);
+});
+
+test('a temporary API failure preserves the notification cursor until recovery', async () => {
+  const options = {
+    unavailable: true,
+    stored: { seenEvents: ['old'], mailbox: 'owner@example.com' },
+    settings: { notifyReplies: true },
+    events: [{ id: 'new-reply', type: 'reply', read: false }],
+  };
+  const f = fixture(options);
+  await f.request('sync');
+  assert.deepEqual(f.stored.seenEvents, ['old']);
+  assert.equal(
+    f.calls.filter(([action]) => action === 'notification').length,
+    0,
+  );
+  options.unavailable = false;
+  await f.request('sync');
+  assert.equal(
+    f.calls.filter(([action]) => action === 'notification').length,
+    1,
+  );
+  assert.deepEqual(Array.from(f.stored.seenEvents), ['new-reply']);
+});
+
+test('first notification startup establishes a baseline rather than replaying old replies', async () => {
+  const f = fixture({
+    settings: { notifyReplies: true },
+    events: [{ id: 'historical-reply', type: 'reply', read: false }],
+  });
+  await f.started();
+  await f.request('sync');
+  assert.equal(
+    f.calls.filter(([action]) => action === 'notification').length,
+    0,
+  );
+  assert.deepEqual(Array.from(f.stored.seenEvents), ['historical-reply']);
 });

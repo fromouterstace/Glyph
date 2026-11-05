@@ -458,3 +458,12 @@ export const HealthCheckResponse = zod.object({
 })
 
 
+/**
+ * Public operational status only. Returns 503 during draining or when PostgreSQL or critical tables cannot be reached within the probe budget. Does not test Gmail.
+ * @summary Bounded database and critical-schema readiness check
+ */
+export const ReadinessCheckResponse = zod.object({
+  "status": zod.enum(['ready', 'not_ready'])
+})
+
+

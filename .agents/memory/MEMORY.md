@@ -8,3 +8,4 @@
 - [Extension lifecycle](extension-lifecycle.md) — extension updates can invalidate open Gmail tabs; guard messaging and offer draft-safe manual recovery.
 - [Gmail read budgets](gmail-read-budgets.md) — mailbox readers share quotas; honor cooldowns, preserve partial progress, and never retry sends automatically.
 - [Replit response-header scope](replit-response-headers.md) — static response-header config may not affect an Autoscale app's static artifact; verify published responses.
+- [Readiness probe budgets](readiness-probe-budgets.md) — a timed-out pool acquisition can remain queued; do not accumulate replacement probes during an outage.

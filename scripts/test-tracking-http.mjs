@@ -59,6 +59,14 @@ test('health remains public and exposes only its status', async () => {
   assert.deepEqual(await response.json(), { status: 'ok' });
 });
 
+test('readiness publicly establishes bounded database readiness without exposing details', async () => {
+  const response = await request(`${base}/api/readyz`, { redirect: 'manual' });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.equal(response.headers.get('location'), null);
+  assert.deepEqual(await response.json(), { status: 'ready' });
+});
+
 for (const [method, path] of [
   ['GET', '/overview'],
   ['GET', '/messages'],

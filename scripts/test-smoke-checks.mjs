@@ -8,6 +8,11 @@ function fixture(overrides = new Map(), calls = []) {
     calls.push(pathname);
     if (overrides.has(pathname)) return overrides.get(pathname)();
     if (pathname === '/api/healthz') return Response.json({ status: 'ok' });
+    if (pathname === '/api/readyz')
+      return Response.json(
+        { status: 'ready' },
+        { headers: { 'cache-control': 'no-store' } },
+      );
     if (pathname.startsWith('/api/glyph/t/'))
       return new Response(
         Buffer.concat([Buffer.from('GIF89a'), Buffer.alloc(37)]),
@@ -44,7 +49,7 @@ test('smoke checks pages, assets, download and anonymous APIs using only safe re
   });
   assert.ok(calls.includes('/gmail'));
   assert.ok(calls.includes('/assets/app.css'));
-  assert.equal(reports.length, 20);
+  assert.equal(reports.length, 21);
   assert.equal(calls.filter((path) => path.includes('/t/')).length, 1);
   assert.ok(calls.includes('/api/glyph/t/smoke-invalid-token.gif'));
 });

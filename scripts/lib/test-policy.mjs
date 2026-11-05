@@ -7,6 +7,7 @@ export const criticalModules = [
   'reply-header-scan',
   'request-log',
   'message-presentation',
+  'database-readiness',
 ];
 
 export function unitFiles(names) {

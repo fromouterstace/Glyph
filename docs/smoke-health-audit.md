@@ -4,6 +4,26 @@ Audit date: 2026-11-05. Production telemetry window:
 2026-11-04 23:02 through 2026-11-05 23:02 UTC; point-in-time HTTP probes followed.
 This is a bounded audit, not proof of zero defects or continuous availability.
 
+## Remediation update
+
+Subsequent workspace work added public, bounded PostgreSQL/critical-schema
+readiness at `/api/readyz`; graceful SIGTERM/SIGINT draining with a hard deadline;
+real-child-process/database restart tests; background-worker restart contracts;
+and scheduled external smoke plus release-observation tooling.
+
+A real-browser development Clerk lifecycle passed sign-in, refresh, protected
+navigation and sign-out. Programmatic Clerk session setup is not proof of Google
+OAuth. No real Gmail send, image-proxy fetch or recipient reply was performed.
+Scheduled monitoring is **configured but not active**: this workspace has no
+GitHub remote or selected monitoring repository. One verified successful
+publication from deployment history has been registered with a pending
+seven-day window. The release metric remains **unknown**, because no completed
+observations have been supplied.
+
+The table below preserves the original findings, not the post-remediation status.
+Use [the operations runbook](operations-runbook.md) for current controls,
+activation prerequisites and the remaining live evidence.
+
 ## Current findings, in priority order
 
 | Priority         | Finding                                                                           | Evidence and disposition                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
