@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { matchesNativeSend } from '../artifacts/api-server/src/lib/native-verification.ts';
+import {
+  matchesNativeSend,
+  normalizeNativeRecipients,
+} from '../artifacts/api-server/src/lib/native-verification.ts';
 const message = {
   pixelToken: 'unique-token',
   recipientEmail: 'recipient@example.com',
@@ -35,6 +38,98 @@ test('confirms a matching single-recipient HTML message in Sent', () => {
     matchesNativeSend(candidate(), message, 'owner@example.com'),
     true,
   );
+});
+
+test('native recipient normalization preserves legacy callers and validates groups', () => {
+  assert.deepEqual(normalizeNativeRecipients(message), {
+    toEmails: [message.recipientEmail],
+    ccEmails: [],
+    bccEmails: [],
+  });
+  assert.deepEqual(
+    normalizeNativeRecipients({
+      ...message,
+      toEmails: ['RECIPIENT@example.com', message.recipientEmail],
+      ccEmails: ['cc@example.com'],
+      bccEmails: [],
+    }),
+    {
+      toEmails: [message.recipientEmail],
+      ccEmails: ['cc@example.com'],
+      bccEmails: [],
+    },
+  );
+  assert.deepEqual(
+    normalizeNativeRecipients({
+      ...message,
+      ccEmails: [message.recipientEmail],
+    }),
+    { toEmails: [], ccEmails: [message.recipientEmail], bccEmails: [] },
+  );
+  assert.deepEqual(
+    normalizeNativeRecipients({
+      ...message,
+      bccEmails: [message.recipientEmail],
+    }),
+    { toEmails: [], ccEmails: [], bccEmails: [message.recipientEmail] },
+  );
+  for (const data of [
+    { toEmails: [] },
+    { toEmails: ['other@example.com'] },
+    { toEmails: [message.recipientEmail], ccEmails: [message.recipientEmail] },
+    {
+      toEmails: [
+        message.recipientEmail,
+        ...Array.from({ length: 100 }, (_, i) => `person${i}@example.com`),
+      ],
+    },
+  ])
+    assert.equal(normalizeNativeRecipients({ ...message, ...data }), null);
+});
+
+test('mixed To/Cc/Bcc roles match exactly regardless of order or case', () => {
+  const group = {
+    ...message,
+    toEmails: ['other@example.com', message.recipientEmail],
+    ccEmails: ['cc@example.com'],
+    bccEmails: ['hidden@example.com'],
+  };
+  const sent = candidate();
+  sent.payload.headers[1].value = 'RECIPIENT@example.com, other@example.com';
+  sent.payload.headers.push(
+    { name: 'Cc', value: 'cc@example.com' },
+    { name: 'Bcc', value: 'hidden@example.com' },
+  );
+  assert.equal(matchesNativeSend(sent, group, 'owner@example.com'), true);
+  for (const name of ['To', 'Cc', 'Bcc']) {
+    const changed = structuredClone(sent);
+    changed.payload.headers.find((h) => h.name === name).value =
+      'stranger@example.com';
+    assert.equal(matchesNativeSend(changed, group, 'owner@example.com'), false);
+  }
+  const wrongSecond = structuredClone(sent);
+  wrongSecond.payload.headers[1].value =
+    'recipient@example.com, wrong@example.com';
+  assert.equal(
+    matchesNativeSend(wrongSecond, group, 'owner@example.com'),
+    false,
+  );
+});
+
+test('Cc-only and Bcc-only messages do not invent a To recipient', () => {
+  for (const role of ['cc', 'bcc']) {
+    const sent = candidate();
+    sent.payload.headers[1].value = 'undisclosed-recipients:;';
+    sent.payload.headers.push({ name: role, value: 'hidden@example.com' });
+    const group = {
+      ...message,
+      toEmails: [],
+      ccEmails: [],
+      bccEmails: [],
+      [role + 'Emails']: ['hidden@example.com'],
+    };
+    assert.equal(matchesNativeSend(sent, group, 'owner@example.com'), true);
+  }
 });
 test("Gmail's email-shaped quoted display name is one actual recipient", () => {
   const sent = candidate();

@@ -12,11 +12,20 @@ const messaging = await readFile(
   'utf8',
 );
 
-export async function trackedCompose(h, owner) {
+export async function trackedCompose(
+  h,
+  owner,
+  participants = { to: ['recipient@example.invalid'], cc: [], bcc: [] },
+) {
   const dom = new JSDOM(
     `<a aria-label="Google Account: Sender (${mailbox})"></a>
      <div class="M9"><input name="subjectbox" value="Sales proposal">
-     <div email="recipient@example.invalid"></div>
+     ${Object.entries(participants)
+       .map(
+         ([role, emails]) =>
+           `<div data-name="${role}">${emails.map((email) => `<span email="${email}"></span>`).join('')}</div>`,
+       )
+       .join('')}
      <div><div role="textbox" contenteditable="true" g_editable="true">Proposal <a href="https://example.invalid/proposal">details</a></div></div>
      <button id="native-send">Send</button></div>`,
     { url: 'https://mail.google.com/mail/u/0/', runScripts: 'outside-only' },

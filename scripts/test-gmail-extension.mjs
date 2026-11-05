@@ -346,22 +346,42 @@ test('recipient mutation invalidates the attached recipient-specific glyph', asy
   await wait(320);
   assert.equal(f.body.querySelector('.glyph-native-footer'), null);
 });
-test('multiple recipients fail safely and leave the email untouched', async (t) => {
+test('multiple To recipients prepare one shared message without sending', async (t) => {
   const f = fixture(t);
   await wait();
   const chip = f.document.createElement('div');
   chip.setAttribute('email', 'second@example.com');
   f.document.getElementById('compose0').append(chip);
   await f.add();
-  assert.equal(
-    f.calls.some((c) => c.action === 'prepare'),
-    false,
+  const preparation = f.calls.find((c) => c.action === 'prepare');
+  assert.deepEqual(
+    [...preparation.data.toEmails],
+    ['recipient@example.com', 'second@example.com'],
   );
-  assert.equal(f.body.innerHTML, f.original);
-  assert.match(
-    f.document.querySelector('.glyph-native-status').textContent,
-    /exactly one/,
-  );
+  assert.deepEqual([...preparation.data.ccEmails], []);
+  assert.deepEqual([...preparation.data.bccEmails], []);
+  assert.equal(f.body.querySelectorAll('.glyph-native-footer').length, 1);
+});
+
+test('Cc and Bcc chips keep their roles, and moving a chip invalidates the glyph', async (t) => {
+  const f = fixture(t);
+  await wait();
+  const root = f.document.getElementById('compose0');
+  const cc = f.document.createElement('div'),
+    bcc = f.document.createElement('div');
+  cc.setAttribute('data-name', 'cc');
+  bcc.setAttribute('aria-label', 'Bcc recipients');
+  cc.innerHTML = '<span email="cc@example.com"></span>';
+  bcc.innerHTML = '<span data-hovercard-id="hidden@example.com"></span>';
+  root.append(cc, bcc);
+  await f.add();
+  const preparation = f.calls.find((c) => c.action === 'prepare');
+  assert.deepEqual([...preparation.data.ccEmails], ['cc@example.com']);
+  assert.deepEqual([...preparation.data.bccEmails], ['hidden@example.com']);
+  assert.equal(f.body.querySelectorAll('.glyph-native-footer').length, 1);
+  cc.append(bcc.firstElementChild);
+  await wait(320);
+  assert.equal(f.body.querySelector('.glyph-native-footer'), null);
 });
 test('a mismatched Gmail account cannot prepare tracking', async (t) => {
   const f = fixture(t, { email: 'other@example.com' });
@@ -453,7 +473,7 @@ test("subject change invalidates tracking synchronously for Gmail's send shortcu
   assert.equal(event.defaultPrevented, false);
   assert.equal(f.body.querySelector('.glyph-native-footer'), null);
 });
-test('a lone CC chip is rejected even if it is the only address', async (t) => {
+test('a Cc-only message prepares without inventing a To recipient', async (t) => {
   const f = fixture(t);
   await wait();
   const wrapper = f.document.createElement('div');
@@ -461,14 +481,50 @@ test('a lone CC chip is rejected even if it is the only address', async (t) => {
   f.document.getElementById('recipient0').replaceWith(wrapper);
   wrapper.innerHTML = '<div email="recipient@example.com"></div>';
   await f.add();
+  const preparation = f.calls.find((c) => c.action === 'prepare');
+  assert.deepEqual([...preparation.data.toEmails], []);
+  assert.deepEqual([...preparation.data.ccEmails], ['recipient@example.com']);
+  assert.equal(f.body.querySelectorAll('.glyph-native-footer').length, 1);
+});
+
+test('duplicate recipients across roles fail safely without changing the body', async (t) => {
+  const f = fixture(t);
+  await wait();
+  const to = f.document.createElement('div');
+  to.setAttribute('data-name', 'to');
+  const originalRecipient = f.document.getElementById('recipient0');
+  originalRecipient.replaceWith(to);
+  to.append(originalRecipient);
+  const cc = f.document.createElement('div');
+  cc.setAttribute('data-name', 'cc');
+  cc.innerHTML = '<span email="recipient@example.com"></span>';
+  f.document.getElementById('compose0').append(cc);
+  await f.add();
   assert.equal(
-    f.calls.some((c) => c.action === 'prepare'),
+    f.calls.some((call) => call.action === 'prepare'),
     false,
   );
+  assert.equal(f.body.innerHTML, f.original);
   assert.match(
     f.document.querySelector('.glyph-native-status').textContent,
-    /CC\/BCC/,
+    /duplicate addresses/,
   );
+});
+
+test('collapsed recipient summaries do not turn Bcc into an extra To', async (t) => {
+  const f = fixture(t);
+  await wait();
+  const summary = f.document.createElement('span');
+  summary.setAttribute('email', 'hidden@example.com');
+  const field = f.document.createElement('input');
+  field.name = 'bcc';
+  field.type = 'hidden';
+  field.value = 'hidden@example.com';
+  f.document.getElementById('compose0').append(summary, field);
+  await f.add();
+  const preparation = f.calls.find((call) => call.action === 'prepare');
+  assert.deepEqual([...preparation.data.toEmails], ['recipient@example.com']);
+  assert.deepEqual([...preparation.data.bccEmails], ['hidden@example.com']);
 });
 test('invalidating a generated link preserves edited text and custom URLs', async (t) => {
   const f = fixture(t);

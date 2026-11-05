@@ -10,6 +10,21 @@ import type { MessageInput } from './messageInput';
 export type NativeMessageInput = MessageInput & {
   senderEmail: string;
   /**
+     * @maxItems 100
+     * @items.maxLength 254
+     */
+  toEmails?: string[];
+  /**
+     * @maxItems 100
+     * @items.maxLength 254
+     */
+  ccEmails?: string[];
+  /**
+     * @maxItems 100
+     * @items.maxLength 254
+     */
+  bccEmails?: string[];
+  /**
      * @minLength 16
      * @maxLength 100
      */

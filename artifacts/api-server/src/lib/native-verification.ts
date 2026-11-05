@@ -15,7 +15,7 @@ export type SentCandidate = {
 export function mailboxAddresses(header: string): string[] {
   // A display name can itself look like an email address. Parse the mailbox
   // structure, not every address-shaped substring, and fail closed on groups
-  // or malformed headers rather than weakening the one-recipient constraint.
+  // or malformed headers rather than confusing display names with mailboxes.
   const parsed = emailAddresses.parseAddressList({
     input: header,
     strict: true,
@@ -44,11 +44,56 @@ export function containsNativeMarker(
   return part.parts?.some((p) => containsNativeMarker(p, token)) ?? false;
 }
 
+export type MessageRecipients = {
+  recipientEmail: string;
+  toEmails?: string[];
+  ccEmails?: string[];
+  bccEmails?: string[];
+};
+
+export function normalizeNativeRecipients(message: MessageRecipients) {
+  const explicit =
+    message.toEmails !== undefined ||
+    message.ccEmails !== undefined ||
+    message.bccEmails !== undefined;
+  const normalize = (emails: string[]) =>
+    [...new Set(emails.map((email) => email.toLowerCase()))].sort();
+  const toEmails = normalize(
+    message.toEmails ?? (explicit ? [] : [message.recipientEmail]),
+  );
+  const ccEmails = normalize(message.ccEmails ?? []),
+    bccEmails = normalize(message.bccEmails ?? []);
+  const all = [...toEmails, ...ccEmails, ...bccEmails];
+  if (
+    !all.length ||
+    all.length > 100 ||
+    new Set(all).size !== all.length ||
+    !all.includes(message.recipientEmail.toLowerCase())
+  )
+    return null;
+  return { toEmails, ccEmails, bccEmails };
+}
+
+/** Empty legacy arrays represent the original single To recipient. */
+export function recipientGroups(message: MessageRecipients) {
+  const to = message.toEmails ?? [],
+    cc = message.ccEmails ?? [],
+    bcc = message.bccEmails ?? [];
+  return {
+    to: to.length || cc.length || bcc.length ? to : [message.recipientEmail],
+    cc,
+    bcc,
+  };
+}
+
 export function matchesNativeSend(
   candidate: SentCandidate,
   message: {
     pixelToken: string;
     recipientEmail: string;
+    toEmails?: string[];
+    ccEmails?: string[];
+    bccEmails?: string[];
     createdAt: Date;
   },
   mailbox: string,
@@ -57,18 +102,34 @@ export function matchesNativeSend(
   const values = (name: string) =>
     headers.filter((h) => h.name.toLowerCase() === name).map((h) => h.value);
   const addresses = (name: string) => mailboxAddresses(values(name).join(','));
-  const to = addresses('to'),
-    from = addresses('from');
+  const from = addresses('from');
+  const groups = recipientGroups(message);
+  const recipientsMatch = Object.entries(groups).every(([role, expected]) => {
+    const raw = values(role).join(',');
+    const actual = addresses(role)
+      .map((address) => address.toLowerCase())
+      .sort();
+    const normalized = [
+      ...new Set(expected.map((address) => address.toLowerCase())),
+    ].sort();
+    if (
+      raw.trim() &&
+      !actual.length &&
+      !/^undisclosed-recipients:\s*;$/i.test(raw.trim())
+    )
+      return false;
+    return (
+      actual.length === normalized.length &&
+      actual.every((address, index) => address === normalized[index])
+    );
+  });
   const sentAt = Number(candidate.internalDate);
   return (
     Number.isFinite(sentAt) &&
     sentAt >= message.createdAt.getTime() &&
-    to.length === 1 &&
-    to[0].toLowerCase() === message.recipientEmail.toLowerCase() &&
+    recipientsMatch &&
     from.length === 1 &&
     from[0].toLowerCase() === mailbox.toLowerCase() &&
-    values('cc').every((v) => !v.trim()) &&
-    values('bcc').every((v) => !v.trim()) &&
     containsNativeMarker(candidate.payload, message.pixelToken)
   );
 }

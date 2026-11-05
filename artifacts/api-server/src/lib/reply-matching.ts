@@ -1,4 +1,4 @@
-import { mailboxAddresses } from './native-verification';
+import { mailboxAddresses, recipientGroups } from './native-verification';
 
 export type MessageHeaders = { name: string; value: string }[];
 export type ReplyCandidate = {
@@ -11,6 +11,9 @@ export type ReplyOriginal = {
   id: string;
   rfcMessageId: string;
   recipientEmail: string;
+  toEmails?: string[];
+  ccEmails?: string[];
+  bccEmails?: string[];
   sentAt: Date | null;
 };
 export function headerValue(headers: MessageHeaders, name: string): string {
@@ -72,7 +75,9 @@ export function matchReply(
     (m) =>
       m.sentAt !== null &&
       receivedAt >= m.sentAt.getTime() &&
-      m.recipientEmail.toLowerCase() === from[0].toLowerCase(),
+      Object.values(recipientGroups(m))
+        .flat()
+        .some((address) => address.toLowerCase() === from[0].toLowerCase()),
   );
   // Prefer a direct parent; otherwise attribute to the nearest tracked ancestor
   // in the standard References chain. Never use a Gmail thread ID or subject.

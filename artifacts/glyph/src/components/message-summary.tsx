@@ -13,6 +13,12 @@ export function MessageSummary({
   m: Message;
   awaiting: boolean;
 }) {
+  const groups = [
+    { label: 'To', emails: m.toEmails ?? [m.recipientEmail] },
+    { label: 'Cc', emails: m.ccEmails ?? [] },
+    { label: 'Bcc', emails: m.bccEmails ?? [] },
+  ];
+  const shared = new Set(groups.flatMap((group) => group.emails)).size > 1;
   return (
     <>
       <Link
@@ -46,13 +52,32 @@ export function MessageSummary({
       >
         {m.subject}
       </h2>
-      <div className="mt-2 text-sm text-muted-foreground">
-        to{' '}
-        <span className="text-foreground" data-testid="text-recipient">
-          {m.recipientName
-            ? `${m.recipientName} <${m.recipientEmail}>`
-            : m.recipientEmail}
-        </span>
+      <div
+        className="mt-2 text-sm text-muted-foreground"
+        data-testid="text-recipient"
+      >
+        {groups
+          .filter((group) => group.emails.length)
+          .map((group) => (
+            <div key={group.label} className="break-words">
+              {group.label}{' '}
+              <span
+                className="text-foreground"
+                data-testid={`text-recipient-${group.label.toLowerCase()}`}
+              >
+                {!shared && group.label === 'To' && m.recipientName
+                  ? `${m.recipientName} <${m.recipientEmail}>`
+                  : group.emails.join(', ')}
+              </span>
+            </div>
+          ))}
+        {shared && (
+          <p className="mt-2 text-xs">
+            Shared message: pixel loads and clicks are aggregate signals, not
+            proof of which recipient acted. Bcc addresses are shown only in your
+            private dashboard.
+          </p>
+        )}
       </div>
       <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden border border-border bg-border text-xs sm:grid-cols-5">
         {[

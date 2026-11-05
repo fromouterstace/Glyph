@@ -12,6 +12,9 @@ export interface Message {
   id: string;
   recipientEmail: string;
   recipientName: string;
+  toEmails?: string[];
+  ccEmails?: string[];
+  bccEmails?: string[];
   subject: string;
   body: string;
   trackOpens: boolean;

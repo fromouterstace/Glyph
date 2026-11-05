@@ -33,6 +33,28 @@ function reply({
     },
   };
 }
+
+test('replies from every original To, Cc and Bcc participant match the same message', () => {
+  const shared = {
+    ...original,
+    toEmails: [original.recipientEmail, 'second@yahoo.com'],
+    ccEmails: ['cc@icloud.com'],
+    bccEmails: ['hidden@custom.example'],
+  };
+  for (const sender of [
+    ...shared.toEmails,
+    ...shared.ccEmails,
+    ...shared.bccEmails,
+  ])
+    assert.equal(
+      matchReply(reply({ sender }), [shared], mailbox)?.id,
+      original.id,
+    );
+  assert.equal(
+    matchReply(reply({ sender: 'stranger@example.com' }), [shared], mailbox),
+    null,
+  );
+});
 test("matches standard replies independently of the recipient's email service", () => {
   for (const sender of [
     'recipient@outlook.com',

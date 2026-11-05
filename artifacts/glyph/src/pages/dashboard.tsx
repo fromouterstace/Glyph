@@ -156,7 +156,7 @@ export default function Dashboard() {
             {[
               'Load the unpacked extension in Chrome or Edge and connect it to this origin.',
               'Sign in on the connection tab with the email that owns your Gmail.',
-              'In Gmail: one To recipient, Add glyph, then Gmail Send.',
+              'In Gmail: To, Cc or Bcc recipients, Add glyph, then Gmail Send.',
             ].map((s, i) => (
               <li
                 key={i}

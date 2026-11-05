@@ -70,6 +70,11 @@ product policy.
   and sync result must be scoped to its authenticated owner. Derive ownership from
   the validated session on the server; never accept a client-supplied owner ID as
   authority. Test cross-owner denial and rightful-owner success against PostgreSQL.
+- Native Gmail messages may contain multiple To, Cc and Bcc recipients in one
+  normal Gmail send/thread. Persist roles privately and verify them against the
+  sender's Sent copy. Shared pixel/click signals are aggregate, not proof of which
+  recipient acted. Match replies from every original participant; never disclose
+  Bcc addresses in public tracking URLs or notification/activity payloads.
 - The connected Gmail connector is a shared server-side resource, not a per-user
   OAuth grant. Before reading mailbox messages, syncing, or sending through it,
   verify the signed-in Clerk user's verified email against the connected mailbox;
@@ -271,8 +276,9 @@ product policy.
 
 Before merging or publishing a behavior change, verify:
 
-- Does the implementation preserve Gmail-native sending and the one-recipient,
-  same-origin, verified-mailbox rules?
+- Does the implementation preserve Gmail-native sending and the
+  same-origin, verified-mailbox rules? Do shared To/Cc/Bcc messages preserve roles,
+  keep Bcc private, and report aggregate signals without claiming recipient identity?
 - Are all reads and writes owner-scoped, including error paths and nested links or
   events? Are public token routes deliberately narrow?
 - Are event meanings accurate, persisted once, and independent—especially that

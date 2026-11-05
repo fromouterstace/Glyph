@@ -115,9 +115,9 @@ export default function GmailPage() {
       t: 'Compose in Gmail',
       d: (
         <>
-          Reload Gmail. Compose to exactly one To recipient, no CC or BCC. Click
-          Add glyph in the compose window, then send with Gmail's own Send
-          button or Ctrl/Cmd+Enter.
+          Reload Gmail. Compose with To, Cc and Bcc recipients. Click Add glyph
+          in the compose window, then send with Gmail's own Send button or
+          Ctrl/Cmd+Enter.
         </>
       ),
     },
@@ -237,7 +237,7 @@ export default function GmailPage() {
         data-testid="section-update-extension"
       >
         <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
-          Already installed? Update to v0.3.1
+          Already installed? Update to v0.4.0
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
           Fixes stale extension messaging after updates and blocks preview

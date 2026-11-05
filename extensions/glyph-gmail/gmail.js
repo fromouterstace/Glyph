@@ -56,20 +56,72 @@
     const address = String(value || '').trim();
     return emailPattern.test(address) ? address.toLowerCase() : null;
   }
+  function validateRecipients(groups) {
+    const all = Object.values(groups).flat();
+    if (!all.length || all.length > 100)
+      throw new Error('Use between 1 and 100 To, Cc or Bcc recipients.');
+    if (new Set(all).size !== all.length)
+      throw new Error('Remove duplicate addresses across To, Cc and Bcc.');
+    return all[0];
+  }
+  function recipientRole(el, root) {
+    for (let node = el; node && node !== root; node = node.parentElement) {
+      const label = (
+        node.getAttribute('name') ||
+        node.getAttribute('data-name') ||
+        node.getAttribute('data-recipient-type') ||
+        node.getAttribute('aria-label') ||
+        ''
+      )
+        .trim()
+        .toLowerCase();
+      for (const role of ['to', 'cc', 'bcc'])
+        if (label === role || label.startsWith(`${role} `)) return role;
+      if (node.tagName === 'TR') {
+        const fields = [
+          ...node.querySelectorAll(
+            'input[name="to"], input[name="cc"], input[name="bcc"]',
+          ),
+        ];
+        const roles = new Set(fields.map((field) => field.name));
+        if (roles.size === 1) return fields[0].name;
+      }
+    }
+    return null;
+  }
   function recipients(root, body) {
-    const addresses = new Set();
+    const groups = { to: new Set(), cc: new Set(), bcc: new Set() };
+    const unclassified = new Set();
     for (const el of root.querySelectorAll(
-      '[email], [data-recipient-id], input[name="to"], input[name="cc"], input[name="bcc"]',
+      '[email], [data-recipient-id], [data-hovercard-id], input[name="to"], input[name="cc"], input[name="bcc"], input[role="combobox"][aria-label]',
     )) {
-      if (body.contains(el) || el.closest('.glyph-native-toolbar')) continue;
+      if (
+        body.contains(el) ||
+        el.closest('.glyph-native-toolbar, [name="from"], [data-name="from"]')
+      )
+        continue;
       const email = validEmail(
         el.getAttribute('email') ||
           el.getAttribute('data-recipient-id') ||
+          el.getAttribute('data-hovercard-id') ||
           el.value,
       );
-      if (email) addresses.add(email);
+      if (email) {
+        const role = recipientRole(el, root);
+        if (role) groups[role].add(email);
+        else unclassified.add(email);
+      }
     }
-    return [...addresses].sort();
+    // Collapsed Gmail summaries repeat chips without their original roles.
+    // Named fields/role containers take precedence over those summary chips.
+    for (const email of unclassified)
+      if (!Object.values(groups).some((addresses) => addresses.has(email)))
+        groups.to.add(email);
+    return {
+      toEmails: [...groups.to].sort(),
+      ccEmails: [...groups.cc].sort(),
+      bccEmails: [...groups.bcc].sort(),
+    };
   }
   function sender(root) {
     const from = root.querySelector('input[name="from"], select[name="from"]');
@@ -92,21 +144,6 @@
     }
     return null;
   }
-  function hasCcBcc(root, body) {
-    return [
-      ...root.querySelectorAll(
-        'input[name="cc"], input[name="bcc"], [data-name="cc"], [data-name="bcc"], [name="cc"], [name="bcc"]',
-      ),
-    ].some(
-      (el) =>
-        !body.contains(el) &&
-        (String(el.value || '').trim() ||
-          el.querySelector('[email], [data-recipient-id]') ||
-          validEmail(
-            el.getAttribute('email') || el.getAttribute('data-recipient-id'),
-          )),
-    );
-  }
   function subject(root) {
     return (
       root.querySelector('input[name="subjectbox"]')?.value?.trim() ||
@@ -124,7 +161,6 @@
       to: recipients(state.root, state.body),
       subject: subject(state.root),
       from: sender(state.root),
-      ccBcc: hasCcBcc(state.root, state.body),
       opens: state.opens.checked,
       clicks: state.clicks.checked,
       text: cleanClone(state.body).textContent,
@@ -233,7 +269,7 @@
     try {
       setStatus(state, 'Preparing glyph…');
       const ctx = await request('context');
-      const to = recipients(state.root, state.body);
+      const groups = recipients(state.root, state.body);
       const from = sender(state.root);
       if (!from)
         throw new Error(
@@ -241,14 +277,7 @@
         );
       if (from !== ctx.email.toLowerCase())
         throw new Error(`Switch Gmail to ${ctx.email} before adding a glyph.`);
-      if (to.length !== 1)
-        throw new Error(
-          'Use exactly one To recipient and no CC/BCC recipients.',
-        );
-      if (hasCcBcc(state.root, state.body))
-        throw new Error(
-          'CC/BCC is not supported for recipient-specific tracking.',
-        );
+      const primary = validateRecipients(groups);
       const title = subject(state.root);
       const text = cleanClone(state.body).textContent.trim();
       if (!title || !text)
@@ -258,7 +287,8 @@
       const before = snapshot(state);
       const response = await request('prepare', {
         composeKey: state.composeKey,
-        recipientEmail: to[0],
+        recipientEmail: primary,
+        ...groups,
         recipientName: '',
         senderEmail: from,
         subject: title,
@@ -302,7 +332,7 @@
       state.attached = true;
       state.snapshot = snapshot(state);
       state.button.textContent = 'Remove glyph';
-      setStatus(state, `Glyph ready · ${to[0]} · use Gmail Send`);
+      setStatus(state, 'Glyph ready · shared message signals · use Gmail Send');
     } catch (error) {
       preparationFailed(state, error);
     } finally {
@@ -348,11 +378,11 @@
     status.className = 'glyph-native-status';
     status.setAttribute('role', 'status');
     status.setAttribute('aria-live', 'polite');
-    status.textContent = 'Rich-text mode · 1 recipient';
+    status.textContent = 'Rich-text mode · To / Cc / Bcc';
     toolbar.append(button, recovery, status);
     const caveat = document.createElement('small');
     caveat.textContent =
-      'Signals only, not verified reads. Proxies, scanners and forwarding can affect attribution.';
+      'Shared messages have aggregate signals, not individual read receipts. Proxies, scanners and forwarding can affect attribution.';
     toolbar.append(caveat);
     body.parentElement.insertBefore(toolbar, body);
     const state = {

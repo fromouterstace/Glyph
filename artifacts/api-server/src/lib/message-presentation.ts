@@ -1,11 +1,20 @@
 import type { GlyphMessage, GlyphEvent } from '@workspace/db';
+import { recipientGroups } from './native-verification';
 
 export function publicMessage(message: GlyphMessage, events: GlyphEvent[]) {
   const signals = events.filter((e) => e.messageId === message.id);
+  const groups = recipientGroups(message);
+  const count = new Set(Object.values(groups).flat()).size;
   return {
     id: message.id,
     recipientEmail: message.recipientEmail,
-    recipientName: message.recipientName,
+    recipientName:
+      count > 1
+        ? `Shared message (${count} recipients)`
+        : message.recipientName,
+    toEmails: groups.to,
+    ccEmails: groups.cc,
+    bccEmails: groups.bcc,
     subject: message.subject,
     body: message.body,
     trackOpens: message.trackOpens,
@@ -23,11 +32,19 @@ export function publicMessage(message: GlyphMessage, events: GlyphEvent[]) {
 }
 
 export function publicEvent(event: GlyphEvent, message: GlyphMessage) {
+  const groups = recipientGroups(message);
+  const count = new Set(Object.values(groups).flat()).size;
+  const visibleRecipient = groups.to[0] ?? groups.cc[0];
   return {
     id: event.id,
     messageId: message.id,
-    recipientName: message.recipientName,
-    recipientEmail: message.recipientEmail,
+    recipientName:
+      count > 1
+        ? `Shared message (${count} recipients)`
+        : visibleRecipient
+          ? message.recipientName
+          : 'Bcc message',
+    recipientEmail: visibleRecipient ?? '',
     subject: message.subject,
     type: event.type as 'sent' | 'open' | 'click' | 'reply',
     occurredAt: event.occurredAt.toISOString(),

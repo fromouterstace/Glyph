@@ -3,7 +3,30 @@ import assert from 'node:assert/strict';
 import {
   presentOwnerData,
   publicMessage,
+  publicEvent,
 } from '../artifacts/api-server/src/lib/message-presentation.ts';
+
+test('shared signals show an aggregate label and retain owner-visible recipient roles', () => {
+  const shared = {
+    ...message('shared'),
+    toEmails: ['to@example.invalid'],
+    ccEmails: ['cc@example.invalid'],
+    bccEmails: ['hidden@example.invalid'],
+  };
+  const result = publicMessage(shared, []);
+  assert.equal(result.recipientName, 'Shared message (3 recipients)');
+  assert.deepEqual(result.bccEmails, ['hidden@example.invalid']);
+  const activity = publicEvent(event('load', shared.id, 'open'), shared);
+  assert.equal(activity.recipientName, 'Shared message (3 recipients)');
+  assert.equal('bccEmails' in activity, false);
+  const hiddenOnly = publicEvent(event('load', shared.id, 'open'), {
+    ...shared,
+    toEmails: [],
+    ccEmails: [],
+  });
+  assert.equal(hiddenOnly.recipientEmail, '');
+  assert.equal(hiddenOnly.recipientName, 'Bcc message');
+});
 
 const time = new Date('2026-11-04T12:00:00.000Z');
 const message = (id) => ({

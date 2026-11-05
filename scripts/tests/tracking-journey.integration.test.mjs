@@ -53,14 +53,14 @@ for (const source of ['web', 'gmail']) {
   });
 }
 
-function reply(id, original, sentAt) {
+function reply(id, original, sentAt, sender = 'recipient@example.invalid') {
   return {
     id,
     internalDate: String(sentAt + 1000),
     labelIds: ['INBOX'],
     payload: {
       headers: [
-        { name: 'From', value: 'Recipient <recipient@example.invalid>' },
+        { name: 'From', value: sender },
         { name: 'To', value: mailbox },
         { name: 'Message-ID', value: `<${id}@outlook.example>` },
         { name: 'In-Reply-To', value: original },
@@ -69,9 +69,12 @@ function reply(id, original, sentAt) {
   };
 }
 
-async function nativeScenario() {
+async function nativeScenario(
+  participants = { to: ['recipient@example.invalid'], cc: [], bcc: [] },
+  replySender = 'recipient@example.invalid',
+) {
   const owner = h.identity();
-  const compose = await trackedCompose(h, owner);
+  const compose = await trackedCompose(h, owner, participants);
   const row = (
     await h.sql('SELECT created_at FROM glyph_messages WHERE id=$1', [
       compose.data.messageId,
@@ -92,13 +95,18 @@ async function nativeScenario() {
           body: { data: Buffer.from(compose.html).toString('base64url') },
           headers: [
             { name: 'From', value: mailbox },
-            { name: 'To', value: 'recipient@example.invalid' },
+            ...Object.entries(participants)
+              .filter(([, emails]) => emails.length)
+              .map(([role, emails]) => ({
+                name: role,
+                value: emails.join(', '),
+              })),
             { name: 'Message-ID', value: original },
           ],
         },
       });
     if (path.includes(`/${replyId}?`))
-      return json(reply(replyId, original, sentAt));
+      return json(reply(replyId, original, sentAt, replySender));
     if (path.includes('/messages?')) {
       const query = new URL(`https://gmail.invalid${path}`).searchParams.get(
         'q',
@@ -123,61 +131,131 @@ async function nativeScenario() {
   };
 }
 
-test('actual compose script → Sent confirmation → pixel/click → reply → dashboard uses durable events', async () => {
-  const f = await nativeScenario();
-  try {
-    expect(f.compose.pixel).toBe(f.compose.data.pixelUrl);
-    const sent = await (
-      await h.request('/native/sync', { user: f.owner, method: 'POST' })
-    ).json();
-    expect(sent.confirmed).toBe(1);
-    await h.request(
-      new URL(f.compose.data.pixelUrl).pathname.replace('/api/glyph', ''),
-      {
-        headers: { 'user-agent': 'GoogleImageProxy' },
-      },
-    );
-    await h.request(
-      new URL(f.compose.data.links[0].trackingUrl).pathname.replace(
-        '/api/glyph',
-        '',
-      ),
-      { redirect: 'manual' },
-    );
-    f.receive();
-    const synced = await (
-      await h.request('/native/sync', { user: f.owner, method: 'POST' })
-    ).json();
-    expect(synced.repliesDetected).toBe(1);
-    f.receive();
-    const repeated = await (
-      await h.request('/native/sync', { user: f.owner, method: 'POST' })
-    ).json();
-    expect(repeated.repliesDetected).toBe(0);
-    const detail = await (
-      await h.request(`/messages/${f.compose.data.messageId}`, {
-        user: f.owner,
-      })
-    ).json();
-    expect(detail.events.map((event) => event.type).sort()).toEqual([
-      'click',
-      'open',
-      'reply',
-      'sent',
-    ]);
-    const stored = await h.sql(
-      'SELECT type FROM glyph_events WHERE message_id=$1 ORDER BY type',
-      [f.compose.data.messageId],
-    );
-    expect(stored.rows.map((event) => event.type)).toEqual([
-      'click',
-      'open',
-      'reply',
-      'sent',
-    ]);
-  } finally {
-    f.compose.close();
+test.each([
+  ['single recipient', undefined, undefined],
+  [
+    'Bcc-only message with a Bcc reply',
+    { to: [], cc: [], bcc: ['hidden@example.invalid'] },
+    'hidden@example.invalid',
+  ],
+  [
+    'mixed To/Cc/Bcc with a Bcc reply',
+    {
+      to: ['recipient@example.invalid', 'second@example.invalid'],
+      cc: ['cc@example.invalid'],
+      bcc: ['hidden@example.invalid'],
+    },
+    'hidden@example.invalid',
+  ],
+])(
+  '%s: compose → Sent → pixel/click → reply → dashboard uses durable events',
+  async (_name, participants, replySender) => {
+    const f = await nativeScenario(participants, replySender);
+    try {
+      expect(f.compose.pixel).toBe(f.compose.data.pixelUrl);
+      const sent = await (
+        await h.request('/native/sync', { user: f.owner, method: 'POST' })
+      ).json();
+      expect(sent.confirmed).toBe(1);
+      await h.request(
+        new URL(f.compose.data.pixelUrl).pathname.replace('/api/glyph', ''),
+        {
+          headers: { 'user-agent': 'GoogleImageProxy' },
+        },
+      );
+      await h.request(
+        new URL(f.compose.data.links[0].trackingUrl).pathname.replace(
+          '/api/glyph',
+          '',
+        ),
+        { redirect: 'manual' },
+      );
+      f.receive();
+      const synced = await (
+        await h.request('/native/sync', { user: f.owner, method: 'POST' })
+      ).json();
+      expect(synced.repliesDetected).toBe(1);
+      f.receive();
+      const repeated = await (
+        await h.request('/native/sync', { user: f.owner, method: 'POST' })
+      ).json();
+      expect(repeated.repliesDetected).toBe(0);
+      const detail = await (
+        await h.request(`/messages/${f.compose.data.messageId}`, {
+          user: f.owner,
+        })
+      ).json();
+      expect(detail.message.toEmails).toEqual(
+        participants?.to ?? ['recipient@example.invalid'],
+      );
+      expect(detail.message.ccEmails).toEqual(participants?.cc ?? []);
+      expect(detail.message.bccEmails).toEqual(participants?.bcc ?? []);
+      expect(
+        (
+          await h.request(`/messages/${f.compose.data.messageId}`, {
+            user: h.identity(),
+          })
+        ).status,
+      ).toBe(404);
+      expect(detail.events.map((event) => event.type).sort()).toEqual([
+        'click',
+        'open',
+        'reply',
+        'sent',
+      ]);
+      const stored = await h.sql(
+        'SELECT type FROM glyph_events WHERE message_id=$1 ORDER BY type',
+        [f.compose.data.messageId],
+      );
+      expect(stored.rows.map((event) => event.type)).toEqual([
+        'click',
+        'open',
+        'reply',
+        'sent',
+      ]);
+    } finally {
+      f.compose.close();
+    }
+  },
+);
+
+test('invalid native recipient groups are rejected before persisting a draft', async () => {
+  const owner = h.identity();
+  const base = {
+    senderEmail: mailbox,
+    recipientEmail: 'recipient@example.invalid',
+    recipientName: '',
+    subject: 'Proposal',
+    body: 'Hello',
+    trackOpens: true,
+    trackClicks: true,
+    composeKey: 'native-recipient-validation',
+    urls: [],
+  };
+  for (const invalid of [
+    { toEmails: [] },
+    { toEmails: ['not-an-email'] },
+    { toEmails: ['stranger@example.invalid'] },
+    { toEmails: [base.recipientEmail], ccEmails: [base.recipientEmail] },
+    {
+      toEmails: [
+        base.recipientEmail,
+        ...Array.from({ length: 50 }, (_, i) => `to${i}@example.invalid`),
+      ],
+      ccEmails: Array.from({ length: 50 }, (_, i) => `cc${i}@example.invalid`),
+    },
+  ]) {
+    const response = await h.request('/native/prepare', {
+      user: owner,
+      method: 'POST',
+      body: { ...base, ...invalid },
+    });
+    expect(response.status).toBe(400);
   }
+  expect(
+    (await h.sql('SELECT id FROM glyph_messages WHERE owner_id=$1', [owner]))
+      .rows,
+  ).toEqual([]);
 });
 
 test('a provider 429 after a matched reply preserves the match and reports partial paused coverage', async () => {

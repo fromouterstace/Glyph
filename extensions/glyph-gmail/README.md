@@ -7,7 +7,7 @@ when changing permissions, the app-origin bridge, tracking, or release behavior.
 2. Open `chrome://extensions` or `edge://extensions`, enable Developer mode, select **Load unpacked**, and choose the extracted `glyph-extension` folder.
 3. Pin Glyph. Enter your Glyph app's HTTPS origin in its popup and click Connect. Approve access to that origin only.
 4. Sign in on the Glyph connection tab with the verified email matching the project's connected Gmail mailbox. Keep that tab open (background is fine). The extension uses that tab's existing session; it never stores your Gmail password or OAuth tokens.
-5. Reload Gmail. In a rich-text compose with one To recipient and no CC/BCC, click **Add glyph**, then send using Gmail's normal Send or Ctrl/Cmd+Enter. Glyph does not intercept Send.
+5. Reload Gmail. In a rich-text compose with up to 100 To, Cc and Bcc recipients, click **Add glyph**, then send using Gmail's normal Send or Ctrl/Cmd+Enter. Glyph does not intercept Send or split your message into separate sends. Finish entering recipient chips first and remove duplicate addresses across roles.
 6. Editing the body, recipient or subject removes the glyph; add it again after your edits. Remove glyph restores original links. Attachments and existing formatting are not replaced.
 
 Gmail DOM integration is experimental and supports desktop Chrome/Edge. Gmail can change its editor without warning. Some inline replies and alternate compose layouts may not expose the control; use a full compose window. Plain-text mode cannot carry a tracking pixel.
@@ -26,7 +26,9 @@ The helper tab must remain open and signed in for new tracking preparation and e
 
 A prepared draft is not a sent email. Glyph verifies a unique marker in Gmail Sent before counting it as sent or recording engagement. It examines the most recent 25 sent emails from the past seven days; sync promptly after sending. Gmail Undo Send is respected because no send is assumed from a button click.
 
-Reply detection uses standard `In-Reply-To` / `References` headers and the original recipient's actual address. Replies may come from Gmail, Outlook, Yahoo, iCloud, or custom-domain email. The connected **sender** mailbox remains Gmail. Matching does not depend on Gmail conversation IDs or subject lines, and no open is inferred from a reply. Automatic responses, sender followups and delivery reports are excluded. Missing reference headers or a reply from a different sender address may prevent matching.
+Reply detection uses standard `In-Reply-To` / `References` headers and the original To, Cc and Bcc participants' actual addresses. Replies may come from Gmail, Outlook, Yahoo, iCloud, or custom-domain email. The connected **sender** mailbox remains Gmail. Matching does not depend on Gmail conversation IDs or subject lines, and no open is inferred from a reply. Automatic responses, sender followups and delivery reports are excluded. Missing reference headers or a reply from a different sender address may prevent matching.
+
+One shared Gmail message contains one glyph and one set of tracked links. Its pixel loads and clicks are aggregate signals: they cannot reliably identify which recipient acted. Replies from any original participant attach to the same tracked message. Recipient roles are saved in PostgreSQL; Bcc addresses remain private to the sender's owned message detail and are not embedded in public tracking URLs or activity events. The sender's Gmail Sent copy must match the prepared recipient roles, including Bcc, before the message is confirmed. Gmail's normal single Send and threading behavior are preserved.
 
 Sync inspects headers of the most recent 100 received messages in the past 30 days. It reports partial scans and errors explicitly. It does not download reply bodies or attachments or mark Gmail messages as read.
 

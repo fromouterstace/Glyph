@@ -16,6 +16,18 @@ export const prepareNativeMessageBodyOneSubjectMax = 200;
 
 export const prepareNativeMessageBodyOneBodyMax = 50000;
 
+export const prepareNativeMessageBodyTwoToEmailsItemMax = 254;
+
+export const prepareNativeMessageBodyTwoToEmailsMax = 100;
+
+export const prepareNativeMessageBodyTwoCcEmailsItemMax = 254;
+
+export const prepareNativeMessageBodyTwoCcEmailsMax = 100;
+
+export const prepareNativeMessageBodyTwoBccEmailsItemMax = 254;
+
+export const prepareNativeMessageBodyTwoBccEmailsMax = 100;
+
 export const prepareNativeMessageBodyTwoComposeKeyMin = 16;
 export const prepareNativeMessageBodyTwoComposeKeyMax = 100;
 
@@ -34,6 +46,9 @@ export const PrepareNativeMessageBody = zod.object({
   "trackClicks": zod.boolean()
 }).and(zod.object({
   "senderEmail": zod.email(),
+  "toEmails": zod.array(zod.email().max(prepareNativeMessageBodyTwoToEmailsItemMax)).max(prepareNativeMessageBodyTwoToEmailsMax).optional(),
+  "ccEmails": zod.array(zod.email().max(prepareNativeMessageBodyTwoCcEmailsItemMax)).max(prepareNativeMessageBodyTwoCcEmailsMax).optional(),
+  "bccEmails": zod.array(zod.email().max(prepareNativeMessageBodyTwoBccEmailsItemMax)).max(prepareNativeMessageBodyTwoBccEmailsMax).optional(),
   "composeKey": zod.string().min(prepareNativeMessageBodyTwoComposeKeyMin).max(prepareNativeMessageBodyTwoComposeKeyMax),
   "urls": zod.array(zod.string().max(prepareNativeMessageBodyTwoUrlsItemMax)).max(prepareNativeMessageBodyTwoUrlsMax)
 }))
@@ -84,6 +99,9 @@ export const ListMessagesResponseItem = zod.object({
   "id": zod.string(),
   "recipientEmail": zod.string(),
   "recipientName": zod.string(),
+  "toEmails": zod.array(zod.string()).optional(),
+  "ccEmails": zod.array(zod.string()).optional(),
+  "bccEmails": zod.array(zod.string()).optional(),
   "subject": zod.string(),
   "body": zod.string(),
   "trackOpens": zod.boolean(),
@@ -123,6 +141,9 @@ export const CreateMessageResponse = zod.object({
   "id": zod.string(),
   "recipientEmail": zod.string(),
   "recipientName": zod.string(),
+  "toEmails": zod.array(zod.string()).optional(),
+  "ccEmails": zod.array(zod.string()).optional(),
+  "bccEmails": zod.array(zod.string()).optional(),
   "subject": zod.string(),
   "body": zod.string(),
   "trackOpens": zod.boolean(),
@@ -147,6 +168,9 @@ export const GetMessageResponse = zod.object({
   "id": zod.string(),
   "recipientEmail": zod.string(),
   "recipientName": zod.string(),
+  "toEmails": zod.array(zod.string()).optional(),
+  "ccEmails": zod.array(zod.string()).optional(),
+  "bccEmails": zod.array(zod.string()).optional(),
   "subject": zod.string(),
   "body": zod.string(),
   "trackOpens": zod.boolean(),
@@ -208,6 +232,9 @@ export const UpdateMessageResponse = zod.object({
   "id": zod.string(),
   "recipientEmail": zod.string(),
   "recipientName": zod.string(),
+  "toEmails": zod.array(zod.string()).optional(),
+  "ccEmails": zod.array(zod.string()).optional(),
+  "bccEmails": zod.array(zod.string()).optional(),
   "subject": zod.string(),
   "body": zod.string(),
   "trackOpens": zod.boolean(),
@@ -238,6 +265,9 @@ export const SendMessageResponse = zod.object({
   "id": zod.string(),
   "recipientEmail": zod.string(),
   "recipientName": zod.string(),
+  "toEmails": zod.array(zod.string()).optional(),
+  "ccEmails": zod.array(zod.string()).optional(),
+  "bccEmails": zod.array(zod.string()).optional(),
   "subject": zod.string(),
   "body": zod.string(),
   "trackOpens": zod.boolean(),

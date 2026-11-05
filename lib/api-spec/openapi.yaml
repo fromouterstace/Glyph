@@ -182,6 +182,18 @@ components:
           required: [senderEmail, composeKey, urls]
           properties:
             senderEmail: { type: string, format: email }
+            toEmails:
+              type: array
+              maxItems: 100
+              items: { type: string, format: email, maxLength: 254 }
+            ccEmails:
+              type: array
+              maxItems: 100
+              items: { type: string, format: email, maxLength: 254 }
+            bccEmails:
+              type: array
+              maxItems: 100
+              items: { type: string, format: email, maxLength: 254 }
             composeKey: { type: string, minLength: 16, maxLength: 100 }
             urls:
               type: array
@@ -258,6 +270,15 @@ components:
         id: { type: string }
         recipientEmail: { type: string }
         recipientName: { type: string }
+        toEmails:
+          type: array
+          items: { type: string }
+        ccEmails:
+          type: array
+          items: { type: string }
+        bccEmails:
+          type: array
+          items: { type: string }
         subject: { type: string }
         body: { type: string }
         trackOpens: { type: boolean }

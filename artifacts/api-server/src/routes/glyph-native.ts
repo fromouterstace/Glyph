@@ -12,6 +12,7 @@ import { mailboxEmail, newToken } from '../lib/gmail';
 import { syncNative } from '../lib/gmail-native';
 import { syncReplies } from '../lib/gmail-replies';
 import { resolveTrackingOrigin } from '../lib/tracking-origin';
+import { normalizeNativeRecipients } from '../lib/native-verification';
 
 // Mounted after glyphRouter: its shared cookie auth, verified mailbox ownership,
 // same-origin write protection and no-store headers apply to every native route.
@@ -24,12 +25,20 @@ router.post('/glyph/native/prepare', async (req, res): Promise<void> => {
   }
   const parsed = PrepareNativeMessageBody.safeParse(req.body);
   if (!parsed.success) {
-    res
-      .status(400)
-      .json({ error: 'Use one valid recipient, a subject and a message.' });
+    res.status(400).json({
+      error: 'Use valid To, Cc and Bcc recipients, a subject and a message.',
+    });
     return;
   }
   const data = parsed.data;
+  const recipients = normalizeNativeRecipients(data);
+  if (!recipients) {
+    res.status(400).json({
+      error:
+        'Use between 1 and 100 recipients and a matching primary recipient.',
+    });
+    return;
+  }
   if (data.senderEmail.toLowerCase() !== (await mailboxEmail())) {
     res.status(403).json({
       error: 'The Gmail compose account does not match the connected mailbox.',
@@ -91,6 +100,7 @@ router.post('/glyph/native/prepare', async (req, res): Promise<void> => {
     const values = {
       recipientEmail: data.recipientEmail.toLowerCase(),
       recipientName: data.recipientName,
+      ...recipients,
       subject: data.subject,
       body: data.body,
       trackOpens: data.trackOpens,
