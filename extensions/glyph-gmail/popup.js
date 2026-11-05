@@ -1,4 +1,6 @@
 const $ = (id) => document.getElementById(id);
+const originPolicy = globalThis.GlyphOriginPolicy;
+$('origin').value = originPolicy.publishedOrigin;
 const send = async (action, extra = {}) => {
   const response = await globalThis.glyphMessaging.send({
     channel: 'glyph:background',
@@ -12,11 +14,8 @@ async function refresh() {
   $('error').textContent = '';
   try {
     const status = await send('status');
-    if (
-      status.origin &&
-      !new URL(status.origin).hostname.endsWith('.replit.dev')
-    )
-      $('origin').value = status.origin;
+    if (status.origin)
+      $('origin').value = originPolicy.appOrigin(status.origin);
     $('state').textContent = status.connected
       ? 'Connected to Gmail'
       : 'Connection needs attention';
@@ -30,26 +29,13 @@ async function refresh() {
 $('connect').addEventListener('click', async () => {
   $('error').textContent = '';
   try {
-    const url = new URL($('origin').value.trim());
-    if (
-      url.protocol !== 'https:' ||
-      url.pathname !== '/' ||
-      url.search ||
-      url.hash ||
-      url.username ||
-      url.password
-    )
-      throw new Error(
-        'Paste the HTTPS app origin only, without /app or /gmail.',
-      );
-    if (url.hostname.endsWith('.replit.dev'))
-      throw new Error('Use the published Glyph address, not a preview URL.');
+    const origin = originPolicy.appOrigin($('origin').value.trim());
     // Permission request stays inside this explicit user gesture.
     const granted = await chrome.permissions.request({
-      origins: [`${url.origin}/*`],
+      origins: [`${origin}/*`],
     });
     if (!granted) throw new Error('Access to the Glyph app was not approved.');
-    await send('connect', { origin: url.origin });
+    await send('connect', { origin });
     $('state').textContent = 'Sign in on the Glyph tab';
     $('account').textContent = 'Then return here and check the connection.';
   } catch (e) {
@@ -59,9 +45,7 @@ $('connect').addEventListener('click', async () => {
 $('refresh').addEventListener('click', refresh);
 $('disconnect').addEventListener('click', async () => {
   try {
-    const { origin } = await chrome.storage.local.get('origin');
     await send('disconnect');
-    if (origin) await chrome.permissions.remove({ origins: [`${origin}/*`] });
     $('state').textContent = 'Disconnected';
     $('account').textContent = '';
   } catch (e) {

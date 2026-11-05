@@ -5,13 +5,13 @@
   <main>
     <h1>Tracking, inside Gmail.</h1>
     <p>Add a glyph to your Gmail compose, then use Gmail’s own Send.</p>
-    <label for="origin">Published Glyph app address</label>
-    <input id="origin" type="url" value="https://glyph-mail.replit.app" placeholder="https://glyph-mail.replit.app" autocomplete="off" spellcheck="false">
+    <label for="origin">Trusted published Glyph app</label>
+    <input id="origin" type="url" readonly autocomplete="off" spellcheck="false">
     <button id="connect">Connect Glyph</button>
-    <p class="hint">Use the published address, never a replit.dev preview. Approve access, sign in on the production connection tab, and keep it open.</p>
+    <p class="hint">Glyph connects only to its verified published app. Approve access, sign in on the connection tab, and keep it open.</p>
     <section id="connection" aria-live="polite"><span id="state">Not connected</span><div id="account"></div></section>
     <div class="actions"><button id="refresh" class="secondary">Check connection</button><button id="disconnect" class="secondary">Disconnect</button></div>
     <p id="error" role="alert"></p>
     <footer>Desktop Chrome/Edge · experimental build<br>Signals are approximate, not read receipts.<br>No Google password or OAuth token is stored in this extension.</footer>
-  </main><script src="messaging.js"></script><script src="popup.js"></script>
+  </main><script src="trusted-origin.js"></script><script src="messaging.js"></script><script src="popup.js"></script>
 </body></html>

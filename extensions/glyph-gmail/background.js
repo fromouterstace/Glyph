@@ -1,30 +1,74 @@
+importScripts('trusted-origin.js');
+
 const CHANNEL = 'glyph:background';
 const BRIDGE = 'glyph:bridge';
+const appOrigin = (value) => globalThis.GlyphOriginPolicy.appOrigin(value);
 
-function appOrigin(value) {
-  const url = new URL(value);
-  if (
-    url.protocol !== 'https:' ||
-    url.username ||
-    url.password ||
-    url.pathname !== '/' ||
-    url.search ||
-    url.hash
-  )
-    throw new Error('Enter only the HTTPS Glyph app origin, without a path.');
-  if (url.hostname === 'mail.google.com')
-    throw new Error('Enter your Glyph app address, not Gmail.');
-  if (
-    url.hostname.endsWith('.replit.dev') ||
-    url.hostname === 'localhost' ||
-    url.hostname.endsWith('.localhost') ||
-    url.hostname === '127.0.0.1'
-  )
-    throw new Error(
-      'Preview connections cannot track real emails. Connect to the published Glyph HTTPS address, sign in there, and start a fresh compose.',
-    );
-  return url.origin;
+async function removeUntrustedPermissions() {
+  const { origins = [] } = await chrome.permissions.getAll();
+  const trusted = new Set([
+    'https://mail.google.com/*',
+    ...[globalThis.GlyphOriginPolicy.publishedOrigin].map(
+      (origin) => `${origin}/*`,
+    ),
+  ]);
+  const untrusted = origins.filter((origin) => !trusted.has(origin));
+  if (untrusted.length)
+    await chrome.permissions.remove({ origins: untrusted });
 }
+
+async function unregisterBridge() {
+  await chrome.scripting
+    .unregisterContentScripts({ ids: ['glyph-app-bridge'] })
+    .catch(() => {});
+}
+
+async function clearStoredConnection(origin) {
+  await unregisterBridge();
+  const permission = globalThis.GlyphOriginPolicy.permissionPattern(origin);
+  if (permission)
+    await chrome.permissions.remove({ origins: [permission] }).catch(() => {});
+  await chrome.alarms.clear('glyph-poll');
+  await chrome.storage.local.remove([
+    'origin',
+    'seenEvents',
+    'lastPoll',
+    'mailbox',
+  ]);
+  await chrome.action.setBadgeText({ text: '' });
+}
+
+async function reconcileStoredConnection() {
+  const { origin } = await chrome.storage.local.get('origin');
+  await unregisterBridge();
+  try {
+    await removeUntrustedPermissions();
+    if (!origin) {
+      await chrome.alarms.clear('glyph-poll');
+      return;
+    }
+    const trustedOrigin = appOrigin(origin);
+    if (
+      !(await chrome.permissions.contains({
+        origins: [`${trustedOrigin}/*`],
+      }))
+    )
+      throw new Error('The trusted Glyph host permission is no longer granted.');
+    await chrome.scripting.registerContentScripts([
+      {
+        id: 'glyph-app-bridge',
+        matches: [`${trustedOrigin}/*`],
+        js: ['bridge.js'],
+        runAt: 'document_idle',
+        persistAcrossSessions: true,
+      },
+    ]);
+    await chrome.alarms.create('glyph-poll', { periodInMinutes: 0.5 });
+  } catch {
+    await clearStoredConnection(origin);
+  }
+}
+
 async function bridge(action, data) {
   const { origin } = await chrome.storage.local.get('origin');
   if (!origin)
@@ -64,9 +108,8 @@ async function connect(value) {
   if (!(await chrome.permissions.contains({ origins: [`${origin}/*`] })))
     throw new Error('Allow access to your Glyph app to connect.');
   const previous = await chrome.storage.local.get('origin');
-  await chrome.scripting
-    .unregisterContentScripts({ ids: ['glyph-app-bridge'] })
-    .catch(() => {});
+  await removeUntrustedPermissions();
+  await unregisterBridge();
   await chrome.scripting.registerContentScripts([
     {
       id: 'glyph-app-bridge',
@@ -171,9 +214,9 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
         return context();
       case 'prepare': {
         if (!gmail) throw new Error('Prepare tracking from Gmail compose.');
-        const result = await bridge('prepare', message.data);
         const { origin } = await chrome.storage.local.get('origin');
         const expected = appOrigin(origin);
+        const result = await bridge('prepare', message.data);
         const urls = [
           result.markerUrl,
           ...(message.data.trackOpens ? [result.pixelUrl] : []),
@@ -198,9 +241,14 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
         return connect(message.origin);
       case 'disconnect':
         if (!popup) throw new Error('Use the extension popup to disconnect.');
-        await chrome.scripting
-          .unregisterContentScripts({ ids: ['glyph-app-bridge'] })
-          .catch(() => {});
+        {
+          const { origin } = await chrome.storage.local.get('origin');
+          await unregisterBridge();
+          const permission =
+            globalThis.GlyphOriginPolicy.permissionPattern(origin);
+          if (permission)
+            await chrome.permissions.remove({ origins: [permission] });
+        }
         await chrome.alarms.clear('glyph-poll');
         await chrome.storage.local.clear();
         await chrome.action.setBadgeText({ text: '' });
@@ -220,12 +268,18 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'glyph-poll') void poll();
 });
+chrome.runtime.onInstalled.addListener(async () => {
+  await reconcileStoredConnection();
+});
 chrome.runtime.onStartup.addListener(async () => {
-  const { origin } = await chrome.storage.local.get('origin');
-  if (origin)
-    await chrome.alarms.create('glyph-poll', { periodInMinutes: 0.5 });
+  await reconcileStoredConnection();
 });
 chrome.notifications.onClicked.addListener(async () => {
   const { origin } = await chrome.storage.local.get('origin');
-  if (origin) await chrome.tabs.create({ url: `${origin}/activity` });
+  if (!origin) return;
+  try {
+    await chrome.tabs.create({ url: `${appOrigin(origin)}/activity` });
+  } catch {
+    await reconcileStoredConnection();
+  }
 });

@@ -3,18 +3,31 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 import FakeTimers from '@sinonjs/fake-timers';
+import { PUBLISHED_GLYPH_ORIGIN } from '../artifacts/glyph/src/lib/tracking-origin.ts';
 
 const source = await readFile(
   new URL('../extensions/glyph-gmail/background.js', import.meta.url),
   'utf8',
 );
+const originPolicySource = await readFile(
+  new URL('../extensions/glyph-gmail/trusted-origin.js', import.meta.url),
+  'utf8',
+);
 // Test harness construction is reusable setup, not a single test case.
 function fixture(options = {}) {
   const clock = FakeTimers.createClock(Date.UTC(2026, 10, 4, 12));
-  let listener;
-  const stored = { origin: 'https://glyph.example', ...options.stored };
+  let listener, installed, started, notificationClick;
+  const stored = { origin: PUBLISHED_GLYPH_ORIGIN, ...options.stored };
+  const registered = [],
+    unregistered = [],
+    removedPermissions = [],
+    permissionChecks = [],
+    openedTabs = [];
   const calls = [],
-    registered = [];
+    grantedOrigins = options.grantedOrigins ?? [
+      `${PUBLISHED_GLYPH_ORIGIN}/*`,
+      'https://mail.google.com/*',
+    ];
   const chrome = {
     runtime: {
       id: 'own-extension',
@@ -24,7 +37,8 @@ function fixture(options = {}) {
           listener = l;
         },
       },
-      onStartup: { addListener() {} },
+      onInstalled: { addListener: (l) => (installed = l) },
+      onStartup: { addListener: (l) => (started = l) },
     },
     storage: {
       local: {
@@ -38,17 +52,29 @@ function fixture(options = {}) {
         },
       },
     },
-    permissions: { contains: async () => options.permission !== false },
+    permissions: {
+      contains: async (value) => {
+        permissionChecks.push(value);
+        return options.permission !== false;
+      },
+      getAll: async () => ({ origins: [...grantedOrigins] }),
+      remove: async ({ origins }) => {
+        removedPermissions.push(...origins);
+        return true;
+      },
+    },
     scripting: {
       executeScript: async (v) => calls.push(['inject', v]),
-      unregisterContentScripts: async () => {},
+      unregisterContentScripts: async ({ ids }) => unregistered.push(...ids),
       registerContentScripts: async (v) => registered.push(...v),
     },
     tabs: {
       query: async () =>
-        options.closed ? [] : [{ id: 1, url: 'https://glyph.example/gmail' }],
+        options.closed
+          ? []
+          : [{ id: 1, url: `${stored.origin}/gmail` }],
       update: async () => {},
-      create: async () => {},
+      create: async (tab) => openedTabs.push(tab),
       sendMessage: async (_id, msg) => {
         calls.push([msg.action, msg.data]);
         return {
@@ -79,14 +105,25 @@ function fixture(options = {}) {
       create: async (_id, data) => {
         calls.push(['notification', data]);
       },
-      onClicked: { addListener() {} },
+      onClicked: { addListener: (l) => (notificationClick = l) },
     },
     action: {
       setBadgeText: async () => {},
       setBadgeBackgroundColor: async () => {},
     },
   };
-  vm.runInNewContext(source, { chrome, URL, Set, Date: clock.Date, Error });
+  const sandbox = vm.createContext({
+    chrome,
+    URL,
+    Set,
+    Date: clock.Date,
+    Error,
+  });
+  sandbox.importScripts = (name) => {
+    if (name !== 'trusted-origin.js') throw new Error('Unexpected import.');
+    vm.runInContext(originPolicySource, sandbox);
+  };
+  vm.runInContext(source, sandbox);
   const gmail = {
     id: chrome.runtime.id,
     tab: { url: 'https://mail.google.com/mail/u/0/' },
@@ -104,7 +141,22 @@ function fixture(options = {}) {
       );
       if (keepAlive === undefined) resolve(undefined);
     });
-  return { request, calls, registered, stored, gmail, popup };
+  return {
+    request,
+    calls,
+    registered,
+    unregistered,
+    removedPermissions,
+    permissionChecks,
+    openedTabs,
+    stored,
+    gmail,
+    popup,
+    installed,
+    started,
+    notificationClick,
+    policy: sandbox.GlyphOriginPolicy,
+  };
 }
 test('only own Gmail content script or own popup can call the background', async () => {
   const f = fixture();
@@ -142,13 +194,13 @@ test('connect requires granted permissions and exact HTTPS app origin', async ()
   const f = fixture({ permission: false });
   const denied = await f.request(
     'connect',
-    { origin: 'https://glyph.example' },
+    { origin: PUBLISHED_GLYPH_ORIGIN },
     f.popup,
   );
   assert.equal(denied.ok, false);
   const path = await f.request(
     'connect',
-    { origin: 'https://glyph.example/app' },
+    { origin: `${PUBLISHED_GLYPH_ORIGIN}/app` },
     f.popup,
   );
   assert.equal(path.ok, false);
@@ -158,12 +210,15 @@ test('app access is registered only for the explicitly selected origin', async (
   const f = fixture();
   const response = await f.request(
     'connect',
-    { origin: 'https://glyph.example' },
+    { origin: PUBLISHED_GLYPH_ORIGIN },
     f.popup,
   );
   assert.equal(response.ok, true);
   assert.equal(f.registered[0].matches.length, 1);
-  assert.equal(f.registered[0].matches[0], 'https://glyph.example/*');
+  assert.equal(
+    f.registered[0].matches[0],
+    `${PUBLISHED_GLYPH_ORIGIN}/*`,
+  );
   assert.equal(
     Object.keys(f.stored).some((k) => /token|password|secret/i.test(k)),
     false,
@@ -177,7 +232,7 @@ test('new preview connections are rejected before bridge registration', async ()
     f.popup,
   );
   assert.equal(response.ok, false);
-  assert.match(response.error, /published/);
+  assert.match(response.error, /official published Glyph app/);
   assert.equal(f.registered.length, 0);
 });
 test('existing preview connections cannot prepare pixels or read context', async () => {
@@ -185,14 +240,14 @@ test('existing preview connections cannot prepare pixels or read context', async
   for (const action of ['context', 'prepare']) {
     const response = await f.request(action, { data: { trackOpens: true } });
     assert.equal(response.ok, false);
-    assert.match(response.error, /Preview connections/);
+    assert.match(response.error, /official published Glyph app/);
   }
   assert.equal(f.calls.length, 0);
 });
 test('a production connection rejects cross-environment pixel, marker and link URLs', async () => {
   const valid = {
-    markerUrl: 'https://glyph.example/gmail?glyph=test',
-    pixelUrl: 'https://glyph.example/api/glyph/t/test.gif',
+    markerUrl: `${PUBLISHED_GLYPH_ORIGIN}/gmail?glyph=test`,
+    pixelUrl: `${PUBLISHED_GLYPH_ORIGIN}/api/glyph/t/test.gif`,
     links: [],
   };
   for (const prepared of [
