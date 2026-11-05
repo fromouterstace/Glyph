@@ -38,3 +38,9 @@ After changing OpenAPI path structure, verify each generated operation URL and i
 **Why:** A valid generation run can still bind mutations to a neighboring paged route, silently directing edits or deletes to the wrong endpoint.
 
 **How to apply:** Inspect generated route builders for affected operations and confirm required path/query parameters match the intended API contract before accepting the generated client.
+
+Frontend UI tests must explicitly select `NODE_ENV=test`, even when invoked by a production build's quality checks.
+
+**Why:** Publishing passes `NODE_ENV=production` into build subprocesses. Vitest preserves that existing value, causing React's production exports to lack the test `act` implementation even though the same tests pass in the workspace.
+
+**How to apply:** Keep test mode scoped to the test subprocess; do not change the actual application bundle's production mode. Verify publishing failures using the artifact's production command and configured build environment, not only the workspace release command.
