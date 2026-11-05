@@ -249,6 +249,13 @@ before packaging. Update the installed extension version and provide an explicit
 user-facing upgrade/reconnect path; publishing the web app alone does not update
 an installed extension.
 
+**Workspace status (2026-11-05):** Implemented as extension v0.5.0. The popup,
+background bridge, and manifest now permit only `https://glyph-mail.replit.app`.
+Untrusted stored origins are removed on extension update/startup, and a stale
+origin is rejected before compose data reaches the bridge. The package and
+upgrade instructions are generated in the workspace; this does not update an
+already installed extension or publish the setup-page changes.
+
 ### 3. Add abuse controls without falsifying engagement
 
 **Risk addressed:** SEC-03.

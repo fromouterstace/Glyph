@@ -5,7 +5,7 @@ when changing permissions, the app-origin bridge, tracking, or release behavior.
 
 1. Extract the downloaded archive.
 2. Open `chrome://extensions` or `edge://extensions`, enable Developer mode, select **Load unpacked**, and choose the extracted `glyph-extension` folder.
-3. Pin Glyph. Enter your Glyph app's HTTPS origin in its popup and click Connect. Approve access to that origin only.
+3. Pin Glyph. The v0.5.0 popup is fixed to `https://glyph-mail.replit.app`; click Connect and approve only that origin. Preview addresses, custom hosts and lookalike domains are not supported.
 4. Sign in on the Glyph connection tab with the verified email matching the project's connected Gmail mailbox. Keep that tab open (background is fine). The extension uses that tab's existing session; it never stores your Gmail password or OAuth tokens.
 5. Reload Gmail. In a rich-text compose with up to 100 To, Cc and Bcc recipients, click **Add glyph**, then send using Gmail's normal Send or Ctrl/Cmd+Enter. Glyph does not intercept Send or split your message into separate sends. Finish entering recipient chips first and remove duplicate addresses across roles.
 6. Editing the body, recipient or subject removes the glyph; add it again after your edits. Remove glyph restores original links. Attachments and existing formatting are not replaced.
@@ -18,7 +18,7 @@ This is a single-mailbox developer build, not multi-tenant Gmail OAuth. Each Gly
 
 Use a root-mounted Glyph app and API on the same stable HTTPS origin, with working Clerk sign-in and the connected Gmail mailbox. Set the dashboard tracking origin to that same durable origin (or leave blank to use the connection origin). Do not point production tracking at a temporary preview. No publishing is performed by installing the extension.
 
-Required Gmail host access reads compose recipients, subject, text and links only when preparing tracking and adds the controls/pixel/link replacements. Optional HTTPS access is requested for the exact Glyph origin entered in the popup; there is no blanket website grant. Scripting runs the isolated same-origin bridge on your open Glyph tab. Storage saves origin/preferences and notification state; alarms and notifications support browser engagement alerts. Neither OAuth tokens nor session cookies are stored in the extension.
+Required Gmail host access reads compose recipients, subject, text and links only when preparing tracking and adds the controls/pixel/link replacements. Optional HTTPS access is requested only for the fixed `https://glyph-mail.replit.app` origin; the manifest does not grant arbitrary HTTPS hosts or blanket website access. Scripting runs the isolated same-origin bridge on your open Glyph tab. Storage saves origin/preferences and notification state; alarms and notifications support browser engagement alerts. Neither OAuth tokens nor session cookies are stored in the extension.
 
 Tracking controls and attribution caveats are visible in each supported compose before you click Add glyph. If a draft changes, tracking is removed without cancelling Gmail Send. Inspect the “Glyph ready” status before sending. Gmail keyboard shortcuts and Undo Send remain Gmail's responsibility.
 
@@ -34,4 +34,8 @@ Sync inspects headers of the most recent 100 received messages in the past 30 da
 
 Direct sender compose-image loads are ignored while pending. Image proxies can still prefetch/cache pixels, and a sender viewing a sent copy can cause an open signal. Very early image loads during confirmation may be missed. Link scanners and forwarded mail can distort click attribution. These are not guaranteed read receipts or proof of recipient identity.
 
-Use a stable published Glyph origin for long-term tracking. A preview origin is temporary. This is an unpacked extension, not a Chrome Web Store listing. The manifest requests Gmail access and asks separately for the one Glyph origin you choose; it does not request access to all websites by default.
+Use the verified published Glyph origin for long-term tracking. A preview or custom origin is not trusted. The manifest requests Gmail access and separately grants only the fixed Glyph production origin. Supporting another origin requires a reviewed extension release that changes the trust policy, manifest permission, version and regression tests together.
+
+## Updating from an earlier extension
+
+Replace the files in the original unpacked extension folder with the v0.5.0 package, click Reload in `chrome://extensions` or `edge://extensions`, then reconnect to the published Glyph app and reload Gmail. On update, the extension unregisters the previous dynamic bridge and removes saved untrusted host permissions and connection state. Existing tracking tokens and emails are not changed. Publishing the web app alone does not update an installed extension.

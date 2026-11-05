@@ -1,4 +1,4 @@
-importScripts('trusted-origin.js');
+globalThis.importScripts('trusted-origin.js');
 
 const CHANNEL = 'glyph:background';
 const BRIDGE = 'glyph:bridge';
@@ -13,8 +13,7 @@ async function removeUntrustedPermissions() {
     ),
   ]);
   const untrusted = origins.filter((origin) => !trusted.has(origin));
-  if (untrusted.length)
-    await chrome.permissions.remove({ origins: untrusted });
+  if (untrusted.length) await chrome.permissions.remove({ origins: untrusted });
 }
 
 async function unregisterBridge() {
@@ -53,7 +52,9 @@ async function reconcileStoredConnection() {
         origins: [`${trustedOrigin}/*`],
       }))
     )
-      throw new Error('The trusted Glyph host permission is no longer granted.');
+      throw new Error(
+        'The trusted Glyph host permission is no longer granted.',
+      );
     await chrome.scripting.registerContentScripts([
       {
         id: 'glyph-app-bridge',

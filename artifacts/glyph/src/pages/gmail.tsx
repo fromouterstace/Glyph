@@ -72,8 +72,9 @@ export default function GmailPage() {
       t: 'Connect to published Glyph',
       d: (
         <>
-          Open the extension popup, paste the production origin below, then
-          click Connect. Do not use this development preview address.
+          The extension is fixed to the verified published origin. Confirm it
+          matches the address below, then click Connect. Do not use this
+          development preview address.
           <span className="mt-2 flex items-center gap-2 rounded-sm border border-border bg-background px-3 py-2">
             <code
               className="min-w-0 flex-1 truncate font-mono text-xs"
@@ -237,11 +238,12 @@ export default function GmailPage() {
         data-testid="section-update-extension"
       >
         <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
-          Already installed? Update to v0.4.0
+          Already installed? Update to v0.5.0
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
-          Fixes stale extension messaging after updates and blocks preview
-          connections or mismatched tracking URLs.
+          Restricts the extension to the verified Glyph production origin,
+          removes previously stored untrusted origins, and keeps tracking
+          responses on that same origin.
         </p>
         <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm">
           <li>Download the new ZIP above and extract it.</li>
@@ -257,8 +259,8 @@ export default function GmailPage() {
             click Reload on Glyph.
           </li>
           <li>
-            Reconnect to the published origin above and sign in on its
-            connection tab.
+            Reconnect to the verified published origin above and sign in on its
+            connection tab. Do not enter a custom or preview address.
           </li>
           <li>
             Reload Gmail and use a fresh compose; old tracked drafts retain old
@@ -314,17 +316,20 @@ export default function GmailPage() {
       <Caveat>
         <strong>Browser permissions.</strong> Gmail access lets the extension
         add controls and edit the current compose. You separately approve only
-        this Glyph HTTPS origin for the signed-in connection bridge. Storage
-        keeps connection preferences, alarms check status, and notifications
-        show engagement signals. No Gmail passwords, OAuth tokens or app session
-        cookies are copied into extension storage. Disconnect in the popup to
-        revoke the Glyph origin permission.
+        the verified published Glyph origin for the signed-in connection bridge.
+        The extension does not accept user-entered hosts. On update, it removes
+        any previously stored untrusted host permission and connection state.
+        Storage keeps connection preferences, alarms check status, and
+        notifications show engagement signals. No Gmail passwords, OAuth tokens
+        or app session cookies are copied into extension storage. Disconnect in
+        the popup to revoke the Glyph origin permission.
       </Caveat>
       <Caveat>
         <strong>Developer build, not a store listing.</strong> This is a local
         unpacked extension, not published on the Chrome Web Store. Long-term it
-        requires a stable published origin. Preview connections are blocked
-        because they can leave pixel tokens in a different database.{' '}
+        connects only to the verified published origin. Preview and custom
+        domains are blocked; supporting a new domain requires a reviewed
+        extension update.{' '}
         {!isSignedIn && (
           <Link
             href="/sign-in"

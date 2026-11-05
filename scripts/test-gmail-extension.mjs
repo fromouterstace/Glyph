@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { JSDOM } from 'jsdom';
 import FakeTimers from '@sinonjs/fake-timers';
+import { PUBLISHED_GLYPH_ORIGIN } from '../artifacts/glyph/src/lib/tracking-origin.ts';
 
 const source = await readFile(
   new URL('../extensions/glyph-gmail/gmail.js', import.meta.url),
@@ -118,13 +119,18 @@ test('a disposed in-flight script cannot attach stale tracking after reinjection
   assert.equal(f.body.innerHTML, f.original);
 });
 
-test('manifest and popup load guarded messaging before its callers', async () => {
+test('manifest and popup enforce the exact trusted Glyph origin', async () => {
   const manifest = JSON.parse(
     await readFile(
       new URL('../extensions/glyph-gmail/manifest.json', import.meta.url),
       'utf8',
     ),
   );
+  assert.equal(manifest.version, '0.5.0');
+  assert.deepEqual(manifest.optional_host_permissions, [
+    `${PUBLISHED_GLYPH_ORIGIN}/*`,
+  ]);
+  assert.deepEqual(manifest.host_permissions, ['https://mail.google.com/*']);
   assert.deepEqual(manifest.content_scripts[0].js, [
     'messaging.js',
     'gmail.js',
@@ -132,6 +138,11 @@ test('manifest and popup load guarded messaging before its callers', async () =>
   const popup = await readFile(
     new URL('../extensions/glyph-gmail/popup.html', import.meta.url),
     'utf8',
+  );
+  assert.ok(popup.includes('id="origin" type="url" readonly'));
+  assert.ok(
+    popup.indexOf('src="trusted-origin.js"') <
+      popup.indexOf('src="messaging.js"'),
   );
   assert.ok(popup.indexOf('src="messaging.js"') >= 0);
   assert.ok(
@@ -223,14 +234,14 @@ function fixture(t, options = {}) {
             ok: true,
             data: {
               messageId: 'native-1',
-              markerUrl: 'https://glyph.example/gmail?glyph=unique',
+              markerUrl: `${PUBLISHED_GLYPH_ORIGIN}/gmail?glyph=unique`,
               pixelUrl: message.data.trackOpens
-                ? 'https://glyph.example/api/glyph/t/unique.gif'
+                ? `${PUBLISHED_GLYPH_ORIGIN}/api/glyph/t/unique.gif`
                 : null,
               links: message.data.trackClicks
                 ? message.data.urls.map((url, i) => ({
                     url,
-                    trackingUrl: `https://glyph.example/api/glyph/l/token${i}`,
+                    trackingUrl: `${PUBLISHED_GLYPH_ORIGIN}/api/glyph/l/token${i}`,
                   }))
                 : [],
             },
@@ -289,7 +300,7 @@ test('link tracking rewrites new links and excludes quoted links', async (t) => 
   );
   assert.equal(
     [...f.body.querySelectorAll('a')].filter((link) =>
-      link.href.startsWith('https://glyph.example/api/glyph/l/'),
+      link.href.startsWith(`${PUBLISHED_GLYPH_ORIGIN}/api/glyph/l/`),
     ).length,
     2,
   );

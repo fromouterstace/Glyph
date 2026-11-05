@@ -118,15 +118,20 @@ product policy.
   compose's recipient, subject, body, and links only as needed to prepare tracking
   after the user acts. Do not crawl the mailbox or read unrelated messages through
   the compose integration.
-- The popup accepts a configurable HTTPS origin; that validation alone does not
-  authenticate the host as Glyph. Connect only to the published Glyph origin shown
-  by the trusted Glyph setup page. Never take a bridge origin from an email,
-  message body, tracking destination, or untrusted API response. Changing how that
-  origin is validated, approved, or used for bridge injection is a security
-  boundary change and needs specific tests and review.
-- Request optional host access only for the HTTPS Glyph origin the user selected.
-  Do not request all-site access, broaden permissions, add a remote-code pathway,
-  or expose a new extension message command without a documented need and review.
+- The extension trusts only the exact published origin
+  `https://glyph-mail.replit.app`; its endpoint cannot enroll itself or claim a
+  different trusted identity. Do not accept user-entered, preview, custom, or
+  suffix-matched hosts. Never take a bridge origin from an email, message body,
+  tracking destination, or untrusted API response. Changing this allowlist is a
+  security-boundary change requiring review, an extension version update, exact
+  manifest permission changes, and regression tests.
+- Request optional host access only for the exact published Glyph origin. Keep
+  the popup policy, background origin check, and manifest host permission aligned.
+  Do not request all-site access, broaden permissions, add a remote-code
+  pathway, or expose a new extension message command without a documented need
+  and review. On update or browser startup, unregister stale dynamic bridges,
+  revoke untrusted optional host permissions, and clear their connection and
+  notification state before any bridge can send compose data.
 - Reuse the open, same-origin, signed-in Glyph tab as the session bridge. Browser
   cookies stay in the browser and credentials never move into extension storage.
   Keep the bridge and background messaging guarded against extension reloads,

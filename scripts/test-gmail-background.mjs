@@ -13,40 +13,24 @@ const originPolicySource = await readFile(
   new URL('../extensions/glyph-gmail/trusted-origin.js', import.meta.url),
   'utf8',
 );
-// Test harness construction is reusable setup, not a single test case.
-function fixture(options = {}) {
-  const clock = FakeTimers.createClock(Date.UTC(2026, 10, 4, 12));
-  let listener, installed, started, notificationClick;
-  const stored = { origin: PUBLISHED_GLYPH_ORIGIN, ...options.stored };
-  const registered = [],
-    unregistered = [],
-    removedPermissions = [],
-    permissionChecks = [],
-    openedTabs = [];
-  const calls = [],
-    grantedOrigins = options.grantedOrigins ?? [
-      `${PUBLISHED_GLYPH_ORIGIN}/*`,
-      'https://mail.google.com/*',
-    ];
-  const chrome = {
+function makeChrome(options, stored, state, listeners) {
+  const grantedOrigins = options.grantedOrigins ?? [
+    `${PUBLISHED_GLYPH_ORIGIN}/*`,
+    'https://mail.google.com/*',
+  ];
+  return {
     runtime: {
       id: 'own-extension',
       getURL: (s) => `chrome-extension://own-extension/${s}`,
-      onMessage: {
-        addListener: (l) => {
-          listener = l;
-        },
-      },
-      onInstalled: { addListener: (l) => (installed = l) },
-      onStartup: { addListener: (l) => (started = l) },
+      onMessage: { addListener: (l) => (listeners.message = l) },
+      onInstalled: { addListener: (l) => (listeners.installed = l) },
+      onStartup: { addListener: (l) => (listeners.started = l) },
     },
     storage: {
       local: {
         get: async () => stored,
         set: async (value) => Object.assign(stored, value),
-        clear: async () => {
-          for (const k in stored) delete stored[k];
-        },
+        clear: async () => Object.keys(stored).forEach((k) => delete stored[k]),
         remove: async (keys) => {
           for (const key of keys) delete stored[key];
         },
@@ -54,29 +38,32 @@ function fixture(options = {}) {
     },
     permissions: {
       contains: async (value) => {
-        permissionChecks.push(value);
+        state.permissionChecks.push(value);
         return options.permission !== false;
       },
       getAll: async () => ({ origins: [...grantedOrigins] }),
       remove: async ({ origins }) => {
-        removedPermissions.push(...origins);
+        state.removedPermissions.push(...origins);
         return true;
       },
     },
     scripting: {
-      executeScript: async (v) => calls.push(['inject', v]),
-      unregisterContentScripts: async ({ ids }) => unregistered.push(...ids),
-      registerContentScripts: async (v) => registered.push(...v),
+      executeScript: async (v) => state.calls.push(['inject', v]),
+      unregisterContentScripts: async ({ ids }) =>
+        state.unregistered.push(...ids),
+      registerContentScripts: async (v) => state.registered.push(...v),
     },
     tabs: {
-      query: async () =>
-        options.closed
+      query: async ({ url }) => {
+        const tabUrl = options.tabUrl ?? `${stored.origin}/gmail`;
+        return options.closed || !tabUrl.startsWith(url.replace('*', ''))
           ? []
-          : [{ id: 1, url: `${stored.origin}/gmail` }],
+          : [{ id: 1, url: tabUrl }];
+      },
       update: async () => {},
-      create: async (tab) => openedTabs.push(tab),
+      create: async (tab) => state.openedTabs.push(tab),
       sendMessage: async (_id, msg) => {
-        calls.push([msg.action, msg.data]);
+        state.calls.push([msg.action, msg.data]);
         return {
           ok: true,
           data:
@@ -103,15 +90,32 @@ function fixture(options = {}) {
     },
     notifications: {
       create: async (_id, data) => {
-        calls.push(['notification', data]);
+        state.calls.push(['notification', data]);
       },
-      onClicked: { addListener: (l) => (notificationClick = l) },
+      onClicked: {
+        addListener: (l) => (listeners.notificationClick = l),
+      },
     },
     action: {
       setBadgeText: async () => {},
       setBadgeBackgroundColor: async () => {},
     },
   };
+}
+// Test harness construction is reusable setup, not a single test case.
+function fixture(options = {}) {
+  const clock = FakeTimers.createClock(Date.UTC(2026, 10, 4, 12));
+  const stored = { origin: PUBLISHED_GLYPH_ORIGIN, ...options.stored };
+  const state = {
+    registered: [],
+    unregistered: [],
+    removedPermissions: [],
+    permissionChecks: [],
+    openedTabs: [],
+    calls: [],
+  };
+  const listeners = {};
+  const chrome = makeChrome(options, stored, state, listeners);
   const sandbox = vm.createContext({
     chrome,
     URL,
@@ -134,7 +138,7 @@ function fixture(options = {}) {
   };
   const request = (action, extra = {}, sender = gmail) =>
     new Promise((resolve) => {
-      const keepAlive = listener(
+      const keepAlive = listeners.message(
         { channel: 'glyph:background', action, ...extra },
         sender,
         resolve,
@@ -143,21 +147,24 @@ function fixture(options = {}) {
     });
   return {
     request,
-    calls,
-    registered,
-    unregistered,
-    removedPermissions,
-    permissionChecks,
-    openedTabs,
+    ...state,
     stored,
     gmail,
     popup,
-    installed,
-    started,
-    notificationClick,
+    installed: (...args) => listeners.installed(...args),
+    started: (...args) => listeners.started(...args),
+    notificationClick: (...args) => listeners.notificationClick(...args),
     policy: sandbox.GlyphOriginPolicy,
   };
 }
+test('extension trust policy matches the application tracking origin', () => {
+  const f = fixture();
+  assert.equal(f.policy.publishedOrigin, PUBLISHED_GLYPH_ORIGIN);
+  assert.equal(
+    f.policy.appOrigin(PUBLISHED_GLYPH_ORIGIN),
+    PUBLISHED_GLYPH_ORIGIN,
+  );
+});
 test('only own Gmail content script or own popup can call the background', async () => {
   const f = fixture();
   const unknown = await f.request(
@@ -190,6 +197,15 @@ test('missing connection tab fails explicitly instead of reporting success', asy
   assert.equal(response.ok, false);
   assert.match(response.error, /connection tab open/);
 });
+test('a connection tab redirected to an untrusted host receives no bridge data', async () => {
+  const f = fixture({ tabUrl: 'https://attacker.example/gmail' });
+  const response = await f.request('prepare', {
+    data: { recipientEmail: 'private@example.com', body: 'private body' },
+  });
+  assert.equal(response.ok, false);
+  assert.match(response.error, /connection tab open/);
+  assert.equal(f.calls.length, 0);
+});
 test('connect requires granted permissions and exact HTTPS app origin', async () => {
   const f = fixture({ permission: false });
   const denied = await f.request(
@@ -215,10 +231,7 @@ test('app access is registered only for the explicitly selected origin', async (
   );
   assert.equal(response.ok, true);
   assert.equal(f.registered[0].matches.length, 1);
-  assert.equal(
-    f.registered[0].matches[0],
-    `${PUBLISHED_GLYPH_ORIGIN}/*`,
-  );
+  assert.equal(f.registered[0].matches[0], `${PUBLISHED_GLYPH_ORIGIN}/*`);
   assert.equal(
     Object.keys(f.stored).some((k) => /token|password|secret/i.test(k)),
     false,
@@ -262,10 +275,9 @@ test('update removes stale host permission and state before any bridge message',
   assert.equal(f.stored.seenEvents, undefined);
   assert.ok(f.removedPermissions.includes(`${oldOrigin}/*`));
   assert.ok(f.unregistered.includes('glyph-app-bridge'));
-  const response = await f.request(
-    'prepare',
-    { data: { recipientEmail: 'private@example.com', body: 'private body' } },
-  );
+  const response = await f.request('prepare', {
+    data: { recipientEmail: 'private@example.com', body: 'private body' },
+  });
   assert.equal(response.ok, false);
   assert.equal(f.calls.length, 0);
 });
