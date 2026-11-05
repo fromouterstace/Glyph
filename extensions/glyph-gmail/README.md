@@ -9,6 +9,16 @@
 
 Gmail DOM integration is experimental and supports desktop Chrome/Edge. Gmail can change its editor without warning. Some inline replies and alternate compose layouts may not expose the control; use a full compose window. Plain-text mode cannot carry a tracking pixel.
 
+## Supported deployment and permissions
+
+This is a single-mailbox developer build, not multi-tenant Gmail OAuth. Each Glyph deployment uses only its project's connected Gmail mailbox. A signed-in account must have that exact verified email before native preparation or sync can use the connector; the compose From account must also match. Installing this extension never grants an arbitrary user access to the workspace Gmail connector. For another mailbox, use a separate deployment and its own connector. Send-as aliases are not supported.
+
+Use a root-mounted Glyph app and API on the same stable HTTPS origin, with working Clerk sign-in and the connected Gmail mailbox. Set the dashboard tracking origin to that same durable origin (or leave blank to use the connection origin). Do not point production tracking at a temporary preview. No publishing is performed by installing the extension.
+
+Required Gmail host access reads compose recipients, subject, text and links only when preparing tracking and adds the controls/pixel/link replacements. Optional HTTPS access is requested for the exact Glyph origin entered in the popup; there is no blanket website grant. Scripting runs the isolated same-origin bridge on your open Glyph tab. Storage saves origin/preferences and notification state; alarms and notifications support browser engagement alerts. Neither OAuth tokens nor session cookies are stored in the extension.
+
+Tracking controls and attribution caveats are visible in each supported compose before you click Add glyph. If a draft changes, tracking is removed without cancelling Gmail Send. Inspect the “Glyph ready” status before sending. Gmail keyboard shortcuts and Undo Send remain Gmail's responsibility.
+
 The helper tab must remain open and signed in for new tracking preparation and extension notifications. The server continues to receive existing pixel/link requests even when all tabs are closed. Browser alarms poll approximately every 30 seconds, and throttling/offline periods may delay alerts.
 
 A prepared draft is not a sent email. Glyph verifies a unique marker in Gmail Sent before counting it as sent or recording engagement. It examines the most recent 25 sent emails from the past seven days; sync promptly after sending. Gmail Undo Send is respected because no send is assumed from a button click.

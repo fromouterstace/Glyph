@@ -78,6 +78,12 @@ export default function GmailPage() {
       </section>
 
       <Caveat>
+        <strong>Single-mailbox deployment.</strong> This installation supports only the Gmail mailbox connected to this project. The signed-in Glyph account must have that exact verified email, and Gmail must be composing from that account. Installing the extension does not give other users access to the project's Gmail connection. Use a dedicated Glyph deployment per mailbox; multi-user Gmail authorization is not supported.
+      </Caveat>
+      <Caveat>
+        <strong>Browser permissions.</strong> Gmail access lets the extension add controls and edit the current compose. You separately approve only this Glyph HTTPS origin for the signed-in connection bridge. Storage keeps connection preferences, alarms check status, and notifications show engagement signals. No Gmail passwords, OAuth tokens or app session cookies are copied into extension storage. Disconnect in the popup to revoke the Glyph origin permission.
+      </Caveat>
+      <Caveat>
         <strong>Developer build, not a store listing.</strong> This is a local unpacked extension, not published on the Chrome Web Store. Long-term it needs a stable published origin; a preview URL works temporarily with a preview session and will break when it changes. {!isSignedIn && <Link href="/sign-in" className="font-semibold text-primary hover:underline">Sign in to connect.</Link>}
       </Caveat>
     </div>

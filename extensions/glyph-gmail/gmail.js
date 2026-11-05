@@ -33,6 +33,14 @@
     }
     return null;
   }
+  function hasCcBcc(root, body) {
+    return [...root.querySelectorAll('input[name="cc"], input[name="bcc"], [data-name="cc"], [data-name="bcc"], [name="cc"], [name="bcc"]')]
+      .some((el) => !body.contains(el) && (
+        String(el.value || "").trim() ||
+        el.querySelector('[email], [data-recipient-id]') ||
+        validEmail(el.getAttribute("email") || el.getAttribute("data-recipient-id"))
+      ));
+  }
   function subject(root) {
     return root.querySelector('input[name="subjectbox"]')?.value?.trim() ||
       document.querySelector("h2.hP")?.textContent?.trim() || "";
@@ -45,15 +53,19 @@
   function snapshot(state) {
     return JSON.stringify({
       to: recipients(state.root, state.body), subject: subject(state.root),
+      from: sender(state.root), ccBcc: hasCcBcc(state.root, state.body),
+      opens: state.opens.checked, clicks: state.clicks.checked,
       text: cleanClone(state.body).textContent,
       links: [...cleanClone(state.body).querySelectorAll("a[href]")].map((a) => a.getAttribute("href")),
+      footer: state.body.querySelector(".glyph-native-footer")?.innerHTML || null,
     });
   }
   function restore(state) {
     state.body.querySelectorAll(".glyph-native-footer").forEach((el) => el.remove());
     for (const change of state.changes) {
       if (!change.anchor.isConnected) continue;
-      if (change.generated) change.anchor.replaceWith(document.createTextNode(change.text));
+      if (change.anchor.href !== change.trackingUrl) continue; // Preserve the user's edited URL.
+      if (change.generated) change.anchor.replaceWith(...change.anchor.childNodes);
       else change.anchor.setAttribute("href", change.href);
     }
     state.changes = [];
@@ -85,7 +97,7 @@
     const byUrl = new Map(links.map((l) => [l.url, l.trackingUrl]));
     for (const a of state.body.querySelectorAll("a[href]")) {
       if (a.closest(".gmail_quote, .glyph-native-footer") || !byUrl.has(a.href)) continue;
-      state.changes.push({ anchor: a, href: a.getAttribute("href"), generated: false });
+      state.changes.push({ anchor: a, href: a.getAttribute("href"), generated: false, trackingUrl: byUrl.get(a.href) });
       a.href = byUrl.get(a.href);
     }
     const walker = document.createTreeWalker(state.body, NodeFilter.SHOW_TEXT);
@@ -106,7 +118,7 @@
         anchor.href = byUrl.get(url);
         anchor.textContent = url;
         fragment.append(anchor);
-        state.changes.push({ anchor, generated: true, text: url });
+        state.changes.push({ anchor, generated: true, trackingUrl: byUrl.get(url) });
         end = match.index + url.length;
       }
       fragment.append(document.createTextNode(text.textContent.slice(end)));
@@ -131,8 +143,7 @@
       if (!from) throw new Error("Cannot verify the active Gmail account. Open Gmail with the connected account.");
       if (from !== ctx.email.toLowerCase()) throw new Error(`Switch Gmail to ${ctx.email} before adding a glyph.`);
       if (to.length !== 1) throw new Error("Use exactly one To recipient and no CC/BCC recipients.");
-      const ccBcc = [...state.root.querySelectorAll('input[name="cc"], input[name="bcc"]')].some((el) => el.value.trim());
-      if (ccBcc) throw new Error("CC/BCC is not supported for recipient-specific tracking.");
+      if (hasCcBcc(state.root, state.body)) throw new Error("CC/BCC is not supported for recipient-specific tracking.");
       const title = subject(state.root);
       const text = cleanClone(state.body).textContent.trim();
       if (!title || !text) throw new Error("Add a subject and message before adding a glyph.");
@@ -193,6 +204,9 @@
     status.setAttribute("role", "status"); status.setAttribute("aria-live", "polite");
     status.textContent = "Rich-text mode · 1 recipient";
     toolbar.append(button, status);
+    const caveat = document.createElement("small");
+    caveat.textContent = "Signals only, not verified reads. Proxies, scanners and forwarding can affect attribution.";
+    toolbar.append(caveat);
     body.parentElement.insertBefore(toolbar, body);
     const state = { body, root, toolbar, button, status, opens, clicks, changes: [], composeKey: crypto.randomUUID(), busy: false, attached: false };
     states.set(body, state); live.add(state);
@@ -222,11 +236,26 @@
       attach(body, root);
     }
   }
+  // Check synchronously before Gmail handles Send or a shortcut. Never cancel
+  // the event: if a recipient/subject changed, send the user's untracked draft.
+  function invalidateChanged() {
+    for (const state of live) {
+      if (state.attached && !state.busy && state.snapshot !== snapshot(state)) {
+        restore(state);
+        setStatus(state, "Draft changed — tracking removed. Add glyph again to track.");
+        state.body.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    }
+  }
+  for (const event of ["click", "keydown", "input", "change"]) {
+    document.addEventListener(event, invalidateChanged, true);
+  }
   let queued = false;
   new MutationObserver(() => {
     if (queued) return;
     queued = true;
     setTimeout(() => { queued = false; scan(); }, 250);
-  }).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+  }).observe(document.documentElement, { childList: true, subtree: true, characterData: true,
+    attributes: true, attributeFilter: ["email", "data-recipient-id", "href", "src"] });
   scan();
 })();

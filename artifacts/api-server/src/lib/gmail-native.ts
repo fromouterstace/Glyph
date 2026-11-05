@@ -1,15 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { db, glyphMessages, glyphEvents } from "@workspace/db";
-import { gmailRequest } from "./gmail";
-
-type GmailPart = { body?: { data?: string }; parts?: GmailPart[] };
-export type SentCandidate = { id: string; internalDate?: string; payload?: GmailPart };
-export function containsNativeMarker(part: GmailPart | undefined, token: string): boolean {
-  if (!part) return false;
-  if (part.body?.data && Buffer.from(part.body.data, "base64url").toString("utf8").includes(token)) return true;
-  return part.parts?.some((p) => containsNativeMarker(p, token)) ?? false;
-}
+import { gmailRequest, mailboxEmail } from "./gmail";
+import { matchesNativeSend, type SentCandidate } from "./native-verification";
 const scans = new Map<string, { at: number; result: { confirmed: number; pending: number } }>();
 const inFlight = new Map<string, Promise<{ confirmed: number; pending: number }>>();
 const candidateCache = new Map<string, { at: number; candidate: SentCandidate }>();
@@ -34,6 +27,7 @@ async function scanNative(ownerId: string) {
     eq(glyphMessages.ownerId, ownerId), eq(glyphMessages.deliverySource, "gmail"), eq(glyphMessages.status, "draft"),
   ));
   if (!pending.length) return { confirmed: 0, pending: 0 };
+  const mailbox = await mailboxEmail();
   const list = await gmailRequest("/messages?q=in%3Asent%20newer_than%3A7d&maxResults=25");
   if (!list.ok) throw new Error(`Gmail Sent check failed (${list.status})`);
   const rows = await list.json() as { messages?: { id: string }[] };
@@ -51,7 +45,7 @@ async function scanNative(ownerId: string) {
       candidateCache.set(row.id, { at: Date.now(), candidate });
     }
     for (const message of pending) {
-      if (matched.has(message.id) || !containsNativeMarker(candidate.payload, message.pixelToken)) continue;
+      if (matched.has(message.id) || !matchesNativeSend(candidate, message, mailbox)) continue;
       const millis = Number(candidate.internalDate);
       const sentAt = Number.isFinite(millis) ? new Date(millis) : new Date();
       await db.transaction(async (tx) => {

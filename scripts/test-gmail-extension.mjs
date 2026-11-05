@@ -122,3 +122,41 @@ test("independent compose windows never share tracking state", async (t) => {
   assert.ok(f.body.querySelector(".glyph-native-footer"));
   assert.equal(f.document.getElementById("body1").querySelector(".glyph-native-footer"), null);
 });
+test("a last-moment recipient change removes tracking before Gmail Send runs", async (t) => {
+  const f = fixture(t); await wait(); await f.add();
+  f.document.getElementById("recipient0").setAttribute("email", "new@example.com");
+  let sent = false;
+  f.document.getElementById("send0").addEventListener("click", () => {
+    sent = true;
+    assert.equal(f.body.querySelector(".glyph-native-footer"), null);
+    assert.equal(f.body.querySelector("a").href, "https://example.com/pitch");
+  });
+  f.document.getElementById("send0").click();
+  assert.equal(sent, true);
+});
+test("subject change invalidates tracking synchronously for Gmail's send shortcut", async (t) => {
+  const f = fixture(t); await wait(); await f.add();
+  f.document.querySelector('input[name="subjectbox"]').value = "Changed subject";
+  const event = new f.window.KeyboardEvent("keydown", { key: "Enter", ctrlKey: true, bubbles: true, cancelable: true });
+  f.body.dispatchEvent(event);
+  assert.equal(event.defaultPrevented, false);
+  assert.equal(f.body.querySelector(".glyph-native-footer"), null);
+});
+test("a lone CC chip is rejected even if it is the only address", async (t) => {
+  const f = fixture(t); await wait();
+  const wrapper = f.document.createElement("div"); wrapper.setAttribute("data-name", "cc");
+  f.document.getElementById("recipient0").replaceWith(wrapper);
+  wrapper.innerHTML = '<div email="recipient@example.com"></div>';
+  await f.add();
+  assert.equal(f.calls.some((c) => c.action === "prepare"), false);
+  assert.match(f.document.querySelector(".glyph-native-status").textContent, /CC\/BCC/);
+});
+test("invalidating a generated link preserves edited text and custom URLs", async (t) => {
+  const f = fixture(t); await wait(); await f.add();
+  const links = [...f.body.querySelectorAll('a[href*="/api/glyph/l/"]')];
+  links[0].href = "https://example.org/new";
+  links[1].textContent = "User's revised label";
+  f.body.dispatchEvent(new f.window.Event("input", { bubbles: true }));
+  assert.equal(f.body.querySelector("a").href, "https://example.org/new");
+  assert.ok(f.body.textContent.includes("User's revised label"));
+});
