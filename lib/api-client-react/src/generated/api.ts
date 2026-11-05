@@ -38,7 +38,8 @@ import type {
   NativeTracking,
   Overview,
   Settings,
-  SettingsInput
+  SettingsInput,
+  UnauthorizedResponse
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -107,7 +108,7 @@ return customFetch<NativeTracking>(getPrepareNativeMessageUrl(),
 
 export const getPrepareNativeMessageMutationKey = () => ['prepareNativeMessage'] as const;
 
-export const getPrepareNativeMessageMutationOptions = <TError = ErrorType<unknown>,
+export const getPrepareNativeMessageMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof prepareNativeMessage>>, TError,PrepareNativeMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof prepareNativeMessage>>, TError,PrepareNativeMessageMutationVariables, TContext> => {
 
@@ -136,10 +137,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type PrepareNativeMessageMutationResult = NonNullable<Awaited<ReturnType<typeof prepareNativeMessage>>>
     export type PrepareNativeMessageMutationBody = BodyType<NativeMessageInput>
-    export type PrepareNativeMessageMutationError = ErrorType<unknown>
+    export type PrepareNativeMessageMutationError = ErrorType<UnauthorizedResponse>
     export type PrepareNativeMessageMutationVariables = {data: BodyType<NativeMessageInput>}
 
-    export const usePrepareNativeMessage = <TError = ErrorType<unknown>,
+    export const usePrepareNativeMessage = <TError = ErrorType<UnauthorizedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof prepareNativeMessage>>, TError,PrepareNativeMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof prepareNativeMessage>>,
@@ -175,7 +176,7 @@ export const syncNativeMessages = async ( options?: Parameters<typeof customFetc
 
 export const getSyncNativeMessagesMutationKey = () => ['syncNativeMessages'] as const;
 
-export const getSyncNativeMessagesMutationOptions = <TError = ErrorType<unknown>,
+export const getSyncNativeMessagesMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncNativeMessages>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof syncNativeMessages>>, TError,void, TContext> => {
 
@@ -204,10 +205,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type SyncNativeMessagesMutationResult = NonNullable<Awaited<ReturnType<typeof syncNativeMessages>>>
 
-    export type SyncNativeMessagesMutationError = ErrorType<unknown>
+    export type SyncNativeMessagesMutationError = ErrorType<UnauthorizedResponse>
 
 
-    export const useSyncNativeMessages = <TError = ErrorType<unknown>,
+    export const useSyncNativeMessages = <TError = ErrorType<UnauthorizedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncNativeMessages>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof syncNativeMessages>>,
@@ -248,7 +249,7 @@ export const getGetOverviewQueryKey = () => {
     }
 
 
-export const getGetOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getOverview>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOverview>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getGetOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getOverview>>, TError = ErrorType<UnauthorizedResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOverview>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -267,10 +268,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getOverview>>>
-export type GetOverviewQueryError = ErrorType<unknown>
+export type GetOverviewQueryError = ErrorType<UnauthorizedResponse>
 
 
-export function useGetOverview<TData = Awaited<ReturnType<typeof getOverview>>, TError = ErrorType<unknown>>(
+export function useGetOverview<TData = Awaited<ReturnType<typeof getOverview>>, TError = ErrorType<UnauthorizedResponse>>(
   options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOverview>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getOverview>>,
@@ -280,7 +281,7 @@ export function useGetOverview<TData = Awaited<ReturnType<typeof getOverview>>, 
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetOverview<TData = Awaited<ReturnType<typeof getOverview>>, TError = ErrorType<unknown>>(
+export function useGetOverview<TData = Awaited<ReturnType<typeof getOverview>>, TError = ErrorType<UnauthorizedResponse>>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOverview>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getOverview>>,
@@ -290,12 +291,12 @@ export function useGetOverview<TData = Awaited<ReturnType<typeof getOverview>>, 
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetOverview<TData = Awaited<ReturnType<typeof getOverview>>, TError = ErrorType<unknown>>(
+export function useGetOverview<TData = Awaited<ReturnType<typeof getOverview>>, TError = ErrorType<UnauthorizedResponse>>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOverview>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetOverview<TData = Awaited<ReturnType<typeof getOverview>>, TError = ErrorType<unknown>>(
+export function useGetOverview<TData = Awaited<ReturnType<typeof getOverview>>, TError = ErrorType<UnauthorizedResponse>>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOverview>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
@@ -350,7 +351,7 @@ export const getListMessagesQueryKey = (params?: ListMessagesParams,) => {
     }
 
 
-export const getListMessagesQueryOptions = <TData = Awaited<ReturnType<typeof listMessages>>, TError = ErrorType<unknown>>(params?: ListMessagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMessages>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getListMessagesQueryOptions = <TData = Awaited<ReturnType<typeof listMessages>>, TError = ErrorType<UnauthorizedResponse>>(params?: ListMessagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMessages>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -369,10 +370,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type ListMessagesQueryResult = NonNullable<Awaited<ReturnType<typeof listMessages>>>
-export type ListMessagesQueryError = ErrorType<unknown>
+export type ListMessagesQueryError = ErrorType<UnauthorizedResponse>
 
 
-export function useListMessages<TData = Awaited<ReturnType<typeof listMessages>>, TError = ErrorType<unknown>>(
+export function useListMessages<TData = Awaited<ReturnType<typeof listMessages>>, TError = ErrorType<UnauthorizedResponse>>(
  params: undefined |  ListMessagesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMessages>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listMessages>>,
@@ -382,7 +383,7 @@ export function useListMessages<TData = Awaited<ReturnType<typeof listMessages>>
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListMessages<TData = Awaited<ReturnType<typeof listMessages>>, TError = ErrorType<unknown>>(
+export function useListMessages<TData = Awaited<ReturnType<typeof listMessages>>, TError = ErrorType<UnauthorizedResponse>>(
  params?: ListMessagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMessages>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listMessages>>,
@@ -392,12 +393,12 @@ export function useListMessages<TData = Awaited<ReturnType<typeof listMessages>>
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListMessages<TData = Awaited<ReturnType<typeof listMessages>>, TError = ErrorType<unknown>>(
+export function useListMessages<TData = Awaited<ReturnType<typeof listMessages>>, TError = ErrorType<UnauthorizedResponse>>(
  params?: ListMessagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMessages>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListMessages<TData = Awaited<ReturnType<typeof listMessages>>, TError = ErrorType<unknown>>(
+export function useListMessages<TData = Awaited<ReturnType<typeof listMessages>>, TError = ErrorType<UnauthorizedResponse>>(
  params?: ListMessagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMessages>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
@@ -454,7 +455,7 @@ return customFetch<Message>(getCreateMessageUrl(),
 
 export const getCreateMessageMutationKey = () => ['createMessage'] as const;
 
-export const getCreateMessageMutationOptions = <TError = ErrorType<unknown>,
+export const getCreateMessageMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMessage>>, TError,CreateMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createMessage>>, TError,CreateMessageMutationVariables, TContext> => {
 
@@ -483,10 +484,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateMessageMutationResult = NonNullable<Awaited<ReturnType<typeof createMessage>>>
     export type CreateMessageMutationBody = BodyType<MessageInput>
-    export type CreateMessageMutationError = ErrorType<unknown>
+    export type CreateMessageMutationError = ErrorType<UnauthorizedResponse>
     export type CreateMessageMutationVariables = {data: BodyType<MessageInput>}
 
-    export const useCreateMessage = <TError = ErrorType<unknown>,
+    export const useCreateMessage = <TError = ErrorType<UnauthorizedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMessage>>, TError,CreateMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createMessage>>,
@@ -527,7 +528,7 @@ export const getGetMessageQueryKey = (id: string,) => {
     }
 
 
-export const getGetMessageQueryOptions = <TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<unknown>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getGetMessageQueryOptions = <TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<UnauthorizedResponse>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -546,10 +547,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetMessageQueryResult = NonNullable<Awaited<ReturnType<typeof getMessage>>>
-export type GetMessageQueryError = ErrorType<unknown>
+export type GetMessageQueryError = ErrorType<UnauthorizedResponse>
 
 
-export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<unknown>>(
+export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<UnauthorizedResponse>>(
  id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getMessage>>,
@@ -559,7 +560,7 @@ export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TE
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<unknown>>(
+export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<UnauthorizedResponse>>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getMessage>>,
@@ -569,12 +570,12 @@ export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TE
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<unknown>>(
+export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<UnauthorizedResponse>>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<unknown>>(
+export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<UnauthorizedResponse>>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
@@ -632,7 +633,7 @@ return customFetch<Message>(getUpdateMessageUrl(id),
 
 export const getUpdateMessageMutationKey = () => ['updateMessage'] as const;
 
-export const getUpdateMessageMutationOptions = <TError = ErrorType<unknown>,
+export const getUpdateMessageMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMessage>>, TError,UpdateMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateMessage>>, TError,UpdateMessageMutationVariables, TContext> => {
 
@@ -661,10 +662,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type UpdateMessageMutationResult = NonNullable<Awaited<ReturnType<typeof updateMessage>>>
     export type UpdateMessageMutationBody = BodyType<MessageInput>
-    export type UpdateMessageMutationError = ErrorType<unknown>
+    export type UpdateMessageMutationError = ErrorType<UnauthorizedResponse>
     export type UpdateMessageMutationVariables = {id: string;data: BodyType<MessageInput>}
 
-    export const useUpdateMessage = <TError = ErrorType<unknown>,
+    export const useUpdateMessage = <TError = ErrorType<UnauthorizedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMessage>>, TError,UpdateMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateMessage>>,
@@ -700,7 +701,7 @@ export const deleteMessage = async (id: string, options?: Parameters<typeof cust
 
 export const getDeleteMessageMutationKey = () => ['deleteMessage'] as const;
 
-export const getDeleteMessageMutationOptions = <TError = ErrorType<unknown>,
+export const getDeleteMessageMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMessage>>, TError,DeleteMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteMessage>>, TError,DeleteMessageMutationVariables, TContext> => {
 
@@ -729,10 +730,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type DeleteMessageMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMessage>>>
 
-    export type DeleteMessageMutationError = ErrorType<unknown>
+    export type DeleteMessageMutationError = ErrorType<UnauthorizedResponse>
     export type DeleteMessageMutationVariables = {id: string}
 
-    export const useDeleteMessage = <TError = ErrorType<unknown>,
+    export const useDeleteMessage = <TError = ErrorType<UnauthorizedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMessage>>, TError,DeleteMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof deleteMessage>>,
@@ -768,7 +769,7 @@ export const sendMessage = async (id: string, options?: Parameters<typeof custom
 
 export const getSendMessageMutationKey = () => ['sendMessage'] as const;
 
-export const getSendMessageMutationOptions = <TError = ErrorType<unknown>,
+export const getSendMessageMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendMessage>>, TError,SendMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof sendMessage>>, TError,SendMessageMutationVariables, TContext> => {
 
@@ -797,10 +798,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type SendMessageMutationResult = NonNullable<Awaited<ReturnType<typeof sendMessage>>>
 
-    export type SendMessageMutationError = ErrorType<unknown>
+    export type SendMessageMutationError = ErrorType<UnauthorizedResponse>
     export type SendMessageMutationVariables = {id: string}
 
-    export const useSendMessage = <TError = ErrorType<unknown>,
+    export const useSendMessage = <TError = ErrorType<UnauthorizedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendMessage>>, TError,SendMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof sendMessage>>,
@@ -841,7 +842,7 @@ export const getListActivityQueryKey = () => {
     }
 
 
-export const getListActivityQueryOptions = <TData = Awaited<ReturnType<typeof listActivity>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listActivity>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getListActivityQueryOptions = <TData = Awaited<ReturnType<typeof listActivity>>, TError = ErrorType<UnauthorizedResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listActivity>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -860,10 +861,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type ListActivityQueryResult = NonNullable<Awaited<ReturnType<typeof listActivity>>>
-export type ListActivityQueryError = ErrorType<unknown>
+export type ListActivityQueryError = ErrorType<UnauthorizedResponse>
 
 
-export function useListActivity<TData = Awaited<ReturnType<typeof listActivity>>, TError = ErrorType<unknown>>(
+export function useListActivity<TData = Awaited<ReturnType<typeof listActivity>>, TError = ErrorType<UnauthorizedResponse>>(
   options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listActivity>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listActivity>>,
@@ -873,7 +874,7 @@ export function useListActivity<TData = Awaited<ReturnType<typeof listActivity>>
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListActivity<TData = Awaited<ReturnType<typeof listActivity>>, TError = ErrorType<unknown>>(
+export function useListActivity<TData = Awaited<ReturnType<typeof listActivity>>, TError = ErrorType<UnauthorizedResponse>>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listActivity>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listActivity>>,
@@ -883,12 +884,12 @@ export function useListActivity<TData = Awaited<ReturnType<typeof listActivity>>
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListActivity<TData = Awaited<ReturnType<typeof listActivity>>, TError = ErrorType<unknown>>(
+export function useListActivity<TData = Awaited<ReturnType<typeof listActivity>>, TError = ErrorType<UnauthorizedResponse>>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listActivity>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useListActivity<TData = Awaited<ReturnType<typeof listActivity>>, TError = ErrorType<unknown>>(
+export function useListActivity<TData = Awaited<ReturnType<typeof listActivity>>, TError = ErrorType<UnauthorizedResponse>>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listActivity>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
@@ -931,7 +932,7 @@ export const markActivityRead = async ( options?: Parameters<typeof customFetch>
 
 export const getMarkActivityReadMutationKey = () => ['markActivityRead'] as const;
 
-export const getMarkActivityReadMutationOptions = <TError = ErrorType<unknown>,
+export const getMarkActivityReadMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markActivityRead>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof markActivityRead>>, TError,void, TContext> => {
 
@@ -960,10 +961,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type MarkActivityReadMutationResult = NonNullable<Awaited<ReturnType<typeof markActivityRead>>>
 
-    export type MarkActivityReadMutationError = ErrorType<unknown>
+    export type MarkActivityReadMutationError = ErrorType<UnauthorizedResponse>
 
 
-    export const useMarkActivityRead = <TError = ErrorType<unknown>,
+    export const useMarkActivityRead = <TError = ErrorType<UnauthorizedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markActivityRead>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof markActivityRead>>,
@@ -1004,7 +1005,7 @@ export const getGetSettingsQueryKey = () => {
     }
 
 
-export const getGetSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getSettings>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getGetSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getSettings>>, TError = ErrorType<UnauthorizedResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1023,10 +1024,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getSettings>>>
-export type GetSettingsQueryError = ErrorType<unknown>
+export type GetSettingsQueryError = ErrorType<UnauthorizedResponse>
 
 
-export function useGetSettings<TData = Awaited<ReturnType<typeof getSettings>>, TError = ErrorType<unknown>>(
+export function useGetSettings<TData = Awaited<ReturnType<typeof getSettings>>, TError = ErrorType<UnauthorizedResponse>>(
   options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSettings>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getSettings>>,
@@ -1036,7 +1037,7 @@ export function useGetSettings<TData = Awaited<ReturnType<typeof getSettings>>, 
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetSettings<TData = Awaited<ReturnType<typeof getSettings>>, TError = ErrorType<unknown>>(
+export function useGetSettings<TData = Awaited<ReturnType<typeof getSettings>>, TError = ErrorType<UnauthorizedResponse>>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSettings>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getSettings>>,
@@ -1046,12 +1047,12 @@ export function useGetSettings<TData = Awaited<ReturnType<typeof getSettings>>, 
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetSettings<TData = Awaited<ReturnType<typeof getSettings>>, TError = ErrorType<unknown>>(
+export function useGetSettings<TData = Awaited<ReturnType<typeof getSettings>>, TError = ErrorType<UnauthorizedResponse>>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetSettings<TData = Awaited<ReturnType<typeof getSettings>>, TError = ErrorType<unknown>>(
+export function useGetSettings<TData = Awaited<ReturnType<typeof getSettings>>, TError = ErrorType<UnauthorizedResponse>>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
@@ -1108,7 +1109,7 @@ return customFetch<Settings>(getUpdateSettingsUrl(),
 
 export const getUpdateSettingsMutationKey = () => ['updateSettings'] as const;
 
-export const getUpdateSettingsMutationOptions = <TError = ErrorType<unknown>,
+export const getUpdateSettingsMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSettings>>, TError,UpdateSettingsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateSettings>>, TError,UpdateSettingsMutationVariables, TContext> => {
 
@@ -1137,10 +1138,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type UpdateSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateSettings>>>
     export type UpdateSettingsMutationBody = BodyType<SettingsInput>
-    export type UpdateSettingsMutationError = ErrorType<unknown>
+    export type UpdateSettingsMutationError = ErrorType<UnauthorizedResponse>
     export type UpdateSettingsMutationVariables = {data: BodyType<SettingsInput>}
 
-    export const useUpdateSettings = <TError = ErrorType<unknown>,
+    export const useUpdateSettings = <TError = ErrorType<UnauthorizedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSettings>>, TError,UpdateSettingsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateSettings>>,
@@ -1181,7 +1182,7 @@ export const getGetConnectionQueryKey = () => {
     }
 
 
-export const getGetConnectionQueryOptions = <TData = Awaited<ReturnType<typeof getConnection>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConnection>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getGetConnectionQueryOptions = <TData = Awaited<ReturnType<typeof getConnection>>, TError = ErrorType<UnauthorizedResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConnection>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1200,10 +1201,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetConnectionQueryResult = NonNullable<Awaited<ReturnType<typeof getConnection>>>
-export type GetConnectionQueryError = ErrorType<unknown>
+export type GetConnectionQueryError = ErrorType<UnauthorizedResponse>
 
 
-export function useGetConnection<TData = Awaited<ReturnType<typeof getConnection>>, TError = ErrorType<unknown>>(
+export function useGetConnection<TData = Awaited<ReturnType<typeof getConnection>>, TError = ErrorType<UnauthorizedResponse>>(
   options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConnection>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getConnection>>,
@@ -1213,7 +1214,7 @@ export function useGetConnection<TData = Awaited<ReturnType<typeof getConnection
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetConnection<TData = Awaited<ReturnType<typeof getConnection>>, TError = ErrorType<unknown>>(
+export function useGetConnection<TData = Awaited<ReturnType<typeof getConnection>>, TError = ErrorType<UnauthorizedResponse>>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConnection>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getConnection>>,
@@ -1223,12 +1224,12 @@ export function useGetConnection<TData = Awaited<ReturnType<typeof getConnection
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetConnection<TData = Awaited<ReturnType<typeof getConnection>>, TError = ErrorType<unknown>>(
+export function useGetConnection<TData = Awaited<ReturnType<typeof getConnection>>, TError = ErrorType<UnauthorizedResponse>>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConnection>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetConnection<TData = Awaited<ReturnType<typeof getConnection>>, TError = ErrorType<unknown>>(
+export function useGetConnection<TData = Awaited<ReturnType<typeof getConnection>>, TError = ErrorType<UnauthorizedResponse>>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConnection>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {

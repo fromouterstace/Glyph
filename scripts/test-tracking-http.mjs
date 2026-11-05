@@ -49,38 +49,37 @@ test('test-harness identity headers cannot authenticate against the running appl
   assert.equal(response.status, 401);
 });
 
-for (const path of ['messages', 'activity']) {
-  test(`anonymous ${path} contains no fabricated account records`, async () => {
-    const response = await request(`${base}/api/glyph/${path}`);
-    assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), []);
+test('health remains public and exposes only its status', async () => {
+  const response = await request(`${base}/api/healthz`);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { status: 'ok' });
+});
+
+for (const [method, path] of [
+  ['GET', '/overview'],
+  ['GET', '/messages'],
+  ['HEAD', '/messages'],
+  ['GET', '/messages/fake-id'],
+  ['GET', '/activity'],
+  ['GET', '/settings'],
+  ['GET', '/connection'],
+  ['POST', '/native/sync'],
+]) {
+  test(`anonymous ${method} ${path} is rejected before accessing account data`, async () => {
+    const response = await request(`${base}/api/glyph${path}`, {
+      method,
+      redirect: 'manual',
+      headers: {
+        accept: 'application/json',
+        origin: base,
+        'content-type': 'application/json',
+      },
+      ...(method === 'POST' ? { body: '{}' } : {}),
+    });
+    assert.equal(response.status, 401);
+    assert.equal(response.headers.get('location'), null);
   });
 }
-
-test('a fabricated message ID cannot return a fake detail record', async () => {
-  const response = await request(`${base}/api/glyph/messages/demo-1`);
-  assert.equal(response.status, 404);
-});
-
-test('anonymous overview has read-only zero account totals', async () => {
-  const response = await request(`${base}/api/glyph/overview`);
-  const overview = await response.json();
-  assert.equal(overview.readOnly, true);
-  assert.deepEqual(
-    [overview.totalSent, overview.totalOpens, overview.totalClicks],
-    [0, 0, 0],
-  );
-});
-
-test('anonymous daily history contains no fabricated engagement signals', async () => {
-  const overview = await (await request(`${base}/api/glyph/overview`)).json();
-  assert.equal(overview.daily.length, 14);
-  assert.ok(
-    overview.daily.every(
-      ({ sent, opens, clicks }) => sent === 0 && opens === 0 && clicks === 0,
-    ),
-  );
-});
 
 for (const [method, path] of [
   ['POST', '/messages'],

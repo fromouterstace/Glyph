@@ -63,13 +63,14 @@ product policy.
   reply events, event read state, and account preferences. The UI derives activity,
   summaries, and counts from those records. Do not fabricate, hardcode, cache as
   authoritative, or re-create sample messages or engagement in a response.
-- Signed-out views are explicitly read-only and contain no fabricated account
-  activity. Static UI copy, empty states, and documented first-use preference
+- Sign-in is required before private dashboard pages or account-data APIs are
+  viewed. Associate messages, links, events/activity, settings, and Gmail sync
+  state with the authenticated Clerk user ID. Derive ownership from the validated
+  session on the server; never accept a client-supplied owner ID as authority.
+  Test cross-owner denial and rightful-owner success against PostgreSQL.
+- The public landing page may contain static copy only, not account activity or
+  another user's data. Static UI copy and documented first-use preference
   defaults are not activity data.
-- Every authenticated message, link, event, settings read, mutation, notification,
-  and sync result must be scoped to its authenticated owner. Derive ownership from
-  the validated session on the server; never accept a client-supplied owner ID as
-  authority. Test cross-owner denial and rightful-owner success against PostgreSQL.
 - Native Gmail messages may contain multiple To, Cc and Bcc recipients in one
   normal Gmail send/thread. Persist roles privately and verify them against the
   sender's Sent copy. Shared pixel/click signals are aggregate, not proof of which
@@ -87,6 +88,9 @@ product policy.
   high-entropy opaque tokens that resolve to the specific stored tracking record.
   Keep public responses narrow: no message bodies, recipient addresses, owner IDs,
   or other-account data.
+- The health check, sign-in/sign-up, and Clerk frontend API proxy are public
+  protocol or availability surfaces; keep their responses limited to their
+  purpose. All other account-data reads and writes require a signed-in session.
 - Do not persist raw client IP addresses or full user-agent strings. Store only
   the classification and event data needed for the signal. Keep request IDs for
   operational correlation, but do not log email addresses, body text, complete

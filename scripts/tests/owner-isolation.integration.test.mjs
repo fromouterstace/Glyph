@@ -37,6 +37,21 @@ async function twoOwners() {
   return { owner, other, own, foreign };
 }
 
+test('anonymous account reads require authentication before returning user data', async () => {
+  const f = await twoOwners();
+  for (const path of [
+    '/overview',
+    '/messages',
+    `/messages/${f.own.id}`,
+    '/activity',
+    '/settings',
+    '/connection',
+  ]) {
+    const response = await h.request(path);
+    expect(response.status, `${path} must require sign-in`).toBe(401);
+  }
+});
+
 test('a signed-in owner lists only their own messages', async () => {
   const f = await twoOwners();
   const rows = await (await h.request('/messages', { user: f.owner })).json();

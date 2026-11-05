@@ -86,7 +86,7 @@ const responseMessage = async (id: string, ownerId: string) => {
 
 router.use('/glyph', async (req, res, next): Promise<void> => {
   res.set('Cache-Control', 'private, no-store');
-  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+  if (req.method === 'OPTIONS') {
     next();
     return;
   }
@@ -95,6 +95,10 @@ router.use('/glyph', async (req, res, next): Promise<void> => {
     res.status(401).json({
       error: 'Sign in to view and change your account data.',
     });
+    return;
+  }
+  if (['GET', 'HEAD'].includes(req.method)) {
+    next();
     return;
   }
   const origin = req.get('origin');

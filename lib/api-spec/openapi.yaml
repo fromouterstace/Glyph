@@ -25,6 +25,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/NativeTracking' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /glyph/native/sync:
     post:
       operationId: syncNativeMessages
@@ -34,15 +35,17 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/NativeSync' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /glyph/overview:
     get:
       operationId: getOverview
       responses:
         '200':
-          description: Engagement overview from PostgreSQL; anonymous responses are empty and read-only
+          description: Authenticated owner's engagement overview from PostgreSQL
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Overview' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /glyph/messages:
     get:
       operationId: listMessages
@@ -51,12 +54,13 @@ paths:
         - { name: status, in: query, schema: { type: string } }
       responses:
         '200':
-          description: Messages
+          description: Authenticated owner's messages
           content:
             application/json:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/Message' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
     post:
       operationId: createMessage
       requestBody:
@@ -70,6 +74,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Message' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /glyph/messages/{id}:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
@@ -81,6 +86,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MessageDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
     patch:
       operationId: updateMessage
       requestBody:
@@ -94,10 +100,12 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Message' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
     delete:
       operationId: deleteMessage
       responses:
         '204': { description: Draft deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /glyph/messages/{id}/send:
     parameters:
       - { name: id, in: path, required: true, schema: { type: string } }
@@ -109,17 +117,19 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Message' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /glyph/activity:
     get:
       operationId: listActivity
       responses:
         '200':
-          description: Most recent engagement signals
+          description: Authenticated owner's most recent engagement signals
           content:
             application/json:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/Activity' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /glyph/activity/read:
     post:
       operationId: markActivityRead
@@ -129,15 +139,17 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ActionResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /glyph/settings:
     get:
       operationId: getSettings
       responses:
         '200':
-          description: Preferences
+          description: Authenticated owner's preferences
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Settings' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
     patch:
       operationId: updateSettings
       requestBody:
@@ -151,15 +163,17 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Settings' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /glyph/connection:
     get:
       operationId: getConnection
       responses:
         '200':
-          description: Gmail connection; mailbox ownership verified before access
+          description: Authenticated user's Gmail connection; mailbox ownership is verified
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Connection' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /healthz:
     get:
       operationId: healthCheck
@@ -174,6 +188,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/HealthStatus'
 components:
+  responses:
+    Unauthorized:
+      description: Sign-in is required to access account data
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error: { type: string }
   schemas:
     NativeMessageInput:
       allOf:

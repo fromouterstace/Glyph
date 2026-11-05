@@ -1,7 +1,7 @@
 # Glyph security remediation roadmap
 
-**Status:** In progress; the sensitive-error logging workstream is implemented
-and locally verified in the workspace. It has not been published or deployed.
+**Status:** Phases 1 and 2 are implemented and verified in the workspace; neither
+has been published or deployed.
 **Basis:** Manual security audit dated 2026-11-05  
 **Audience assumption:** The person implementing the work and anyone reviewing
 security priorities.  
@@ -42,6 +42,10 @@ ownership checks, while the UI shell, sign-in/sign-up, sanitized anonymous
 read-only responses, health check, Clerk proxy, and recipient tracking routes
 are public. HTTPS is confirmed for the published hostname and HSTS is present;
 the port-80 redirect behavior remains unverified.
+
+**Workspace follow-up:** Phase 2 below now requires sign-in for private app
+screens and account-data APIs. It has not been published, so the live deployment
+still matches the posture recorded above until a release is published.
 
 Do not put authentication in front of recipient pixel or redirect requests:
 Gmail and other recipient clients cannot sign in to Glyph, so that would break
@@ -97,6 +101,10 @@ Release verification follows all changed workstreams.
 ### 0. Gate private dashboard screens and codify public exceptions
 
 **Risk addressed:** SEC-10, identified during published-route verification.
+
+**Status:** Implemented and verified in the workspace on 2026-11-05; not yet
+published. The private-route UI and account API checks pass, including direct
+deep links and anonymous HTTP requests.
 
 **Implementation**
 

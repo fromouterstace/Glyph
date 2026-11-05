@@ -202,6 +202,10 @@ export interface HealthStatus {
   status: string;
 }
 
+export type UnauthorizedResponse = {
+  error: string;
+};
+
 export type ListMessagesParams = {
   search?: string;
   status?: string;

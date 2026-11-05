@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode, type ComponentType } from 'react';
-import { ClerkProvider, SignIn, SignUp, Show, useClerk } from '@clerk/react';
+import { ClerkProvider, SignIn, SignUp, useClerk } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import {
   QueryClient,
@@ -25,6 +25,7 @@ import SettingsPage from '@/pages/settings';
 import GmailPage from '@/pages/gmail';
 import { Shell } from '@/components/shell';
 import { GlyphMark } from '@/components/bits';
+import { AuthGate } from '@/components/auth-gate';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -197,39 +198,25 @@ function ClerkQueryClientCacheInvalidator() {
 }
 
 function HomeRedirect() {
-  return (
-    <>
-      <Show when="signed-in">
-        <Redirect to="/app" />
-      </Show>
-      <Show when="signed-out">
-        <Shell>
-          <Dashboard />
-        </Shell>
-      </Show>
-    </>
-  );
+  return <Redirect to="/app" />;
 }
 
 function AppHome() {
   return (
-    <>
-      <Show when="signed-in">
-        <Shell>
-          <Dashboard />
-        </Shell>
-      </Show>
-      <Show when="signed-out">
-        <Redirect to="/" />
-      </Show>
-    </>
+    <AuthGate>
+      <Shell>
+        <Dashboard />
+      </Shell>
+    </AuthGate>
   );
 }
 
 const wrap = (C: ComponentType) => () => (
-  <Shell>
-    <C />
-  </Shell>
+  <AuthGate>
+    <Shell>
+      <C />
+    </Shell>
+  </AuthGate>
 );
 const EmailsRoute = wrap(Emails);
 const ActivityRoute = wrap(ActivityPage);
