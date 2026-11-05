@@ -14,3 +14,9 @@ The user explicitly clarified: "It should be a digit showing the number of pixel
 **Why:** The user wants the actual tracking-pixel loading/recording problem investigated, not a different engagement definition.
 
 **How to apply:** Keep pixel-load counts numeric and independent of clicks and replies. Investigate missing loads directly; do not replace the count with a read inference.
+
+Validate Gmail's actual image-proxy path, not only local preview or a direct browser image load.
+
+**Why:** A user-captured Gmail proxy request returned 404 for the correct pixel while an anonymous direct request returned 200. Direct reachability alone did not prove Gmail compatibility or identify the proxy failure's cause.
+
+**How to apply:** Correlate the proxy request with the original URL in the message's image element. Require evidence from a fresh real proxy load before declaring Gmail open tracking fixed; do not manufacture historical loads.

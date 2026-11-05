@@ -3,9 +3,9 @@ import { createHash, randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db, glyphEvents, glyphLinks, glyphMessages } from "@workspace/db";
 import { syncNative } from "../lib/gmail-native";
+import { transparentGif } from "../lib/tracking-pixel";
 
 const router = Router();
-const transparentGif = Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64");
 
 async function recordSignal(messageId: string, token: string, type: "open" | "click", agent: string, url: string | null) {
   const automated = /bot|crawler|spider|scanner|safelinks|proofpoint|barracuda|mimecast|headless|preview/i.test(agent);
@@ -13,9 +13,10 @@ async function recordSignal(messageId: string, token: string, type: "open" | "cl
   const source = automated ? "Suspected automated scanner" : proxy ? "Google image proxy — open signal only" : "Unverified client request";
   const bucket = Math.floor(Date.now() / 60_000);
   const fingerprint = createHash("sha256").update(`${token}:${type}:${agent}:${bucket}`).digest("hex");
-  await db.insert(glyphEvents).values({
+  const inserted = await db.insert(glyphEvents).values({
     id: randomUUID(), messageId, type, url, automated, source, fingerprint,
-  }).onConflictDoNothing();
+  }).onConflictDoNothing().returning({ id: glyphEvents.id });
+  return inserted.length > 0;
 }
 
 router.get("/glyph/t/:token", async (req, res): Promise<void> => {
@@ -29,14 +30,25 @@ router.get("/glyph/t/:token", async (req, res): Promise<void> => {
         // Do not count that as recipient engagement or scan Sent unnecessarily.
         const composeReferrer = /^https:\/\/mail\.google\.com(?:\/|$)/.test(req.get("referer") ?? "");
         if (message?.deliverySource === "gmail" && message.status === "draft" && composeReferrer) {
+          req.log.info({ messageId: message.id, outcome: "sender_compose_ignored" }, "Tracking pixel request");
           res.send(transparentGif); return;
         }
         if (message?.deliverySource === "gmail" && message.status === "draft") {
           await syncNative(message.ownerId, true);
           [message] = await db.select().from(glyphMessages).where(eq(glyphMessages.pixelToken, token));
         }
-        if (message?.trackOpens && ["sent", "sending", "uncertain"].includes(message.status))
-          await recordSignal(message.id, token, "open", req.get("user-agent") ?? "", null);
+        let outcome: string;
+        if (message?.trackOpens && ["sent", "sending", "uncertain"].includes(message.status)) {
+          const recorded = await recordSignal(message.id, token, "open", req.get("user-agent") ?? "", null);
+          outcome = recorded ? "recorded" : "duplicate";
+        } else {
+          outcome = !message ? "unknown_pixel" : !message.trackOpens ? "tracking_disabled" : "send_not_confirmed";
+        }
+        req.log.info({
+          messageId: message?.id ?? null,
+          outcome,
+          googleImageProxy: /googleimageproxy|ggpht|google.*proxy/i.test(req.get("user-agent") ?? ""),
+        }, "Tracking pixel request");
       }
     } catch (err) { req.log.warn({ err }, "Pixel signal could not be recorded"); }
   }
