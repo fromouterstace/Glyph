@@ -62,7 +62,10 @@ test('anonymous account reads require authentication before returning user data'
 
 test('a signed-in owner lists only their own messages', async () => {
   const f = await twoOwners();
-  const page = await (await h.request('/messages', { user: f.owner })).json();
+  const response = await h.request('/messages', { user: f.owner });
+  const body = await response.text();
+  expect(response.status, body).toBe(200);
+  const page = JSON.parse(body);
   expect(page.items.map((row) => row.id)).toEqual([f.own.id]);
   expect(page.pagination).toEqual({
     limit: 50,
@@ -89,9 +92,12 @@ test('message pagination is bounded, stable, filtered, and owner-scoped', async 
     foreign.id,
     new Date(Date.UTC(2026, 0, 2)),
   ]);
-  const page = await (
-    await h.request('/messages?limit=2&offset=1', { user: owner })
-  ).json();
+  const response = await h.request('/messages?limit=2&offset=1', {
+    user: owner,
+  });
+  const body = await response.text();
+  expect(response.status, body).toBe(200);
+  const page = JSON.parse(body);
   expect(page.items.map((row) => row.id)).toEqual([
     own[3].id,
     own[2].id,
@@ -104,6 +110,29 @@ test('message pagination is bounded, stable, filtered, and owner-scoped', async 
   });
   const invalid = await h.request('/messages?limit=101', { user: owner });
   expect(invalid.status).toBe(400);
+});
+
+test('message search and signal filters run before pagination', async () => {
+  const owner = h.identity();
+  const opened = await messageFixture(h.sql, { ownerId: owner });
+  const unopened = await messageFixture(h.sql, { ownerId: owner });
+  await h.sql(
+    "UPDATE glyph_messages SET subject='Quarterly proposal' WHERE id=$1",
+    [opened.id],
+  );
+  await h.sql(
+    "UPDATE glyph_messages SET subject='Quarterly follow-up' WHERE id=$1",
+    [unopened.id],
+  );
+  await addEvent(h.sql, opened, 'open', new Date(Date.UTC(2026, 0, 1)));
+  const page = await (
+    await h.request('/messages?search=Quarterly&status=opened&limit=1', {
+      user: owner,
+    })
+  ).json();
+  expect(page.items.map((message) => message.id)).toEqual([opened.id]);
+  expect(page.pagination.total).toBe(1);
+  expect(page.pagination.hasMore).toBe(false);
 });
 
 test('a foreign message detail cannot expose its body, links or events', async () => {
@@ -125,8 +154,9 @@ test('the rightful owner can retrieve their message with its links and events', 
   const response = await h.request(`/messages/${f.foreign.id}`, {
     user: f.other,
   });
-  const detail = await response.json();
-  expect(response.status).toBe(200);
+  const body = await response.text();
+  expect(response.status, body).toBe(200);
+  const detail = JSON.parse(body);
   expect(detail.message.id).toBe(f.foreign.id);
   expect(detail.links).toHaveLength(1);
   expect(detail.message.opens).toBe(1);
@@ -174,10 +204,28 @@ test('overview counts only the authenticated owner’s engagement', async () => 
   expect(overview.totalSent).toBe(1);
   expect(overview.totalOpens).toBe(125);
   expect(overview.openRate).toBe(100);
-  const messages = await (
-    await h.request('/messages?limit=1', { user: f.owner })
-  ).json();
+  const response = await h.request('/messages?limit=1', { user: f.owner });
+  const body = await response.text();
+  expect(response.status, body).toBe(200);
+  const messages = JSON.parse(body);
   expect(messages.items[0].opens).toBe(125);
+});
+
+test('owner and event time indexes support bounded history reads', async () => {
+  const indexes = (
+    await h.sql(
+      `SELECT indexname FROM pg_indexes
+       WHERE schemaname = current_schema()
+         AND tablename IN ('glyph_messages', 'glyph_events')`,
+    )
+  ).rows.map((row) => row.indexname);
+  expect(indexes).toEqual(
+    expect.arrayContaining([
+      'glyph_messages_owner_idx',
+      'glyph_events_message_idx',
+      'glyph_events_time_idx',
+    ]),
+  );
 });
 
 for (const method of ['PATCH', 'DELETE', 'POST']) {

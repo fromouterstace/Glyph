@@ -110,7 +110,7 @@ paths:
       operationId: getMessage
       responses:
         '200':
-          description: Message detail with a bounded signal-history page
+          description: Message detail with database-aggregated signal totals
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MessageDetail' }
