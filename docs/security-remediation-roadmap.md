@@ -7,12 +7,60 @@ security priorities.
 **Planning assumption:** Work is sequenced by risk and dependency, not calendar
 date. No team capacity, deadline, or rollout window has been estimated.
 
+## Verified authentication and HTTPS posture
+
+Checked against the published deployment `https://glyph-mail.replit.app` on
+2026-11-05, in addition to source review:
+
+- Deployment metadata reports the app is deployed with **public** visibility.
+- The web shell and routes `/`, `/app`, `/emails`, `/activity`, `/settings`,
+  `/gmail`, `/sign-in`, and `/sign-up` return HTTP 200 without a session. The
+  browser UI uses read-only/empty states when signed out; the dashboard routes
+  are not themselves gated behind a sign-in redirect.
+- Anonymous production API probes returned only read-only zero totals, empty
+  message/activity lists, default preferences, and a generic unconnected status.
+  A fabricated message detail returned 404. An anonymous native-prepare write
+  returned 401. Source middleware requires a Clerk user, same-origin request,
+  and matching verified mailbox for mutations; owner-specific reads use the
+  authenticated user. These checks found no anonymous account records in the
+  probes, but do not replace an exhaustive test of every API response and
+  authorization branch.
+- Health and token-based pixel/redirect endpoints are public. The tracking
+  endpoints must remain reachable without a logged-in recipient; they use
+  opaque tokens instead. The Clerk frontend API proxy is also publicly
+  reachable by design.
+- The published site answered over TLS with certificate verification success
+  and returned `Strict-Transport-Security: max-age=63072000; includeSubDomains`.
+  A connection to the HTTP port (80) was refused from the audit environment, so
+  an HTTP-to-HTTPS redirect response could not be observed. HTTPS operation is
+  confirmed; redirect behavior is not independently confirmed.
+
+**Conclusion:** No, the entire app is not behind authentication. The private
+data mutations and returned account data appear protected by session and
+ownership checks, while the UI shell, sign-in/sign-up, sanitized anonymous
+read-only responses, health check, Clerk proxy, and recipient tracking routes
+are public. HTTPS is confirmed for the published hostname and HSTS is present;
+the port-80 redirect behavior remains unverified.
+
+Do not put authentication in front of recipient pixel or redirect requests:
+Gmail and other recipient clients cannot sign in to Glyph, so that would break
+tracking. If “the entire app behind auth” means every route on the same host,
+that requirement conflicts with public email tracking. The safe architecture
+would require a separate, publicly reachable tracking origin/service and a
+private authenticated dashboard origin, plus careful verified-origin and
+database/token ownership design. Treat that split as a product/architecture
+decision, not an assumed quick hardening change.
+
 ## Goal
 
 Reduce the confirmed confidentiality risk and the extension trust-boundary risk
 first, then limit abuse and unbounded resource consumption, and finally close
 deployment-hardening gaps. Preserve the existing product rules while doing so:
 
+- Require sign-in for private dashboard screens and all account data, while
+  documenting and testing the minimum necessary public exceptions.
+- Serve the dashboard, connection, and new tracking URLs only over HTTPS; retain
+  the public tracking paths required by recipient mail clients.
 - Gmail remains responsible for native Send.
 - Private message access stays authenticated, mailbox-verified, and owner-scoped.
 - Public pixel and redirect endpoints remain usable by recipient email clients.
@@ -24,22 +72,73 @@ deployment-hardening gaps. Preserve the existing product rules while doing so:
 
 ## Priority sequence
 
-| Order | Workstream                                        | Audit issue                                                        | Priority                 |
-| ----- | ------------------------------------------------- | ------------------------------------------------------------------ | ------------------------ |
-| 1     | Safe error reporting                              | SEC-02: SQL parameters and private values in error logs            | Immediate                |
-| 2     | Trusted extension-origin enrollment               | SEC-01: compose data can be sent to a user-approved hostile origin | Immediate                |
-| 3     | Public tracking abuse controls                    | SEC-03: valid tokens can generate unbounded events and work        | High                     |
-| 4     | Bounded, owner-scoped data access                 | SEC-05: full histories loaded before limits and filtering          | High                     |
-| 5     | Connector identity and cache isolation            | SEC-04: stale mailbox authorization after reconnect                | High                     |
-| 6     | Proxy, origin, and browser hardening              | SEC-06, SEC-07, SEC-08                                             | After behavior contracts |
-| 7     | Documentation reconciliation and release evidence | SEC-09 and deployment verification gaps                            | Before release sign-off  |
+| Order | Workstream                                        | Audit issue                                                                      | Priority                 |
+| ----- | ------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------ |
+| 1     | Safe error reporting                              | SEC-02: SQL parameters and private values in error logs                          | Immediate                |
+| 2     | Authenticated dashboard and public-route policy   | SEC-10: private UI is publicly served; define and enforce intentional exceptions | High                     |
+| 3     | Trusted extension-origin enrollment               | SEC-01: compose data can be sent to a user-approved hostile origin               | Immediate                |
+| 4     | Public tracking abuse controls                    | SEC-03: valid tokens can generate unbounded events and work                      | High                     |
+| 5     | Bounded, owner-scoped data access                 | SEC-05: full histories loaded before limits and filtering                        | High                     |
+| 6     | Connector identity and cache isolation            | SEC-04: stale mailbox authorization after reconnect                              | High                     |
+| 7     | Proxy, origin, and browser hardening              | SEC-06, SEC-07, SEC-08, and confirmed HTTPS/HTTP redirect verification           | After behavior contracts |
+| 8     | Documentation reconciliation and release evidence | SEC-09 and deployment verification gaps                                          | Before release sign-off  |
 
-Orders 3–5 can proceed in parallel after their API/data contracts are agreed.
-Workstream 6 depends on documenting the real preview, published-domain, and
+Orders 4–6 can proceed in parallel after their API/data contracts are agreed.
+Workstream 7 depends on documenting the real preview, published-domain, and
 proxy behavior so hardening does not break legitimate Clerk or extension flows.
 Release verification follows all changed workstreams.
 
 ## Workstreams and completion criteria
+
+### 0. Gate private dashboard screens and codify public exceptions
+
+**Risk addressed:** SEC-10, identified during published-route verification.
+
+**Implementation**
+
+- Add a route-by-route access policy for the frontend, API, Clerk proxy, health
+  endpoint, and pixel/redirect routes.
+- Require sign-in before rendering private dashboard, message, activity,
+  settings, and Gmail-connection screens. Keep sign-in/sign-up reachable so
+  users can authenticate; decide explicitly whether the marketing/landing page
+  remains public.
+- Continue enforcing authorization and owner isolation on the server. A
+  frontend route guard is not a replacement for API authentication.
+- Keep only necessary public API responses: health, Clerk auth protocol, and
+  opaque-token pixel/redirect paths. Anonymous account-data endpoints should
+  remain empty/read-only or be changed to 401/403 according to a documented
+  consistent policy; never return private records.
+- Keep new tracking origins HTTPS-only and owned by the same deployment/data
+  store. Verify the published edge's HTTP behavior and HSTS on every published
+  host.
+- Do not require sign-in for recipient tracking requests. If every route on the
+  dashboard host must be private, scope a separate public tracking origin/service
+  design before implementation.
+
+**Acceptance criteria**
+
+- An unauthenticated browser is redirected to sign-in or sees only the
+  explicitly approved public landing page; private dashboard screens and
+  signed-in account data are not rendered.
+- Anonymous requests to every private read or mutation route return only the
+  documented empty/read-only result or an explicit authorization error, never
+  another user's data.
+- Authenticated owner success and cross-owner denial continue to pass against
+  isolated PostgreSQL.
+- Public pixel GET still returns the expected image without a sign-in redirect;
+  public link tracking still reaches its stored destination; neither response
+  exposes account data.
+- Automated route inventory tests fail if a new protected UI/API route is added
+  without an access classification.
+- Every published hostname serves valid HTTPS and the approved HSTS policy. A
+  direct HTTP request is observed to redirect to HTTPS or fail closed at the
+  edge; no application/API content is served over cleartext HTTP.
+- If deployment visibility is changed from public, a fresh recipient-side
+  tracking check proves the public pixel and redirect paths remain reachable.
+
+**Release gate:** verify anonymous and signed-in flows on the published app,
+including the recipient-facing public tracking paths, before changing deployment
+visibility or applying a blanket authentication rule.
 
 ### 1. Stop logging sensitive exception contents
 
