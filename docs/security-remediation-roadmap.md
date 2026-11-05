@@ -99,7 +99,7 @@ deployment-hardening gaps. Preserve the existing product rules while doing so:
 | 6     | Connector identity and cache isolation            | SEC-04: stale mailbox authorization after reconnect                              | High                     | Workspace verified; controlled live reconnect pending                          |
 | 7     | Proxy, origin, and browser hardening              | SEC-06, SEC-07, SEC-08, and confirmed HTTPS/HTTP redirect verification           | After behavior contracts | Workspace verified; published headers/Clerk/edge validation pending            |
 | 8     | Documentation reconciliation and release evidence | SEC-09 and deployment verification gaps                                          | Before release sign-off  | Workspace documentation reconciled; no new published-release evidence recorded |
-| 9     | Controlled production release and closeout         | Verification of shipped remediations and residual risks                          | Final gate               | Read-only preflight complete; blocked by open Section 4 and pending approval    |
+| 9     | Controlled production release and closeout        | Verification of shipped remediations and residual risks                          | Final gate               | Read-only preflight complete; blocked by open Section 4 and pending approval   |
 
 Orders 4–6 can proceed in parallel after their API/data contracts are agreed.
 Workstream 7 depends on documenting the real preview, published-domain, and
