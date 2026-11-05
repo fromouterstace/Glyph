@@ -1,4 +1,132 @@
-*{box-sizing:border-box}body{width:350px;margin:0;background:#f7f5ee;color:#172e32;font:13px/1.55 Arial,sans-serif}
-header{padding:18px 22px;display:flex;gap:9px;align-items:center;background:#172e32;color:#fff}header strong{font-size:25px;letter-spacing:-1px}.mark{width:16px;height:16px;border:1px solid white;position:relative}.mark:after{content:"";position:absolute;bottom:-3px;right:-3px;width:7px;height:7px;background:#e34323}.tag{margin-left:auto;font:10px monospace;letter-spacing:2px;color:#becdcb}
-main{padding:22px}h1{font-size:24px;line-height:1.1;letter-spacing:-.6px;margin:0 0 12px}p{color:#5a6868;margin:8px 0 18px}label{display:block;font-weight:600;font-size:12px;margin:18px 0 6px}input{width:100%;padding:11px;border:1px solid #c9d0cc;border-radius:4px;background:white;color:inherit}
-button{border:0;border-radius:4px;padding:11px 14px;background:#d94020;color:white;font:600 13px Arial,sans-serif;cursor:pointer}#connect{width:100%;margin-top:10px}.hint{font-size:11px;margin-top:10px}section{border:1px solid #c9d0cc;padding:12px;background:white}#state{font-weight:600}#account{font-size:12px;overflow-wrap:anywhere}.actions{display:flex;gap:8px;margin-top:10px}.secondary{background:transparent;border:1px solid #c9d0cc;color:#173e3d;flex:1;font-size:11px;padding:8px}#error{color:#b12e18;font-size:12px;overflow-wrap:anywhere;margin-bottom:0}footer{font-size:10px;color:#687876;border-top:1px solid #d4d9d5;padding-top:15px;margin-top:20px}button:disabled{opacity:.5}
+* {
+  box-sizing: border-box;
+}
+body {
+  width: 350px;
+  margin: 0;
+  background: #f7f5ee;
+  color: #172e32;
+  font:
+    13px/1.55 Arial,
+    sans-serif;
+}
+header {
+  padding: 18px 22px;
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  background: #172e32;
+  color: #fff;
+}
+header strong {
+  font-size: 25px;
+  letter-spacing: -1px;
+}
+.mark {
+  width: 16px;
+  height: 16px;
+  border: 1px solid white;
+  position: relative;
+}
+.mark:after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 7px;
+  height: 7px;
+  background: #e34323;
+}
+.tag {
+  margin-left: auto;
+  font: 10px monospace;
+  letter-spacing: 2px;
+  color: #becdcb;
+}
+main {
+  padding: 22px;
+}
+h1 {
+  font-size: 24px;
+  line-height: 1.1;
+  letter-spacing: -0.6px;
+  margin: 0 0 12px;
+}
+p {
+  color: #5a6868;
+  margin: 8px 0 18px;
+}
+label {
+  display: block;
+  font-weight: 600;
+  font-size: 12px;
+  margin: 18px 0 6px;
+}
+input {
+  width: 100%;
+  padding: 11px;
+  border: 1px solid #c9d0cc;
+  border-radius: 4px;
+  background: white;
+  color: inherit;
+}
+button {
+  border: 0;
+  border-radius: 4px;
+  padding: 11px 14px;
+  background: #d94020;
+  color: white;
+  font:
+    600 13px Arial,
+    sans-serif;
+  cursor: pointer;
+}
+#connect {
+  width: 100%;
+  margin-top: 10px;
+}
+.hint {
+  font-size: 11px;
+  margin-top: 10px;
+}
+section {
+  border: 1px solid #c9d0cc;
+  padding: 12px;
+  background: white;
+}
+#state {
+  font-weight: 600;
+}
+#account {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.secondary {
+  background: transparent;
+  border: 1px solid #c9d0cc;
+  color: #173e3d;
+  flex: 1;
+  font-size: 11px;
+  padding: 8px;
+}
+#error {
+  color: #b12e18;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  margin-bottom: 0;
+}
+footer {
+  font-size: 10px;
+  color: #687876;
+  border-top: 1px solid #d4d9d5;
+  padding-top: 15px;
+  margin-top: 20px;
+}
+button:disabled {
+  opacity: 0.5;
+}

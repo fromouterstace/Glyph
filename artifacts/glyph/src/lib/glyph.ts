@@ -26,7 +26,8 @@ export function useInvalidateAll() {
   return () => {
     qc.invalidateQueries({ queryKey: ['/api/glyph/messages'], exact: false });
     qc.invalidateQueries({
-      predicate: (q) => String(q.queryKey[0] ?? '').startsWith('/api/glyph/messages'),
+      predicate: (q) =>
+        String(q.queryKey[0] ?? '').startsWith('/api/glyph/messages'),
     });
     qc.invalidateQueries({ queryKey: getGetOverviewQueryKey() });
     qc.invalidateQueries({ queryKey: getListActivityQueryKey() });
@@ -39,7 +40,8 @@ export function errorText(err: unknown): string {
   const e = err as { status?: number; data?: unknown; message?: string } | null;
   const d = e?.data as Record<string, unknown> | null | undefined;
   const msg =
-    (d && typeof d === 'object' && (d.error || d.message || d.detail)) || undefined;
+    (d && typeof d === 'object' && (d.error || d.message || d.detail)) ||
+    undefined;
   if (e?.status === 401) return 'Sign in to do that.';
   if (e?.status === 403)
     return typeof msg === 'string'

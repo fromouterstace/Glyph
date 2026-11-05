@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "strict": true,
     "incremental": true,
     "isolatedModules": true,
     "lib": ["es2022"],
@@ -9,11 +10,12 @@
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": false,
     "noImplicitReturns": true,
-    "noUnusedLocals": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noImplicitAny": true,
     "noImplicitThis": true,
     "strictNullChecks": true,
-    "strictFunctionTypes": false,
+    "strictFunctionTypes": true,
     "strictBindCallApply": true,
     "strictPropertyInitialization": true,
     "useUnknownInCatchVariables": true,

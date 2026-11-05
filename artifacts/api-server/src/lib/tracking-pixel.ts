@@ -4,6 +4,6 @@
  * end code, even though tolerant browsers can still render it.
  */
 export const transparentGif = Buffer.from(
-  "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==",
-  "base64",
+  'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==',
+  'base64',
 );

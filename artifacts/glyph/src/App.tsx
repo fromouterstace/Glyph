@@ -1,8 +1,19 @@
-import { useEffect, useRef, type ReactNode, type ComponentType } from "react";
+import { useEffect, useRef, type ReactNode, type ComponentType } from 'react';
 import { ClerkProvider, SignIn, SignUp, Show, useClerk } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
-import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import { Switch, Route, Redirect, useLocation, Link, Router as WouterRouter } from 'wouter';
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {
+  Switch,
+  Route,
+  Redirect,
+  useLocation,
+  Link,
+  Router as WouterRouter,
+} from 'wouter';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -15,7 +26,9 @@ import GmailPage from '@/pages/gmail';
 import { Shell } from '@/components/shell';
 import { GlyphMark } from '@/components/bits';
 
-const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
+});
 
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -58,10 +71,12 @@ const clerkAppearance = {
   },
   elements: {
     rootBox: 'w-full flex justify-center',
-    cardBox: 'bg-[hsl(40_40%_98.5%)] rounded-md w-[420px] max-w-full overflow-hidden border border-[hsl(38_18%_84%)] shadow-[0_24px_60px_-30px_hsl(203_32%_13%/0.45)]',
+    cardBox:
+      'bg-[hsl(40_40%_98.5%)] rounded-md w-[420px] max-w-full overflow-hidden border border-[hsl(38_18%_84%)] shadow-[0_24px_60px_-30px_hsl(203_32%_13%/0.45)]',
     card: '!shadow-none !border-0 !bg-transparent !rounded-none',
     footer: '!shadow-none !border-0 !bg-transparent !rounded-none',
-    headerTitle: "text-[hsl(203_32%_13%)] font-extrabold text-2xl [font-family:'Bricolage_Grotesque',sans-serif]",
+    headerTitle:
+      "text-[hsl(203_32%_13%)] font-extrabold text-2xl [font-family:'Bricolage_Grotesque',sans-serif]",
     headerSubtitle: 'text-[hsl(203_12%_38%)]',
     socialButtonsBlockButtonText: 'text-[hsl(203_32%_13%)] font-medium',
     formFieldLabel: 'text-[hsl(203_32%_13%)] font-medium',
@@ -73,13 +88,17 @@ const clerkAppearance = {
     alertText: 'text-[hsl(203_32%_13%)]',
     logoBox: 'h-11 justify-start',
     logoImage: 'h-11 w-11',
-    socialButtonsBlockButton: 'border border-[hsl(38_18%_80%)] bg-[hsl(40_33%_96%)] hover:bg-[hsl(38_26%_90%)]',
-    formButtonPrimary: 'bg-[hsl(9_76%_50%)] text-[hsl(40_40%_98%)] font-semibold shadow-none',
-    formFieldInput: 'border border-[hsl(38_16%_80%)] bg-[hsl(40_33%_96%)] text-[hsl(203_32%_13%)]',
+    socialButtonsBlockButton:
+      'border border-[hsl(38_18%_80%)] bg-[hsl(40_33%_96%)] hover:bg-[hsl(38_26%_90%)]',
+    formButtonPrimary:
+      'bg-[hsl(9_76%_50%)] text-[hsl(40_40%_98%)] font-semibold shadow-none',
+    formFieldInput:
+      'border border-[hsl(38_16%_80%)] bg-[hsl(40_33%_96%)] text-[hsl(203_32%_13%)]',
     footerAction: 'bg-transparent',
     dividerLine: 'bg-[hsl(38_18%_84%)]',
     alert: 'border border-[hsl(350_60%_84%)] bg-[hsl(350_70%_96%)]',
-    otpCodeFieldInput: 'border border-[hsl(38_16%_80%)] text-[hsl(203_32%_13%)]',
+    otpCodeFieldInput:
+      'border border-[hsl(38_16%_80%)] text-[hsl(203_32%_13%)]',
     formFieldRow: 'mb-1',
     main: 'gap-5',
   },
@@ -89,21 +108,44 @@ function AuthFrame({ children }: { children: ReactNode }) {
   return (
     <div className="grain grid min-h-[100dvh] bg-background lg:grid-cols-[1fr_1.1fr]">
       <div className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-10 text-sidebar-foreground lg:flex">
-        <Link href="/" className="flex items-center gap-2.5" data-testid="link-auth-home">
-          <GlyphMark live /> <span className="font-display text-2xl font-extrabold text-sidebar-accent-foreground">glyph</span>
+        <Link
+          href="/"
+          className="flex items-center gap-2.5"
+          data-testid="link-auth-home"
+        >
+          <GlyphMark live />{' '}
+          <span className="font-display text-2xl font-extrabold text-sidebar-accent-foreground">
+            glyph
+          </span>
         </Link>
         <div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-sidebar-primary">1 x 1 px</div>
-          <h2 className="font-display mt-3 text-5xl font-extrabold leading-[0.95] text-sidebar-accent-foreground">The smallest thing<br />in your email<br />tells you the most.</h2>
-          <p className="mt-5 max-w-sm text-sm text-sidebar-foreground/70">Sign in with the account whose verified email matches the connected Gmail to send. Any other account sees only its own empty workspace.</p>
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-sidebar-primary">
+            1 x 1 px
+          </div>
+          <h2 className="font-display mt-3 text-5xl font-extrabold leading-[0.95] text-sidebar-accent-foreground">
+            The smallest thing
+            <br />
+            in your email
+            <br />
+            tells you the most.
+          </h2>
+          <p className="mt-5 max-w-sm text-sm text-sidebar-foreground/70">
+            Sign in with the account whose verified email matches the connected
+            Gmail to send. Any other account sees only its own empty workspace.
+          </p>
         </div>
         <div className="grid grid-cols-12 gap-1.5 opacity-70" aria-hidden>
           {Array.from({ length: 48 }).map((_, i) => (
-            <span key={i} className={`aspect-square rounded-[2px] ${[7, 19, 30, 41].includes(i) ? 'bg-sidebar-primary' : 'bg-sidebar-accent'}`} />
+            <span
+              key={i}
+              className={`aspect-square rounded-[2px] ${[7, 19, 30, 41].includes(i) ? 'bg-sidebar-primary' : 'bg-sidebar-accent'}`}
+            />
           ))}
         </div>
       </div>
-      <div className="flex items-center justify-center px-4 py-10">{children}</div>
+      <div className="flex items-center justify-center px-4 py-10">
+        {children}
+      </div>
     </div>
   );
 }
@@ -111,7 +153,11 @@ function AuthFrame({ children }: { children: ReactNode }) {
 function SignInPage() {
   return (
     <AuthFrame>
-      <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
+      <SignIn
+        routing="path"
+        path={`${basePath}/sign-in`}
+        signUpUrl={`${basePath}/sign-up`}
+      />
     </AuthFrame>
   );
 }
@@ -119,7 +165,11 @@ function SignInPage() {
 function SignUpPage() {
   return (
     <AuthFrame>
-      <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+      <SignUp
+        routing="path"
+        path={`${basePath}/sign-up`}
+        signInUrl={`${basePath}/sign-in`}
+      />
     </AuthFrame>
   );
 }
@@ -132,7 +182,10 @@ function ClerkQueryClientCacheInvalidator() {
   useEffect(() => {
     const unsubscribe = addListener(({ user }) => {
       const userId = user?.id ?? null;
-      if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== userId) {
+      if (
+        prevUserIdRef.current !== undefined &&
+        prevUserIdRef.current !== userId
+      ) {
         qc.clear();
       }
       prevUserIdRef.current = userId;
@@ -146,8 +199,14 @@ function ClerkQueryClientCacheInvalidator() {
 function HomeRedirect() {
   return (
     <>
-      <Show when="signed-in"><Redirect to="/app" /></Show>
-      <Show when="signed-out"><Shell><Dashboard /></Shell></Show>
+      <Show when="signed-in">
+        <Redirect to="/app" />
+      </Show>
+      <Show when="signed-out">
+        <Shell>
+          <Dashboard />
+        </Shell>
+      </Show>
     </>
   );
 }
@@ -155,13 +214,23 @@ function HomeRedirect() {
 function AppHome() {
   return (
     <>
-      <Show when="signed-in"><Shell><Dashboard /></Shell></Show>
-      <Show when="signed-out"><Redirect to="/" /></Show>
+      <Show when="signed-in">
+        <Shell>
+          <Dashboard />
+        </Shell>
+      </Show>
+      <Show when="signed-out">
+        <Redirect to="/" />
+      </Show>
     </>
   );
 }
 
-const wrap = (C: ComponentType) => () => <Shell><C /></Shell>;
+const wrap = (C: ComponentType) => () => (
+  <Shell>
+    <C />
+  </Shell>
+);
 const EmailsRoute = wrap(Emails);
 const ActivityRoute = wrap(ActivityPage);
 const SettingsRoute = wrap(SettingsPage);
@@ -183,8 +252,18 @@ function ClerkProviderWithRoutes() {
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
       localization={{
-        signIn: { start: { title: 'Back to your signals', subtitle: 'Use the email that owns your connected Gmail' } },
-        signUp: { start: { title: 'Start reading the glyphs', subtitle: 'Verify the email that matches your Gmail to send' } },
+        signIn: {
+          start: {
+            title: 'Back to your signals',
+            subtitle: 'Use the email that owns your connected Gmail',
+          },
+        },
+        signUp: {
+          start: {
+            title: 'Start reading the glyphs',
+            subtitle: 'Verify the email that matches your Gmail to send',
+          },
+        },
       }}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}

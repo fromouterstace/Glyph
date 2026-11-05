@@ -6,11 +6,48 @@ import assert from 'node:assert/strict';
 const base = 'http://127.0.0.1:80';
 const pixel = `${base}/api/glyph/t/${'0'.repeat(48)}.gif`;
 
+test('anonymous message reads contain sample data only', async () => {
+  const response = await fetch(`${base}/api/glyph/messages`, {
+    headers: { accept: 'application/json' },
+  });
+  assert.equal(response.status, 200);
+  const messages = await response.json();
+  assert.ok(Array.isArray(messages));
+  assert.ok(messages.length > 0);
+  assert.ok(messages.every((message) => message.isDemo === true));
+});
+
+for (const [method, path] of [
+  ['POST', '/messages'],
+  ['PATCH', '/messages/unowned'],
+  ['DELETE', '/messages/unowned'],
+  ['POST', '/messages/unowned/send'],
+  ['POST', '/activity/read'],
+  ['PATCH', '/settings'],
+]) {
+  test(`anonymous ${method} ${path} is rejected before any write`, async () => {
+    const response = await fetch(`${base}/api/glyph${path}`, {
+      method,
+      redirect: 'manual',
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        origin: base,
+      },
+      body: '{}',
+    });
+    assert.equal(response.status, 401);
+  });
+}
+
 for (const accept of ['image/*', '*/*', 'text/html']) {
   test(`public pixel returns an image, not a sign-in handshake, for ${accept}`, async () => {
     const response = await fetch(pixel, {
       redirect: 'manual',
-      headers: { accept, 'user-agent': 'Mozilla/5.0 (compatible; GoogleImageProxy)' },
+      headers: {
+        accept,
+        'user-agent': 'Mozilla/5.0 (compatible; GoogleImageProxy)',
+      },
     });
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('location'), null);
@@ -23,7 +60,11 @@ for (const accept of ['image/*', '*/*', 'text/html']) {
 }
 
 test('HEAD on the public pixel returns no body or authentication redirect', async () => {
-  const response = await fetch(pixel, { method: 'HEAD', redirect: 'manual', headers: { accept: 'text/html' } });
+  const response = await fetch(pixel, {
+    method: 'HEAD',
+    redirect: 'manual',
+    headers: { accept: 'text/html' },
+  });
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('location'), null);
   assert.equal((await response.arrayBuffer()).byteLength, 0);
@@ -31,7 +72,8 @@ test('HEAD on the public pixel returns no body or authentication redirect', asyn
 
 test('invalid public click tokens give an explicit 404, not a sign-in redirect', async () => {
   const response = await fetch(`${base}/api/glyph/l/not-a-token`, {
-    redirect: 'manual', headers: { accept: 'text/html' },
+    redirect: 'manual',
+    headers: { accept: 'text/html' },
   });
   assert.equal(response.status, 404);
   assert.equal(response.headers.get('location'), null);
@@ -39,8 +81,13 @@ test('invalid public click tokens give an explicit 404, not a sign-in redirect',
 
 test('moving public tracking outside Clerk does not permit anonymous message preparation', async () => {
   const response = await fetch(`${base}/api/glyph/native/prepare`, {
-    method: 'POST', redirect: 'manual',
-    headers: { accept: 'application/json', 'content-type': 'application/json', origin: base },
+    method: 'POST',
+    redirect: 'manual',
+    headers: {
+      accept: 'application/json',
+      'content-type': 'application/json',
+      origin: base,
+    },
     body: '{}',
   });
   assert.equal(response.status, 401);

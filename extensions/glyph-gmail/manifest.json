@@ -8,12 +8,17 @@
   "optional_host_permissions": ["https://*/*"],
   "host_permissions": ["https://mail.google.com/*"],
   "background": { "service_worker": "background.js" },
-  "action": { "default_popup": "popup.html", "default_title": "Glyph for Gmail" },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Glyph for Gmail"
+  },
   "icons": { "16": "icon16.png", "48": "icon48.png", "128": "icon128.png" },
-  "content_scripts": [{
-    "matches": ["https://mail.google.com/*"],
-    "js": ["gmail.js"],
-    "css": ["gmail.css"],
-    "run_at": "document_idle"
-  }]
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["gmail.js"],
+      "css": ["gmail.css"],
+      "run_at": "document_idle"
+    }
+  ]
 }

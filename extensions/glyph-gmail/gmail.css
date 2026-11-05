@@ -1,14 +1,65 @@
 .glyph-native-toolbar {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
-  padding: 9px 10px; margin: 0 0 8px; border: 1px solid #d8dfdc; border-radius: 6px;
-  background: #f4f6f3; color: #173e3d; font: 12px/1.4 Arial,sans-serif;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 9px 10px;
+  margin: 0 0 8px;
+  border: 1px solid #d8dfdc;
+  border-radius: 6px;
+  background: #f4f6f3;
+  color: #173e3d;
+  font:
+    12px/1.4 Arial,
+    sans-serif;
 }
-.glyph-native-toolbar strong { font-size: 15px; letter-spacing: -.4px; }
-.glyph-native-toolbar strong::before { content:""; display:inline-block; width:7px; height:7px; margin-right:5px; background:#d94020; }
-.glyph-native-toolbar label { display:flex; align-items:center; gap:4px; cursor:pointer; }
-.glyph-native-toolbar input { accent-color:#d94020; margin:0; }
-.glyph-native-toolbar button { cursor:pointer; border:0; border-radius:4px; padding:6px 10px; background:#d94020; color:white; font:600 12px Arial,sans-serif; }
-.glyph-native-toolbar button:disabled { opacity:.5; cursor:wait; }
-.glyph-native-toolbar button:focus-visible { outline:2px solid #173e3d; outline-offset:2px; }
-.glyph-native-status { flex-basis:100%; color:#526864; font-size:11px; overflow-wrap:anywhere; }
-.glyph-native-error { color:#a92b16; }
+.glyph-native-toolbar strong {
+  font-size: 15px;
+  letter-spacing: -0.4px;
+}
+.glyph-native-toolbar strong::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 5px;
+  background: #d94020;
+}
+.glyph-native-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.glyph-native-toolbar input {
+  accent-color: #d94020;
+  margin: 0;
+}
+.glyph-native-toolbar button {
+  cursor: pointer;
+  border: 0;
+  border-radius: 4px;
+  padding: 6px 10px;
+  background: #d94020;
+  color: white;
+  font:
+    600 12px Arial,
+    sans-serif;
+}
+.glyph-native-toolbar button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.glyph-native-toolbar button:focus-visible {
+  outline: 2px solid #173e3d;
+  outline-offset: 2px;
+}
+.glyph-native-status {
+  flex-basis: 100%;
+  color: #526864;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.glyph-native-error {
+  color: #a92b16;
+}

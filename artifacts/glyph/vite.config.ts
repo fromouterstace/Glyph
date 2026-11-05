@@ -63,6 +63,16 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, 'dist/public'),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (/\/node_modules\/(?:react|react-dom|scheduler)\//.test(id))
+            return 'react';
+          if (id.includes('/node_modules/@clerk/')) return 'auth';
+          return undefined;
+        },
+      },
+    },
   },
   server: {
     port,

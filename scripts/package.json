@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test": "tsx --test test-native-verification.mjs test-reply-matching.mjs test-tracking-pixel.mjs test-gmail-extension.mjs test-gmail-background.mjs test-email-content.mjs test-tracking-origin.mjs",
     "test:native-verification": "tsx --test test-native-verification.mjs",
     "test:reply-matching": "tsx --test test-reply-matching.mjs",
     "test:tracking-pixel": "tsx --test test-tracking-pixel.mjs",

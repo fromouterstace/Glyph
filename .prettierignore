@@ -1,0 +1,13 @@
+node_modules
+**/node_modules/**
+**/dist/**
+**/build/**
+**/generated/**
+.local
+.agents
+attached_assets
+pnpm-lock.yaml
+# Keep copied UI primitives and the platform-managed canvas scaffold in their
+# upstream style. They are still linted and TypeScript-checked.
+**/components/ui/**
+artifacts/mockup-sandbox
