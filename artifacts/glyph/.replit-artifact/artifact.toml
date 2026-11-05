@@ -15,9 +15,16 @@ localPort = 26253
 run = "pnpm --filter @workspace/glyph run dev"
 
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/glyph", "run", "build" ]
 serve = "static"
 publicDir = "artifacts/glyph/dist/public"
+
+[services.production.build]
+args = [ "pnpm", "--filter", "@workspace/glyph", "run", "build" ]
+
+[services.production.build.env]
+NODE_ENV = "production"
+PORT = "26253"
+BASE_PATH = "/"
 
 [[services.production.rewrites]]
 from = "/*"

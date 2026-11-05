@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "vitest run --config vitest.config.ts",
+    "test": "NODE_ENV=test vitest run --config vitest.config.ts",
     "predev": "node ../../extensions/build.mjs",
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
     "build": "pnpm --dir ../.. check && pnpm run build:artifact",
