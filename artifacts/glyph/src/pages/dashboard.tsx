@@ -219,7 +219,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <ul className="divide-y divide-border">
-              {msgs.data.items.map((m) => (
+              {msgs.data?.items.map((m) => (
                 <li key={m.id}>
                   <Link
                     href={`/emails/${m.id}`}
@@ -248,7 +248,11 @@ export default function Dashboard() {
                     </div>
                   </Link>
                 </li>
-              ))}
+              )) ?? (
+                <li className="px-4 py-3 text-xs text-muted-foreground">
+                  No message data was returned.
+                </li>
+              )}
             </ul>
           )}
         </section>

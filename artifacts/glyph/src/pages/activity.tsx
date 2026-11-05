@@ -14,6 +14,7 @@ import {
   getListActivityQueryKey,
 } from '@workspace/api-client-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { HistoryPagination } from '@/components/history-pagination';
 import {
   Caveat,
   ReadOnlyTag,
@@ -30,6 +31,7 @@ import {
   useSession,
 } from '@/lib/glyph';
 import { useToast } from '@/hooks/use-toast';
+import { HISTORY_PAGE_SIZE } from '@/lib/history-pagination';
 import { cn } from '@/lib/utils';
 
 const FILTERS = [
@@ -41,8 +43,6 @@ const FILTERS = [
   'human',
   'automated',
 ] as const;
-const MAX_HISTORY_OFFSET = 10_000;
-
 export default function ActivityPage() {
   const poll = usePoll();
   const { isSignedIn } = useSession();
@@ -51,7 +51,7 @@ export default function ActivityPage() {
   const [f, setF] = useState<(typeof FILTERS)[number]>('all');
   const [offset, setOffset] = useState(0);
   const params = {
-    limit: 50,
+    limit: HISTORY_PAGE_SIZE,
     offset,
     ...(f === 'all' ? {} : { type: f }),
   };
@@ -158,7 +158,9 @@ export default function ActivityPage() {
         ) : !rows.length ? (
           <EmptyState
             title={
-              q.data?.pagination.total ? 'No signals on this page' : 'No signals yet'
+              q.data?.pagination.total
+                ? 'No signals on this page'
+                : 'No signals yet'
             }
             body={
               q.data?.pagination.total
@@ -264,41 +266,17 @@ export default function ActivityPage() {
         )}
       </div>
       {q.data?.pagination && (
-        <div className="flex items-center justify-between gap-2 border border-border bg-card px-4 py-3 text-xs">
-          <span className="font-mono text-muted-foreground">
-            {q.data.pagination.total === 0
-              ? '0 signals'
-              : `${offset + 1}–${Math.min(offset + data.length, q.data.pagination.total)} of ${q.data.pagination.total}`}
-          </span>
-          <div className="flex gap-1">
-            <button
-              type="button"
-              data-testid="button-previous-activity"
-              disabled={offset === 0}
-              onClick={() => setOffset((current) => Math.max(0, current - 50))}
-              className="rounded-sm border border-border px-2 py-1 disabled:opacity-40"
-            >
-              Newer
-            </button>
-            <button
-              type="button"
-              data-testid="button-next-activity"
-              disabled={
-                !q.data.pagination.hasMore || offset >= MAX_HISTORY_OFFSET
-              }
-              onClick={() => setOffset((current) => current + 50)}
-              className="rounded-sm border border-border px-2 py-1 disabled:opacity-40"
-            >
-              Older
-            </button>
-          </div>
-          {q.data.pagination.hasMore && offset >= MAX_HISTORY_OFFSET && (
-            <p className="basis-full text-[11px] text-muted-foreground">
-              Older signals remain stored; browsing stops at the 10,000 offset
-              limit. All-time totals remain complete.
-            </p>
-          )}
-        </div>
+        <HistoryPagination
+          scope="activity"
+          unit="signals"
+          offset={offset}
+          total={q.data.pagination.total}
+          itemCount={data.length}
+          hasMore={q.data.pagination.hasMore}
+          onOffsetChange={setOffset}
+          capMessage="Older signals remain stored; browsing stops at the 10,000 offset limit. All-time totals remain complete."
+          className="flex-wrap border bg-card px-4 py-3"
+        />
       )}
     </div>
   );

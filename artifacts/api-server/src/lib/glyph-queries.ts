@@ -11,11 +11,7 @@ import {
   sql,
   type SQL,
 } from 'drizzle-orm';
-import {
-  db,
-  glyphEvents,
-  glyphMessages,
-} from '@workspace/db';
+import { db, glyphEvents, glyphMessages } from '@workspace/db';
 import { publicEvent, publicMessage } from './message-presentation';
 import type { MessageSignalSummary } from './message-presentation';
 
@@ -27,7 +23,12 @@ const EMPTY_SIGNALS: MessageSignalSummary = {
   lastActivityAt: null,
 };
 
-function pagination(limit: number, offset: number, total: number, count: number) {
+function pagination(
+  limit: number,
+  offset: number,
+  total: number,
+  count: number,
+) {
   return { limit, offset, total, hasMore: offset + count < total };
 }
 
@@ -61,7 +62,10 @@ function messageConditions(
     else if (status === 'clicked') conditions.push(signalExists('click'));
     else if (status === 'unopened')
       conditions.push(
-        and(eq(glyphMessages.status, 'sent'), sql`not ${signalExists('open')}`)!,
+        and(
+          eq(glyphMessages.status, 'sent'),
+          sql`not ${signalExists('open')}`,
+        )!,
       );
     else conditions.push(eq(glyphMessages.status, status));
   }
@@ -202,9 +206,7 @@ export async function getOwnerOverview(ownerId: string) {
     totalOpens: summary.totalOpens,
     totalClicks: summary.totalClicks,
     openRate: summary.trackedSentForOpens
-      ? Math.round(
-          (summary.messagesOpened / summary.trackedSentForOpens) * 100,
-        )
+      ? Math.round((summary.messagesOpened / summary.trackedSentForOpens) * 100)
       : 0,
     clickRate: summary.trackedSentForClicks
       ? Math.round(
@@ -258,10 +260,7 @@ export async function listMessageEvents(
     .select()
     .from(glyphMessages)
     .where(
-      and(
-        eq(glyphMessages.id, messageId),
-        eq(glyphMessages.ownerId, ownerId),
-      ),
+      and(eq(glyphMessages.id, messageId), eq(glyphMessages.ownerId, ownerId)),
     );
   if (!message) return null;
 
@@ -314,4 +313,3 @@ export async function messageLinkClickCounts(messageId: string) {
     .groupBy(glyphEvents.url);
   return new Map(rows.map((row) => [row.url, row.clicks]));
 }
-

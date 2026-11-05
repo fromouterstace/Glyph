@@ -79,8 +79,7 @@ paths:
         - {
             name: offset,
             in: query,
-            schema:
-              { type: integer, minimum: 0, maximum: 10000, default: 0 },
+            schema: { type: integer, minimum: 0, maximum: 10000, default: 0 },
           }
       responses:
         '200':
@@ -115,24 +114,6 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/MessageDetail' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-  /glyph/messages/{id}/events/{offset}:
-    parameters:
-      - { name: id, in: path, required: true, schema: { type: string } }
-      - {
-          name: offset,
-          in: path,
-          required: true,
-          schema: { type: integer, minimum: 0, maximum: 10000 },
-        }
-    get:
-      operationId: listMessageEvents
-      responses:
-        '200':
-          description: Bounded signal-history page for an owned message
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ActivityPage' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
     patch:
       operationId: updateMessage
       requestBody:
@@ -151,6 +132,24 @@ paths:
       operationId: deleteMessage
       responses:
         '204': { description: Draft deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /glyph/messages/{id}/events/{offset}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+      - {
+          name: offset,
+          in: path,
+          required: true,
+          schema: { type: integer, minimum: 0, maximum: 10000 },
+        }
+    get:
+      operationId: listMessageEvents
+      responses:
+        '200':
+          description: Bounded signal-history page for an owned message
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActivityPage' }
         '401': { $ref: '#/components/responses/Unauthorized' }
   /glyph/messages/{id}/send:
     parameters:
@@ -176,8 +175,7 @@ paths:
         - {
             name: offset,
             in: query,
-            schema:
-              { type: integer, minimum: 0, maximum: 10000, default: 0 },
+            schema: { type: integer, minimum: 0, maximum: 10000, default: 0 },
           }
         - {
             name: type,

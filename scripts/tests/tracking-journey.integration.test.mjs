@@ -338,10 +338,9 @@ test.each([
         ).status,
       ).toBe(404);
       const eventPage = await (
-        await h.request(
-          `/messages/${f.compose.data.messageId}/events/0`,
-          { user: f.owner },
-        )
+        await h.request(`/messages/${f.compose.data.messageId}/events/0`, {
+          user: f.owner,
+        })
       ).json();
       expect(eventPage.items.map((event) => event.type).sort()).toEqual([
         'click',

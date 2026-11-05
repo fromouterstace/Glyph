@@ -1,17 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useParams } from 'wouter';
-import { Search, PenLine, Send, Trash2, Pencil, Link2 } from 'lucide-react';
-import { MessageSummary, SignalTrail } from '@/components/message-summary';
-import { MessageEngagement } from '@/components/engagement';
+import { useLocation, useParams } from 'wouter';
+import { Link2, PenLine } from 'lucide-react';
+import { MessageSummary } from '@/components/message-summary';
 import {
   useListMessages,
   useGetMessage,
-  useListMessageEvents,
   useDeleteMessage,
   useSendMessage,
   getListMessagesQueryKey,
   getGetMessageQueryKey,
-  getListMessageEventsQueryKey,
   type Message,
 } from '@workspace/api-client-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,39 +23,25 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  Avatar,
-  Caveat,
   ReadOnlyTag,
-  EmptyState,
   ErrorState,
   SectionHead,
   SignInNudge,
-  StatusPill,
 } from '@/components/bits';
 import { ComposeDialog } from '@/components/compose-dialog';
-import { GMAIL_URL, SyncGmailButton } from '@/components/gmail-sync';
+import { SyncGmailButton } from '@/components/gmail-sync';
 import {
-  ago,
-  errorText,
-  usePoll,
-  useInvalidateAll,
-  useSession,
-} from '@/lib/glyph';
+  EmailListPanel,
+  type MessageStatus,
+} from '@/components/email-list-panel';
+import { MessageWorkflowActions } from '@/components/message-workflow-actions';
+import { SignalHistory } from '@/components/signal-history';
+import { errorText, usePoll, useInvalidateAll, useSession } from '@/lib/glyph';
+import { HISTORY_PAGE_SIZE } from '@/lib/history-pagination';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-const STATUSES = [
-  'all',
-  'draft',
-  'sent',
-  'sending',
-  'uncertain',
-  'failed',
-] as const;
-const PAGE_SIZE = 50;
-const MAX_HISTORY_OFFSET = 10_000;
-
-function messageFilters(search: string, status: (typeof STATUSES)[number]) {
+function messageFilters(search: string, status: MessageStatus) {
   return {
     ...(search ? { search } : {}),
     ...(status !== 'all' ? { status } : {}),
@@ -72,17 +55,16 @@ export default function Emails() {
   const poll = usePoll();
   const [q, setQ] = useState('');
   const [debounced, setDebounced] = useState('');
-  const [status, setStatus] = useState<(typeof STATUSES)[number]>('all');
+  const [status, setStatus] = useState<MessageStatus>('all');
   const [offset, setOffset] = useState(0);
   const [compose, setCompose] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setDebounced(q.trim()), 250);
     return () => clearTimeout(t);
   }, [q]);
-  useEffect(() => setOffset(0), [debounced, status]);
   const p = {
     ...messageFilters(debounced, status),
-    limit: PAGE_SIZE,
+    limit: HISTORY_PAGE_SIZE,
     offset,
   };
   const list = useListMessages(p, {
@@ -117,166 +99,25 @@ export default function Emails() {
       {!isSignedIn && <SignInNudge what="compose and send" />}
 
       <div className="grid gap-0 border border-border bg-card lg:grid-cols-[minmax(0,420px)_1fr]">
-        <div
-          className={cn(
-            'border-border lg:border-r',
-            selected && 'hidden lg:block',
-          )}
-        >
-          <div className="space-y-3 border-b border-border p-3">
-            <label className="flex items-center gap-2 rounded-sm border border-input bg-background px-3 focus-within:border-primary">
-              <Search className="size-4 text-muted-foreground" />
-              <input
-                data-testid="input-search"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search recipient or subject"
-                className="h-9 w-full bg-transparent text-sm outline-none"
-              />
-            </label>
-            <div className="flex flex-wrap gap-1">
-              {STATUSES.map((s) => (
-                <button
-                  key={s}
-                  data-testid={`filter-${s}`}
-                  onClick={() => setStatus(s)}
-                  className={cn(
-                    'rounded-sm px-2 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors',
-                    status === s
-                      ? 'bg-foreground text-background'
-                      : 'text-muted-foreground hover:bg-muted',
-                  )}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-          {list.isLoading ? (
-            <div className="space-y-2 p-3">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-14" />
-              ))}
-            </div>
-          ) : list.isError ? (
-            <div className="p-3">
-              <ErrorState
-                error={errorText(list.error)}
-                onRetry={() => list.refetch()}
-              />
-            </div>
-          ) : !list.data?.items.length ? (
-            <EmptyState
-              title={
-                debounced || status !== 'all'
-                  ? 'No matches'
-                  : 'No tracked emails'
-              }
-              body={
-                debounced || status !== 'all'
-                  ? 'Try a different search or filter.'
-                  : 'Messages you glyph inside Gmail appear here. The web composer above is a secondary option.'
-              }
-              action={
-                isSignedIn && !debounced && status === 'all' ? (
-                  <button
-                    onClick={() => setCompose(true)}
-                    data-testid="button-compose-empty"
-                    className="rounded-sm bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
-                  >
-                    Compose
-                  </button>
-                ) : undefined
-              }
-            />
-          ) : (
-            <ul className="max-h-[70dvh] divide-y divide-border overflow-y-auto">
-              {list.data.items.map((m) => (
-                <li key={m.id}>
-                  <Link
-                    href={`/emails/${m.id}`}
-                    data-testid={`row-email-${m.id}`}
-                    className={cn(
-                      'flex gap-3 px-3 py-3 transition-colors hover:bg-muted/50',
-                      selected === m.id &&
-                        'bg-muted shadow-[inset_2px_0_0_hsl(var(--primary))]',
-                    )}
-                  >
-                    <Avatar name={m.recipientName} email={m.recipientEmail} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-medium">
-                          {m.recipientName || m.recipientEmail}
-                        </span>
-                        {m.deliverySource === 'gmail' && (
-                          <span className="rounded-sm bg-secondary px-1 font-mono text-[9px] uppercase text-muted-foreground">
-                            gmail
-                          </span>
-                        )}
-                        <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground">
-                          {ago(m.sentAt ?? m.createdAt)}
-                        </span>
-                      </div>
-                      <div className="truncate text-xs text-foreground/80">
-                        {m.subject}
-                      </div>
-                      <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
-                        {(m.deliverySource !== 'gmail' ||
-                          m.status === 'sent') &&
-                          m.status !== 'sent' && (
-                            <StatusPill status={m.status} />
-                          )}
-                        {m.status !== 'draft' ||
-                        m.deliverySource === 'gmail' ? (
-                          <MessageEngagement m={m} compact />
-                        ) : null}
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-          {list.data?.pagination && (
-            <div className="flex items-center justify-between gap-2 border-t border-border px-3 py-2 text-xs">
-              <span className="font-mono text-muted-foreground">
-                {list.data.pagination.total === 0
-                  ? '0 messages'
-                  : `${offset + 1}–${Math.min(offset + list.data.items.length, list.data.pagination.total)} of ${list.data.pagination.total}`}
-              </span>
-              <div className="flex gap-1">
-                <button
-                  type="button"
-                  data-testid="button-previous-messages"
-                  disabled={offset === 0}
-                  onClick={() => setOffset((current) => Math.max(0, current - PAGE_SIZE))}
-                  className="rounded-sm border border-border px-2 py-1 disabled:opacity-40"
-                >
-                  Newer
-                </button>
-                <button
-                  type="button"
-                  data-testid="button-next-messages"
-                  disabled={
-                    !list.data.pagination.hasMore ||
-                    offset >= MAX_HISTORY_OFFSET
-                  }
-                  onClick={() => setOffset((current) => current + PAGE_SIZE)}
-                  className="rounded-sm border border-border px-2 py-1 disabled:opacity-40"
-                >
-                  Older
-                </button>
-              </div>
-            </div>
-          )}
-          {list.data?.pagination.hasMore &&
-            offset >= MAX_HISTORY_OFFSET && (
-              <p className="border-t border-border px-3 py-2 text-[11px] text-muted-foreground">
-                Older records remain stored; browsing stops at the 10,000
-                offset limit. All-time totals remain complete.
-              </p>
-            )}
-        </div>
+        <EmailListPanel
+          list={list}
+          search={q}
+          onSearchChange={(value) => {
+            setQ(value);
+            setOffset(0);
+          }}
+          status={status}
+          onStatusChange={(value) => {
+            setStatus(value);
+            setOffset(0);
+          }}
+          selected={selected}
+          isSignedIn={isSignedIn}
+          offset={offset}
+          onOffsetChange={setOffset}
+          hasActiveFilters={Boolean(debounced) || status !== 'all'}
+          onCompose={() => setCompose(true)}
+        />
         <div className={cn(!selected && 'hidden lg:block')}>
           {selected ? (
             <Detail key={selected} id={selected} />
@@ -298,15 +139,8 @@ function Detail({ id }: { id: string }) {
   const { isSignedIn } = useSession();
   const { toast } = useToast();
   const invalidate = useInvalidateAll();
-  const [eventOffset, setEventOffset] = useState(0);
   const q = useGetMessage(id, {
     query: { refetchInterval: poll, queryKey: getGetMessageQueryKey(id) },
-  });
-  const eventPage = useListMessageEvents(id, eventOffset, {
-    query: {
-      refetchInterval: poll,
-      queryKey: getListMessageEventsQueryKey(id, eventOffset),
-    },
   });
   const del = useDeleteMessage();
   const send = useSendMessage();
@@ -330,8 +164,7 @@ function Detail({ id }: { id: string }) {
     );
   const { message: m, links } = q.data;
   const canMutate = isSignedIn;
-  const native = m.deliverySource === 'gmail';
-  const awaiting = native && m.status !== 'sent';
+  const awaiting = m.deliverySource === 'gmail' && m.status !== 'sent';
 
   const doDelete = () =>
     del.mutate(
@@ -352,113 +185,44 @@ function Detail({ id }: { id: string }) {
       },
     );
   const doSend = () =>
-    native
-      ? undefined
-      : send.mutate(
-          { id },
-          {
-            onSuccess: (r: Message) => {
-              invalidate();
-              toast({
-                title:
-                  r.status === 'sent'
-                    ? 'Sent through Gmail'
-                    : `Status: ${r.status}`,
-                description: `${r.recipientEmail} · ${r.subject}`,
-              });
-            },
-            onError: (e) => {
-              invalidate();
-              toast({
-                title: 'Send failed',
-                description: errorText(e),
-                variant: 'destructive',
-              });
-            },
-            onSettled: () => setConfirmSend(false),
-          },
-        );
+    send.mutate(
+      { id },
+      {
+        onSuccess: (r: Message) => {
+          invalidate();
+          toast({
+            title:
+              r.status === 'sent'
+                ? 'Sent through Gmail'
+                : `Status: ${r.status}`,
+            description: `${r.recipientEmail} · ${r.subject}`,
+          });
+        },
+        onError: (e) => {
+          invalidate();
+          toast({
+            title: 'Send failed',
+            description: errorText(e),
+            variant: 'destructive',
+          });
+        },
+        onSettled: () => setConfirmSend(false),
+      },
+    );
 
   return (
     <div className="rise">
       <div className="border-b border-border p-5 md:p-6">
         <MessageSummary m={m} awaiting={awaiting} />
-        {awaiting && (
-          <div className="mt-4 space-y-3">
-            <Caveat>
-              Drafted in Gmail with Add glyph. It counts as sent only after
-              Glyph finds its marker in your Gmail Sent folder. Send it from
-              Gmail, then sync.
-            </Caveat>
-            <div className="flex flex-wrap gap-2">
-              <SyncGmailButton disabled={!canMutate} />
-              <a
-                href={GMAIL_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center rounded-sm border border-border px-3 py-1.5 text-sm hover:border-foreground/40"
-              >
-                Open Gmail
-              </a>
-            </div>
-          </div>
-        )}
-        {!native && ['draft', 'failed'].includes(m.status) && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              data-testid="button-edit-draft"
-              disabled={!canMutate}
-              onClick={() => setEdit(true)}
-              className="inline-flex items-center gap-1.5 rounded-sm border border-border px-3 py-1.5 text-sm hover:border-foreground/40 disabled:opacity-40"
-            >
-              <Pencil className="size-3.5" /> Edit
-            </button>
-            <button
-              data-testid="button-send-draft"
-              disabled={!canMutate || m.status === 'failed'}
-              onClick={() => setConfirmSend(true)}
-              className="inline-flex items-center gap-1.5 rounded-sm bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
-            >
-              <Send className="size-3.5" /> Send
-            </button>
-            <button
-              data-testid="button-delete-draft"
-              disabled={!canMutate}
-              onClick={() => setConfirmDel(true)}
-              className="ml-auto inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-40"
-            >
-              <Trash2 className="size-3.5" /> Delete
-            </button>
-          </div>
-        )}
-        {!native && !canMutate && m.status === 'draft' && (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Sample drafts are read-only. Sign in with the Gmail owner account to
-            edit or send.
-          </p>
-        )}
-        {!native && m.status === 'failed' && (
-          <p className="mt-2 text-xs text-destructive">
-            Gmail rejected the send. Edit and save this draft before trying
-            again.
-          </p>
-        )}
-        {!native && ['uncertain', 'sending'].includes(m.status) && (
-          <div className="mt-4 space-y-3">
-            <Caveat>
-              Gmail has not confirmed this send. Check your Sent folder before
-              creating another email to avoid a duplicate.
-            </Caveat>
-            <button
-              type="button"
-              disabled={!canMutate || send.isPending}
-              onClick={doSend}
-              className="rounded-sm border border-border px-3 py-1.5 text-sm disabled:opacity-40"
-            >
-              Check Gmail send status
-            </button>
-          </div>
-        )}
+        <MessageWorkflowActions
+          message={m}
+          canMutate={canMutate}
+          sendPending={send.isPending}
+          onEdit={() => setEdit(true)}
+          onDelete={() => setConfirmDel(true)}
+          onConfirmSend={() => setConfirmSend(true)}
+          onCheckSend={doSend}
+        />
       </div>
 
       <div className="grid xl:grid-cols-[1fr_300px]">
@@ -496,59 +260,7 @@ function Detail({ id }: { id: string }) {
           )}
         </div>
         <div>
-          {eventPage.isError ? (
-            <div className="p-5">
-              <ErrorState
-                error={errorText(eventPage.error)}
-                onRetry={() => eventPage.refetch()}
-              />
-            </div>
-          ) : (
-            <SignalTrail events={eventPage.data?.items ?? []} message={m} />
-          )}
-          {eventPage.data?.pagination && (
-            <div className="flex items-center justify-between gap-2 border-t border-border px-5 py-3 text-xs">
-              <span className="font-mono text-muted-foreground">
-                {eventPage.data.pagination.total === 0
-                  ? '0 signals'
-                  : `${eventOffset + 1}–${Math.min(eventOffset + eventPage.data.items.length, eventPage.data.pagination.total)} of ${eventPage.data.pagination.total}`}
-              </span>
-              <div className="flex gap-1">
-                <button
-                  type="button"
-                  data-testid="button-previous-signals"
-                  disabled={eventOffset === 0}
-                  onClick={() =>
-                    setEventOffset((current) =>
-                      Math.max(0, current - PAGE_SIZE),
-                    )
-                  }
-                  className="rounded-sm border border-border px-2 py-1 disabled:opacity-40"
-                >
-                  Newer
-                </button>
-                <button
-                  type="button"
-                  data-testid="button-next-signals"
-                  disabled={
-                    !eventPage.data.pagination.hasMore ||
-                    eventOffset >= MAX_HISTORY_OFFSET
-                  }
-                  onClick={() => setEventOffset((current) => current + PAGE_SIZE)}
-                  className="rounded-sm border border-border px-2 py-1 disabled:opacity-40"
-                >
-                  Older
-                </button>
-              </div>
-            </div>
-          )}
-          {eventPage.data?.pagination.hasMore &&
-            eventOffset >= MAX_HISTORY_OFFSET && (
-              <p className="border-t border-border px-5 py-2 text-[11px] text-muted-foreground">
-                Older signals remain stored; browsing stops at the 10,000
-                offset limit. Message totals remain complete.
-              </p>
-            )}
+          <SignalHistory id={id} message={m} />
         </div>
       </div>
 

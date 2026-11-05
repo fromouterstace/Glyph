@@ -595,6 +595,157 @@ export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TE
 
 
 
+export const getUpdateMessageUrl = (id: string,) => {
+
+
+
+
+  return `/api/glyph/messages/${id}`
+}
+
+export const updateMessage = async (id: string,
+    messageInput: MessageInput, options?: Parameters<typeof customFetch>[1]): Promise<Message> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<Message>(getUpdateMessageUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(messageInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateMessageMutationKey = () => ['updateMessage'] as const;
+
+export const getUpdateMessageMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMessage>>, TError,UpdateMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMessage>>, TError,UpdateMessageMutationVariables, TContext> => {
+
+const mutationKey = getUpdateMessageMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMessage>>, UpdateMessageMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateMessage(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMessageMutationResult = NonNullable<Awaited<ReturnType<typeof updateMessage>>>
+    export type UpdateMessageMutationBody = BodyType<MessageInput>
+    export type UpdateMessageMutationError = ErrorType<UnauthorizedResponse>
+    export type UpdateMessageMutationVariables = {id: string;data: BodyType<MessageInput>}
+
+    export const useUpdateMessage = <TError = ErrorType<UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMessage>>, TError,UpdateMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateMessage>>,
+        TError,
+        UpdateMessageMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateMessageMutationOptions(options), queryClient);
+    }
+
+export const getDeleteMessageUrl = (id: string,) => {
+
+
+
+
+  return `/api/glyph/messages/${id}`
+}
+
+export const deleteMessage = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteMessageUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteMessageMutationKey = () => ['deleteMessage'] as const;
+
+export const getDeleteMessageMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMessage>>, TError,DeleteMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteMessage>>, TError,DeleteMessageMutationVariables, TContext> => {
+
+const mutationKey = getDeleteMessageMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteMessage>>, DeleteMessageMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteMessage(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteMessageMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMessage>>>
+
+    export type DeleteMessageMutationError = ErrorType<UnauthorizedResponse>
+    export type DeleteMessageMutationVariables = {id: string}
+
+    export const useDeleteMessage = <TError = ErrorType<UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMessage>>, TError,DeleteMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteMessage>>,
+        TError,
+        DeleteMessageMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteMessageMutationOptions(options), queryClient);
+    }
+
 export const getListMessageEventsUrl = (id: string,
     offset: number,) => {
 
@@ -697,161 +848,6 @@ export function useListMessageEvents<TData = Awaited<ReturnType<typeof listMessa
 
 
 
-
-export const getUpdateMessageUrl = (id: string,
-    offset: number,) => {
-
-
-
-
-  return `/api/glyph/messages/${id}/events/${offset}`
-}
-
-export const updateMessage = async (id: string,
-    offset: number,
-    messageInput: MessageInput, options?: Parameters<typeof customFetch>[1]): Promise<Message> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return customFetch<Message>(getUpdateMessageUrl(id,offset),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(messageInput)
-  }
-);}
-
-
-
-
-
-export const getUpdateMessageMutationKey = () => ['updateMessage'] as const;
-
-export const getUpdateMessageMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMessage>>, TError,UpdateMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateMessage>>, TError,UpdateMessageMutationVariables, TContext> => {
-
-const mutationKey = getUpdateMessageMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMessage>>, UpdateMessageMutationVariables> = (props) => {
-          const {id,offset,data} = props ?? {};
-
-          return  updateMessage(id,offset,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type UpdateMessageMutationResult = NonNullable<Awaited<ReturnType<typeof updateMessage>>>
-    export type UpdateMessageMutationBody = BodyType<MessageInput>
-    export type UpdateMessageMutationError = ErrorType<UnauthorizedResponse>
-    export type UpdateMessageMutationVariables = {id: string;offset: number;data: BodyType<MessageInput>}
-
-    export const useUpdateMessage = <TError = ErrorType<UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMessage>>, TError,UpdateMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof updateMessage>>,
-        TError,
-        UpdateMessageMutationVariables,
-        TContext
-      > => {
-      return useMutation(getUpdateMessageMutationOptions(options), queryClient);
-    }
-
-export const getDeleteMessageUrl = (id: string,
-    offset: number,) => {
-
-
-
-
-  return `/api/glyph/messages/${id}/events/${offset}`
-}
-
-export const deleteMessage = async (id: string,
-    offset: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
-
-  return customFetch<void>(getDeleteMessageUrl(id,offset),
-  {
-    ...options,
-    method: 'DELETE'
-
-
-  }
-);}
-
-
-
-
-
-export const getDeleteMessageMutationKey = () => ['deleteMessage'] as const;
-
-export const getDeleteMessageMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMessage>>, TError,DeleteMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteMessage>>, TError,DeleteMessageMutationVariables, TContext> => {
-
-const mutationKey = getDeleteMessageMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteMessage>>, DeleteMessageMutationVariables> = (props) => {
-          const {id,offset} = props ?? {};
-
-          return  deleteMessage(id,offset,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type DeleteMessageMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMessage>>>
-
-    export type DeleteMessageMutationError = ErrorType<UnauthorizedResponse>
-    export type DeleteMessageMutationVariables = {id: string;offset: number}
-
-    export const useDeleteMessage = <TError = ErrorType<UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMessage>>, TError,DeleteMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof deleteMessage>>,
-        TError,
-        DeleteMessageMutationVariables,
-        TContext
-      > => {
-      return useMutation(getDeleteMessageMutationOptions(options), queryClient);
-    }
 
 export const getSendMessageUrl = (id: string,) => {
 

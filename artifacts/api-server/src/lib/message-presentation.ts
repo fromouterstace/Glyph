@@ -10,7 +10,9 @@ export type MessageSignalSummary = {
 
 function isoTimestamp(value: Date | string | null) {
   if (value === null) return null;
-  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+  return value instanceof Date
+    ? value.toISOString()
+    : new Date(value).toISOString();
 }
 
 export function publicMessage(

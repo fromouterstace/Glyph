@@ -98,10 +98,7 @@ test('message pagination is bounded, stable, filtered, and owner-scoped', async 
   const body = await response.text();
   expect(response.status, body).toBe(200);
   const page = JSON.parse(body);
-  expect(page.items.map((row) => row.id)).toEqual([
-    own[3].id,
-    own[2].id,
-  ]);
+  expect(page.items.map((row) => row.id)).toEqual([own[3].id, own[2].id]);
   expect(page.pagination).toEqual({
     limit: 2,
     offset: 1,
@@ -148,10 +145,9 @@ test('a foreign message detail cannot expose its body, links or events', async (
   });
   expect(response.status).toBe(404);
   expect(await response.json()).toEqual({ error: 'Email not found' });
-  const eventResponse = await h.request(
-    `/messages/${f.foreign.id}/events/0`,
-    { user: f.owner },
-  );
+  const eventResponse = await h.request(`/messages/${f.foreign.id}/events/0`, {
+    user: f.owner,
+  });
   expect(eventResponse.status).toBe(404);
 });
 
@@ -273,33 +269,16 @@ for (const method of ['PATCH', 'DELETE', 'POST']) {
 
 test('activity does not expose another owner’s signals', async () => {
   const f = await twoOwners();
-  const page = await (
-    await h.request('/activity', { user: f.owner })
-  ).json();
+  const page = await (await h.request('/activity', { user: f.owner })).json();
   expect(page.items).toEqual([]);
   expect(page.pagination.total).toBe(0);
 });
 
 test('activity pagination and filters remain owner-scoped and ordered', async () => {
   const f = await twoOwners();
-  await addEvent(
-    h.sql,
-    f.own,
-    'open',
-    new Date(Date.UTC(2026, 0, 1, 0, 1)),
-  );
-  await addEvent(
-    h.sql,
-    f.own,
-    'open',
-    new Date(Date.UTC(2026, 0, 1, 0, 2)),
-  );
-  await addEvent(
-    h.sql,
-    f.own,
-    'click',
-    new Date(Date.UTC(2026, 0, 1, 0, 3)),
-  );
+  await addEvent(h.sql, f.own, 'open', new Date(Date.UTC(2026, 0, 1, 0, 1)));
+  await addEvent(h.sql, f.own, 'open', new Date(Date.UTC(2026, 0, 1, 0, 2)));
+  await addEvent(h.sql, f.own, 'click', new Date(Date.UTC(2026, 0, 1, 0, 3)));
   const page = await (
     await h.request('/activity?limit=1&offset=1&type=open', {
       user: f.owner,
