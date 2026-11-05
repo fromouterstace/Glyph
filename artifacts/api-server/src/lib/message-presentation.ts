@@ -5,8 +5,13 @@ export type MessageSignalSummary = {
   opens: number;
   clicks: number;
   replies: number;
-  lastActivityAt: Date | null;
+  lastActivityAt: Date | string | null;
 };
+
+function isoTimestamp(value: Date | string | null) {
+  if (value === null) return null;
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
 
 export function publicMessage(
   message: GlyphMessage,
@@ -56,7 +61,7 @@ export function publicMessage(
     opens: summary.opens,
     clicks: summary.clicks,
     replies: summary.replies,
-    lastActivityAt: summary.lastActivityAt?.toISOString() ?? null,
+    lastActivityAt: isoTimestamp(summary.lastActivityAt),
     deliverySource: message.deliverySource as 'web' | 'gmail',
   };
 }

@@ -76,7 +76,7 @@ async function messageSignalSummaries(messageIds: string[]) {
       opens: sql<number>`count(*) filter (where ${glyphEvents.type} = 'open' and ${glyphEvents.automated} = false)::int`,
       clicks: sql<number>`count(*) filter (where ${glyphEvents.type} = 'click' and ${glyphEvents.automated} = false)::int`,
       replies: sql<number>`count(*) filter (where ${glyphEvents.type} = 'reply' and ${glyphEvents.automated} = false)::int`,
-      lastActivityAt: sql<Date | null>`max(${glyphEvents.occurredAt})`,
+      lastActivityAt: sql<Date | string | null>`max(${glyphEvents.occurredAt})`,
     })
     .from(glyphEvents)
     .where(inArray(glyphEvents.messageId, messageIds))
@@ -289,7 +289,7 @@ export async function messageSignalSummary(messageId: string) {
       opens: sql<number>`count(*) filter (where ${glyphEvents.type} = 'open' and ${glyphEvents.automated} = false)::int`,
       clicks: sql<number>`count(*) filter (where ${glyphEvents.type} = 'click' and ${glyphEvents.automated} = false)::int`,
       replies: sql<number>`count(*) filter (where ${glyphEvents.type} = 'reply' and ${glyphEvents.automated} = false)::int`,
-      lastActivityAt: sql<Date | null>`max(${glyphEvents.occurredAt})`,
+      lastActivityAt: sql<Date | string | null>`max(${glyphEvents.occurredAt})`,
     })
     .from(glyphEvents)
     .where(eq(glyphEvents.messageId, messageId));

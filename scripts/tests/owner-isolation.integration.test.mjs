@@ -125,11 +125,13 @@ test('message search and signal filters run before pagination', async () => {
     [unopened.id],
   );
   await addEvent(h.sql, opened, 'open', new Date(Date.UTC(2026, 0, 1)));
-  const page = await (
-    await h.request('/messages?search=Quarterly&status=opened&limit=1', {
-      user: owner,
-    })
-  ).json();
+  const response = await h.request(
+    '/messages?search=Quarterly&status=opened&limit=1',
+    { user: owner },
+  );
+  const body = await response.text();
+  expect(response.status, body).toBe(200);
+  const page = JSON.parse(body);
   expect(page.items.map((message) => message.id)).toEqual([opened.id]);
   expect(page.pagination.total).toBe(1);
   expect(page.pagination.hasMore).toBe(false);
