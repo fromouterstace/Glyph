@@ -143,7 +143,7 @@ export default function SettingsPage() {
             />
             <Toggle
               id="notify-clicks"
-              label="Alert on click signals"
+              label="Alert on tracked-link requests"
               desc="In-app toast when a tracked link is followed."
               checked={form.notifyClicks}
               disabled={locked}

@@ -179,7 +179,7 @@ async function poll() {
             ? 'Glyph: pixel-load signal'
             : event.type === 'reply'
               ? 'Glyph: reply received'
-              : 'Glyph: link clicked',
+              : 'Glyph: tracked link requested',
         message: `${event.recipientName || event.recipientEmail} · ${event.subject}`,
         contextMessage: 'Engagement signal, not a guaranteed read receipt.',
       });

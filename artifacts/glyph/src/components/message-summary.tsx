@@ -73,7 +73,7 @@ export function MessageSummary({
           ))}
         {shared && (
           <p className="mt-2 text-xs">
-            Shared message: pixel loads and clicks are aggregate signals, not
+            Shared message: pixel loads and link requests are aggregate signals, not
             proof of which recipient acted. Bcc addresses are shown only in your
             private dashboard.
           </p>
@@ -119,7 +119,7 @@ export function SignalTrail({
       ? 'Waiting for Gmail Sent confirmation.'
       : message.status === 'draft'
         ? 'Not sent yet.'
-        : 'Quiet so far. No pixel loads, clicks, or replies detected.';
+        : 'Quiet so far. No pixel loads, tracked-link requests, or replies detected.';
   return (
     <div className="p-5 md:p-6">
       <div className="mb-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">

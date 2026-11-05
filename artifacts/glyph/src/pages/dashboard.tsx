@@ -257,7 +257,7 @@ export default function Dashboard() {
         Replies are detected by standard Message-ID reference headers during
         Gmail sync, from any recipient mail service, within your 100 most recent
         received messages of the last 30 days. Pixel totals include measured
-        image requests only, never inferred reads from clicks or replies; 0 does
+        image requests only, never inferred reads from link requests or replies; 0 does
         not mean unread. Bounces aren't tracked.
       </Caveat>
     </div>

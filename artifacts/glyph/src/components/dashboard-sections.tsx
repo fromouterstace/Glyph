@@ -85,7 +85,7 @@ export function OverviewStats({ query }: { query: QueryView<Overview> }) {
             hint="of tracked sends"
           />
           <Stat
-            label="Click rate"
+            label="Tracked-link rate"
             value={pct(o.clickRate)}
             delay={160}
             hint={`${o.unreadCount} unread signals`}

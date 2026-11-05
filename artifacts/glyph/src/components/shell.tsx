@@ -51,7 +51,7 @@ function AlertWatcher() {
     };
     const labels = {
       open: 'Pixel-load signal',
-      click: 'Click signal',
+      click: 'Tracked-link signal',
       reply: 'Reply received',
       sent: 'Sent',
     };

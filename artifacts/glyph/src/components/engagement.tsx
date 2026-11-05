@@ -16,7 +16,7 @@ const META: Record<Kind, { icon: typeof Send; label: string; on: string }> = {
   },
   click: {
     icon: MousePointerClick,
-    label: 'Clicked',
+    label: 'Link requests',
     on: 'bg-primary/10 text-primary border-primary/30',
   },
   reply: {

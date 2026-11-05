@@ -110,7 +110,8 @@ export default function ActivityPage() {
         who fetched a pixel or requested a link. Image proxies (Gmail, Apple
         MPP) may load pixels without a human, and security scanners often
         request links seconds after delivery. Those are marked <em>auto</em>.
-        Pixel and click signals are not attributed to an individual recipient.
+        Pixel and link-request signals are not attributed to an individual
+        recipient.
         <strong>Replies</strong> are matched by standard In-Reply-To/References
         headers, so they work whatever mail service the recipient uses;
         auto-replies, bounces and your own follow-ups are skipped. Gmail sync
@@ -133,7 +134,13 @@ export default function ActivityPage() {
                 : 'text-muted-foreground hover:bg-muted',
             )}
           >
-            {x === 'human' ? 'unflagged' : x === 'open' ? 'pixel loads' : x}
+            {x === 'human'
+              ? 'unflagged'
+              : x === 'open'
+                ? 'pixel loads'
+                : x === 'click'
+                  ? 'link requests'
+                  : x}
           </button>
         ))}
       </div>
@@ -157,7 +164,7 @@ export default function ActivityPage() {
             body={
               data.length
                 ? 'Try another filter.'
-                : 'When a recipient loads your glyph or clicks a tracked link, it appears here within about ten seconds.'
+                : 'When Glyph receives an eligible pixel or tracked-link request, it appears here within about ten seconds.'
             }
           />
         ) : (
@@ -202,7 +209,7 @@ export default function ActivityPage() {
                             : a.type === 'open'
                               ? 'Pixel load'
                               : a.type === 'click'
-                                ? 'Click'
+                                ? 'Link request'
                                 : 'Sent'}
                         </span>
                         {a.automated && (
