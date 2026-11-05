@@ -1,6 +1,7 @@
 # Glyph security remediation roadmap
 
-**Status:** Proposed  
+**Status:** In progress; the sensitive-error logging workstream is implemented
+and locally verified in the workspace. It has not been published or deployed.
 **Basis:** Manual security audit dated 2026-11-05  
 **Audience assumption:** The person implementing the work and anyone reviewing
 security priorities.  
@@ -171,6 +172,12 @@ visibility or applying a blanket authentication rule.
 ### 1. Stop logging sensitive exception contents
 
 **Risk addressed:** SEC-02, reproduced with synthetic values.
+
+**Status:** Implemented in the workspace and verified on 2026-11-05. The API
+workflow restarted; 95 unit tests, 41 extension/source checks, 18 UI tests,
+6 gate controls, 18 PostgreSQL contracts, 38 service tests, 20 HTTP contracts,
+and the production build passed. Production deployment and historical log
+exposure have not been changed or reviewed.
 
 **Implementation**
 

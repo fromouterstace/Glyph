@@ -2,7 +2,7 @@ import express, { type Express } from 'express';
 import pinoHttp from 'pino-http';
 import router from './routes';
 import glyphTrackingRouter from './routes/glyph-tracking';
-import { logger } from './lib/logger';
+import { logger, logSafeError } from './lib/logger';
 import { GmailRateLimitError } from './lib/gmail-rate-limit';
 import { serializeRequestLog, serializeResponseLog } from './lib/request-log';
 import { clerkMiddleware } from '@clerk/express';
@@ -76,7 +76,7 @@ app.use(
         .json({ error: err.message });
       return;
     }
-    req.log.error({ err }, 'Request failed');
+    logSafeError(req.log, err, 'Request failed');
     if (!res.headersSent)
       res.status(500).json({
         error: 'The request could not be completed. Please try again.',

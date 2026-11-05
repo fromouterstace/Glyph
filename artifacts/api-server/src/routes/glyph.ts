@@ -43,6 +43,7 @@ import {
 } from '../lib/gmail';
 import { trackedEmailHtml } from '../lib/email-content';
 import { resolveTrackingOrigin } from '../lib/tracking-origin';
+import { logSafeError } from '../lib/logger';
 import { presentOwnerData } from '../lib/message-presentation';
 import {
   claimDraftForSend,
@@ -385,7 +386,7 @@ router.post('/glyph/messages/:id/send', async (req, res): Promise<void> => {
     });
     res.json(SendMessageResponse.parse(await responseMessage(id, ownerId)));
   } catch (err) {
-    req.log.error({ err }, 'Send response uncertain');
+    logSafeError(req.log, err, 'Send response uncertain');
     await db
       .update(glyphMessages)
       .set({ status: 'uncertain' })
@@ -475,7 +476,7 @@ router.get('/glyph/connection', async (req, res): Promise<void> => {
       }),
     );
   } catch (err) {
-    req.log.warn({ err }, 'Gmail connection check failed');
+    logSafeError(req.log, err, 'Gmail connection check failed', 'warn');
     res.json(
       GetConnectionResponse.parse({
         connected: false,

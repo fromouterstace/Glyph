@@ -1,7 +1,7 @@
 import { ReplitConnectors } from '@replit/connectors-sdk';
 import { clerkClient } from '@clerk/express';
 import { randomBytes } from 'node:crypto';
-import { logger } from './logger';
+import { logger, logSafeError } from './logger';
 import { createGmailReadGate } from './gmail-rate-limit';
 
 const connectors = new ReplitConnectors();
@@ -116,7 +116,7 @@ export async function safeMailboxOwnership(userId: string): Promise<boolean> {
   try {
     return await ownsMailbox(userId);
   } catch (err) {
-    logger.warn({ err }, 'Could not verify Gmail ownership');
+    logSafeError(logger, err, 'Could not verify Gmail ownership', 'warn');
     return false;
   }
 }

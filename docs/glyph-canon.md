@@ -91,7 +91,9 @@ product policy.
   the classification and event data needed for the signal. Keep request IDs for
   operational correlation, but do not log email addresses, body text, complete
   Gmail headers, pixel/link tokens, cookies, access tokens, or credential-bearing
-  URLs. Sanitize paths before logging them.
+  URLs. Sanitize paths before logging them. Never serialize raw exception
+  messages, stacks, SQL, parameters, provider responses, or nested causes; log
+  only fixed error classifications and safe operation context.
 - Browser-extension storage may hold its selected Glyph origin, non-secret
   preferences, poll cursor, and notification deduplication state. It must not hold
   Gmail passwords, OAuth/access tokens, Clerk session cookies, or API credentials.

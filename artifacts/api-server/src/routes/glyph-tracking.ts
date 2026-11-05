@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { db, glyphEvents, glyphLinks, glyphMessages } from '@workspace/db';
 import { syncNative } from '../lib/gmail-native';
 import { transparentGif } from '../lib/tracking-pixel';
+import { logSafeError } from '../lib/logger';
 
 const router = Router();
 
@@ -100,7 +101,7 @@ router.get('/glyph/t/:token', async (req, res): Promise<void> => {
         );
       }
     } catch (err) {
-      req.log.warn({ err }, 'Pixel signal could not be recorded');
+      logSafeError(req.log, err, 'Pixel signal could not be recorded', 'warn');
     }
   }
   res.send(transparentGif);
@@ -139,7 +140,7 @@ router.get('/glyph/l/:token', async (req, res): Promise<void> => {
         .where(eq(glyphMessages.id, row.message.id));
       if (current) row.message = current;
     } catch (err) {
-      req.log.warn({ err }, 'Native send verification deferred');
+      logSafeError(req.log, err, 'Native send verification deferred', 'warn');
     }
   }
   const canRecord = ['sent', 'sending', 'uncertain'].includes(
@@ -164,7 +165,7 @@ router.get('/glyph/l/:token', async (req, res): Promise<void> => {
         row.link.url,
       );
     } catch (err) {
-      req.log.warn({ err }, 'Click signal could not be recorded');
+      logSafeError(req.log, err, 'Click signal could not be recorded', 'warn');
     }
   }
   res.redirect(302, row.link.url);
