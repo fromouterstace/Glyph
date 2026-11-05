@@ -285,7 +285,7 @@ export default function GmailPage() {
           ],
           [
             'Notifications',
-            'The extension raises browser notifications for opens and clicks while the browser and the connection tab are running.',
+            'The extension raises browser notifications for pixel loads and tracked-link requests while the browser and the connection tab are running.',
           ],
           [
             'Where it works',

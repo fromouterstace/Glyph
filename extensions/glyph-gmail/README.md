@@ -35,7 +35,7 @@ One shared Gmail message contains one glyph and one set of tracked links. Its pi
 
 Sync inspects headers of the most recent 100 received messages in the past 30 days. It reports partial scans and errors explicitly. It does not download reply bodies or attachments or mark Gmail messages as read.
 
-Direct sender compose-image loads are ignored while pending. Image proxies can still prefetch/cache pixels, and a sender viewing a sent copy can cause an open signal. Very early image loads during confirmation may be missed. Link scanners and forwarded mail can distort click attribution. These are not guaranteed read receipts or proof of recipient identity.
+Direct sender compose-image loads are ignored while pending. Image proxies can still prefetch/cache pixels, and a sender viewing a sent copy can cause a pixel-load signal. Very early image loads during confirmation may be missed. Link scanners and forwarded mail can distort click attribution. These are not guaranteed read receipts or proof of recipient identity.
 
 Use the verified published Glyph origin for long-term tracking. A preview or custom origin is not trusted. The manifest requests Gmail access and separately grants only the fixed Glyph production origin. Supporting another origin requires a reviewed extension release that changes the trust policy, manifest permission, version and regression tests together.
 
