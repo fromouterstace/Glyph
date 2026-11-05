@@ -194,16 +194,8 @@ function sendFixedError(
   res.end(body);
 }
 
-export function clerkProxyMiddleware(): RequestHandler {
-  if (process.env.NODE_ENV !== 'production')
-    return (_req, _res, next) => next();
-
-  const secretKey = process.env.CLERK_SECRET_KEY;
-  if (!secretKey)
-    return (_req, res) =>
-      sendFixedError(res, 503, 'Authentication proxy is unavailable.');
-
-  const proxy = createProxyMiddleware({
+export function clerkProxyOptions(secretKey: string) {
+  return {
     target: CLERK_FAPI,
     changeOrigin: true,
     proxyTimeout: 10_000,
@@ -245,7 +237,21 @@ export function clerkProxyMiddleware(): RequestHandler {
         );
       },
     },
-  }) as RequestHandler;
+  };
+}
+
+export function clerkProxyMiddleware(): RequestHandler {
+  if (process.env.NODE_ENV !== 'production')
+    return (_req, _res, next) => next();
+
+  const secretKey = process.env.CLERK_SECRET_KEY;
+  if (!secretKey)
+    return (_req, res) =>
+      sendFixedError(res, 503, 'Authentication proxy is unavailable.');
+
+  const proxy = createProxyMiddleware(
+    clerkProxyOptions(secretKey),
+  ) as RequestHandler;
 
   return (req, res, next) => {
     if (!getTrustedRequestOrigin(req)) {
