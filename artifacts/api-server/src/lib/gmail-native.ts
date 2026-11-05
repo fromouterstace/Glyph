@@ -51,6 +51,8 @@ async function scanNative(ownerId: string) {
       await db.transaction(async (tx) => {
         const changed = await tx.update(glyphMessages).set({
           status: "sent", gmailId: candidate.id, sentAt,
+          ...(candidate.payload?.headers?.find((h) => h.name.toLowerCase() === "message-id")?.value
+            ? { rfcMessageId: candidate.payload.headers.find((h) => h.name.toLowerCase() === "message-id")!.value.trim() } : {}),
         }).where(and(eq(glyphMessages.id, message.id), eq(glyphMessages.status, "draft"))).returning();
         if (!changed.length) return;
         await tx.insert(glyphEvents).values({

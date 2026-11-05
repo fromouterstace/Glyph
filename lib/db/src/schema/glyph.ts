@@ -43,6 +43,7 @@ export const glyphSettings = pgTable("glyph_settings", {
   ownerId: text("owner_id").primaryKey(),
   notifyOpens: boolean("notify_opens").notNull().default(true),
   notifyClicks: boolean("notify_clicks").notNull().default(true),
+  notifyReplies: boolean("notify_replies").notNull().default(true),
   defaultTrackOpens: boolean("default_track_opens").notNull().default(true),
   defaultTrackClicks: boolean("default_track_clicks").notNull().default(true),
   trackingBaseUrl: text("tracking_base_url").notNull().default(""),

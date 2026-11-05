@@ -15,7 +15,15 @@ export function SyncGmailButton({ className, label = 'Sync Gmail status', disabl
     sync.mutate(undefined, {
       onSuccess: (r) => {
         invalidate();
-        toast({ title: r.confirmed ? `${r.confirmed} confirmed in Gmail Sent` : 'No new sends confirmed', description: `${r.pending} still awaiting Gmail send.` });
+        const sends = r.confirmed ? `${r.confirmed} confirmed in Gmail Sent` : 'No new sends confirmed';
+        const pending = `${r.pending} still awaiting Gmail send.`;
+        if (r.replyCheckError) {
+          toast({ title: `${sends}. Reply check failed`, description: `${pending} Replies could not be checked: ${r.replyCheckError}`, variant: 'destructive' });
+          return;
+        }
+        const replies = r.repliesDetected ? `${r.repliesDetected} new repl${r.repliesDetected === 1 ? 'y' : 'ies'} detected.` : 'No new replies detected.';
+        const partial = r.replyCheckPartial ? ' Partial check: only the 100 most recent received messages of the last 30 days were scanned; older replies may be missed.' : '';
+        toast({ title: sends, description: `${pending} ${replies}${partial}` });
       },
       onError: (e) => toast({ title: 'Sync failed', description: errorText(e), variant: 'destructive' }),
     });

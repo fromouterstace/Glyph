@@ -8,7 +8,7 @@ type GmailPart = {
 };
 export type SentCandidate = { id: string; internalDate?: string; payload?: GmailPart };
 
-function mailboxAddresses(header: string): string[] {
+export function mailboxAddresses(header: string): string[] {
   // A display name can itself look like an email address. Parse the mailbox
   // structure, not every address-shaped substring, and fail closed on groups
   // or malformed headers rather than weakening the one-recipient constraint.

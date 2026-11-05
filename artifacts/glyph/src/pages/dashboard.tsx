@@ -1,5 +1,6 @@
 import { Link } from 'wouter';
-import { ArrowUpRight, Download, MousePointerClick, Eye, Bot } from 'lucide-react';
+import { ArrowUpRight, Download, MousePointerClick, Eye, Bot, Reply, Send } from 'lucide-react';
+import { MessageEngagement } from '@/components/engagement';
 import {
   useGetOverview,
   useListActivity,
@@ -123,11 +124,11 @@ export default function Dashboard() {
                 {act.data.slice(0, 7).map((a) => (
                   <li key={a.id}>
                     <Link href={`/emails/${a.messageId}`} data-testid={`row-signal-${a.id}`} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/50">
-                      <span className={cn('flex size-7 items-center justify-center rounded-sm', a.type === 'click' ? 'bg-primary/10 text-primary' : a.type === 'open' ? 'bg-accent text-accent-foreground' : 'bg-secondary')}>
-                        {a.type === 'click' ? <MousePointerClick className="size-3.5" /> : a.type === 'open' ? <Eye className="size-3.5" /> : <ArrowUpRight className="size-3.5" />}
+                      <span className={cn('flex size-7 items-center justify-center rounded-sm', a.type === 'click' ? 'bg-primary/10 text-primary' : a.type === 'open' ? 'bg-[hsl(var(--chart-2)/0.12)] text-[hsl(var(--chart-2))]' : a.type === 'reply' ? 'bg-accent text-accent-foreground' : 'bg-secondary')}>
+                        {a.type === 'click' ? <MousePointerClick className="size-3.5" /> : a.type === 'open' ? <Eye className="size-3.5" /> : a.type === 'reply' ? <Reply className="size-3.5" /> : <Send className="size-3.5" />}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm"><span className="font-medium">{a.recipientName || a.recipientEmail}</span> <span className="text-muted-foreground">{a.type === 'sent' ? 'was sent' : a.type === 'open' ? 'loaded the glyph' : 'clicked a link'}</span></div>
+                        <div className="truncate text-sm"><span className="font-medium">{a.recipientName || a.recipientEmail}</span> <span className="text-muted-foreground">{a.type === 'sent' ? 'was sent' : a.type === 'open' ? 'loaded the glyph' : a.type === 'reply' ? 'replied' : a.type === 'click' ? 'clicked a link' : 'signal'}</span></div>
                         <div className="truncate text-xs text-muted-foreground">{a.subject}</div>
                       </div>
                       {a.automated && <Bot className="size-3.5 text-[hsl(32_70%_38%)]" aria-label="Likely automated" />}
@@ -153,12 +154,16 @@ export default function Dashboard() {
             <ul className="divide-y divide-border">
               {(msgs.data ?? []).slice(0, 5).map((m) => (
                 <li key={m.id}>
-                  <Link href={`/emails/${m.id}`} data-testid={`row-recent-${m.id}`} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-3 hover:bg-muted/50 md:grid-cols-[auto_1fr_auto_auto_auto]">
-                    <Avatar name={m.recipientName} email={m.recipientEmail} />
-                    <div className="min-w-0"><div className="truncate text-sm font-medium">{m.subject}</div><div className="truncate text-xs text-muted-foreground">{m.recipientName || m.recipientEmail}</div></div>
-                    <StatusPill status={m.status} />
-                    <span className="hidden font-mono text-xs tabular-nums text-muted-foreground md:block">{m.opens}o / {m.clicks}c</span>
-                    <span className="hidden font-mono text-[10px] text-muted-foreground md:block">{ago(m.lastActivityAt ?? m.sentAt ?? m.createdAt)}</span>
+                  <Link href={`/emails/${m.id}`} data-testid={`row-recent-${m.id}`} className="flex min-w-0 flex-col gap-2 px-4 py-3 hover:bg-muted/50 sm:px-5 lg:flex-row lg:items-center lg:gap-4">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <Avatar name={m.recipientName} email={m.recipientEmail} />
+                      <div className="min-w-0 flex-1"><div className="truncate text-sm font-medium">{m.subject}</div><div className="truncate text-xs text-muted-foreground">{m.recipientName || m.recipientEmail}</div></div>
+                      <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{ago(m.lastActivityAt ?? m.sentAt ?? m.createdAt)}</span>
+                    </div>
+                    <div className="flex min-w-0 flex-wrap items-center gap-2 pl-11 lg:pl-0">
+                      {m.deliverySource !== 'gmail' && m.status !== 'sent' && <StatusPill status={m.status} />}
+                      <MessageEngagement m={m} />
+                    </div>
                   </Link>
                 </li>
               ))}
@@ -168,7 +173,7 @@ export default function Dashboard() {
       )}
 
       <Caveat>
-        <strong>How to read these numbers.</strong> Apple Mail Privacy Protection and Gmail's image proxy can preload or cache the pixel, inflating or hiding opens. Security scanners can follow links before a human does; those are flagged as automated in Activity. Replies and bounces aren't tracked.
+        <strong>How to read these numbers.</strong> Apple Mail Privacy Protection and Gmail's image proxy can preload or cache the pixel, inflating or hiding opens. Security scanners can follow links before a human does; those are flagged as automated in Activity. Replies are detected by standard Message-ID reference headers during Gmail sync, from any recipient mail service, within your 100 most recent received messages of the last 30 days; a reply proves a response arrived, not who wrote it, and never implies an open. A 0 means no signal detected, not never opened. Bounces aren't tracked.
       </Caveat>
 
     </div>

@@ -51,7 +51,10 @@ export const PrepareNativeMessageResponse = zod.object({
 
 export const SyncNativeMessagesResponse = zod.object({
   "confirmed": zod.number().int(),
-  "pending": zod.number().int()
+  "pending": zod.number().int(),
+  "repliesDetected": zod.number().int(),
+  "replyCheckPartial": zod.boolean(),
+  "replyCheckError": zod.string().nullable()
 })
 
 
@@ -90,6 +93,7 @@ export const ListMessagesResponseItem = zod.object({
   "sentAt": zod.string().nullable(),
   "opens": zod.number().int(),
   "clicks": zod.number().int(),
+  "replies": zod.number().int(),
   "lastActivityAt": zod.string().nullable(),
   "starred": zod.boolean(),
   "isDemo": zod.boolean(),
@@ -130,6 +134,7 @@ export const CreateMessageResponse = zod.object({
   "sentAt": zod.string().nullable(),
   "opens": zod.number().int(),
   "clicks": zod.number().int(),
+  "replies": zod.number().int(),
   "lastActivityAt": zod.string().nullable(),
   "starred": zod.boolean(),
   "isDemo": zod.boolean(),
@@ -155,6 +160,7 @@ export const GetMessageResponse = zod.object({
   "sentAt": zod.string().nullable(),
   "opens": zod.number().int(),
   "clicks": zod.number().int(),
+  "replies": zod.number().int(),
   "lastActivityAt": zod.string().nullable(),
   "starred": zod.boolean(),
   "isDemo": zod.boolean(),
@@ -166,7 +172,7 @@ export const GetMessageResponse = zod.object({
   "recipientName": zod.string(),
   "recipientEmail": zod.string(),
   "subject": zod.string(),
-  "type": zod.enum(['open', 'click', 'sent']),
+  "type": zod.enum(['open', 'click', 'sent', 'reply']),
   "occurredAt": zod.string(),
   "url": zod.string().nullable(),
   "automated": zod.boolean(),
@@ -218,6 +224,7 @@ export const UpdateMessageResponse = zod.object({
   "sentAt": zod.string().nullable(),
   "opens": zod.number().int(),
   "clicks": zod.number().int(),
+  "replies": zod.number().int(),
   "lastActivityAt": zod.string().nullable(),
   "starred": zod.boolean(),
   "isDemo": zod.boolean(),
@@ -249,6 +256,7 @@ export const SendMessageResponse = zod.object({
   "sentAt": zod.string().nullable(),
   "opens": zod.number().int(),
   "clicks": zod.number().int(),
+  "replies": zod.number().int(),
   "lastActivityAt": zod.string().nullable(),
   "starred": zod.boolean(),
   "isDemo": zod.boolean(),
@@ -262,7 +270,7 @@ export const ListActivityResponseItem = zod.object({
   "recipientName": zod.string(),
   "recipientEmail": zod.string(),
   "subject": zod.string(),
-  "type": zod.enum(['open', 'click', 'sent']),
+  "type": zod.enum(['open', 'click', 'sent', 'reply']),
   "occurredAt": zod.string(),
   "url": zod.string().nullable(),
   "automated": zod.boolean(),
@@ -278,6 +286,7 @@ export const MarkActivityReadResponse = zod.object({
 })
 
 
+export const getSettingsResponseOneNotifyRepliesDefault = true;
 export const getSettingsResponseOneTrackingBaseUrlMax = 500;
 
 
@@ -285,6 +294,7 @@ export const getSettingsResponseOneTrackingBaseUrlMax = 500;
 export const GetSettingsResponse = zod.object({
   "notifyOpens": zod.boolean(),
   "notifyClicks": zod.boolean(),
+  "notifyReplies": zod.boolean().default(getSettingsResponseOneNotifyRepliesDefault),
   "defaultTrackOpens": zod.boolean(),
   "defaultTrackClicks": zod.boolean(),
   "trackingBaseUrl": zod.string().max(getSettingsResponseOneTrackingBaseUrlMax)
@@ -293,6 +303,7 @@ export const GetSettingsResponse = zod.object({
 }))
 
 
+export const updateSettingsBodyNotifyRepliesDefault = true;
 export const updateSettingsBodyTrackingBaseUrlMax = 500;
 
 
@@ -300,11 +311,13 @@ export const updateSettingsBodyTrackingBaseUrlMax = 500;
 export const UpdateSettingsBody = zod.object({
   "notifyOpens": zod.boolean(),
   "notifyClicks": zod.boolean(),
+  "notifyReplies": zod.boolean().default(updateSettingsBodyNotifyRepliesDefault),
   "defaultTrackOpens": zod.boolean(),
   "defaultTrackClicks": zod.boolean(),
   "trackingBaseUrl": zod.string().max(updateSettingsBodyTrackingBaseUrlMax)
 })
 
+export const updateSettingsResponseOneNotifyRepliesDefault = true;
 export const updateSettingsResponseOneTrackingBaseUrlMax = 500;
 
 
@@ -312,6 +325,7 @@ export const updateSettingsResponseOneTrackingBaseUrlMax = 500;
 export const UpdateSettingsResponse = zod.object({
   "notifyOpens": zod.boolean(),
   "notifyClicks": zod.boolean(),
+  "notifyReplies": zod.boolean().default(updateSettingsResponseOneNotifyRepliesDefault),
   "defaultTrackOpens": zod.boolean(),
   "defaultTrackClicks": zod.boolean(),
   "trackingBaseUrl": zod.string().max(updateSettingsResponseOneTrackingBaseUrlMax)

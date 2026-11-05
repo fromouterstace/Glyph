@@ -58,12 +58,12 @@ async function poll() {
     const seen = new Set(previous.mailbox === ctx.email ? previous.seenEvents : undefined);
     const baseline = previous.mailbox !== ctx.email || !Array.isArray(previous.seenEvents);
     for (const event of events) {
-      if (baseline || seen.has(event.id) || event.isDemo || event.automated || event.type === "sent" || event.read) continue;
-      const wanted = event.type === "open" ? ctx.settings.notifyOpens : ctx.settings.notifyClicks;
+      if (baseline || seen.has(event.id) || event.isDemo || event.automated || !["open", "click", "reply"].includes(event.type) || event.read) continue;
+      const wanted = event.type === "open" ? ctx.settings.notifyOpens : event.type === "reply" ? ctx.settings.notifyReplies !== false : ctx.settings.notifyClicks;
       if (!wanted) continue;
       await chrome.notifications.create(`glyph-${event.id}`, {
         type: "basic", iconUrl: chrome.runtime.getURL("icon128.png"),
-        title: event.type === "open" ? "Glyph: open signal" : "Glyph: link clicked",
+        title: event.type === "open" ? "Glyph: open signal" : event.type === "reply" ? "Glyph: reply received" : "Glyph: link clicked",
         message: `${event.recipientName || event.recipientEmail} · ${event.subject}`,
         contextMessage: "Engagement signal, not a guaranteed read receipt.",
       });

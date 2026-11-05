@@ -22,7 +22,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (s.data && !form) {
       const { isDemo: _d, ...rest } = s.data;
-      setForm(rest);
+      setForm({ ...rest, notifyReplies: rest.notifyReplies ?? true });
     }
   }, [s.data, form]);
 
@@ -30,12 +30,12 @@ export default function SettingsPage() {
   const locked = !isSignedIn || isDemo;
   const url = form?.trackingBaseUrl.trim() ?? '';
   const urlBad = url !== '' && !/^https:\/\/[^\s/]+(\/.*)?$/.test(url);
-  const dirty = !!(form && s.data && (Object.keys(form) as (keyof SettingsInput)[]).some((k) => form[k] !== s.data![k]));
+  const dirty = !!(form && s.data && (Object.keys(form) as (keyof SettingsInput)[]).some((k) => (k === 'notifyReplies' ? (form[k] ?? true) !== (s.data![k] ?? true) : form[k] !== s.data![k])));
 
   const save = () => {
     if (!form || urlBad) return;
     upd.mutate({ data: { ...form, trackingBaseUrl: url.replace(/\/$/, '') } }, {
-      onSuccess: (r) => { const { isDemo: _d, ...rest } = r; setForm(rest); invalidate(); toast({ title: 'Settings saved' }); },
+      onSuccess: (r) => { const { isDemo: _d, ...rest } = r; setForm({ ...rest, notifyReplies: rest.notifyReplies ?? true }); invalidate(); toast({ title: 'Settings saved' }); },
       onError: (e) => toast({ title: 'Could not save', description: errorText(e), variant: 'destructive' }),
     });
   };
@@ -93,6 +93,7 @@ export default function SettingsPage() {
             <Head title="Alerts" />
             <Toggle id="notify-opens" label="Alert on open signals" desc="In-app toast when a new pixel load arrives." checked={form.notifyOpens} disabled={locked} onChange={(v) => set('notifyOpens', v)} />
             <Toggle id="notify-clicks" label="Alert on click signals" desc="In-app toast when a tracked link is followed." checked={form.notifyClicks} disabled={locked} onChange={(v) => set('notifyClicks', v)} />
+            <Toggle id="notify-replies" label="Alert on replies" desc="In-app toast when Gmail sync finds a reply referencing a tracked message." checked={form.notifyReplies ?? true} disabled={locked} onChange={(v) => set('notifyReplies', v)} />
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-5 text-sm">
               <div>
                 <div className="flex items-center gap-2 font-medium"><BellRing className="size-4" /> Browser notifications</div>

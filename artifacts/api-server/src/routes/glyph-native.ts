@@ -6,6 +6,7 @@ import { db, glyphMessages, glyphLinks, glyphSettings } from "@workspace/db";
 import { PrepareNativeMessageBody, PrepareNativeMessageResponse, SyncNativeMessagesResponse } from "@workspace/api-zod";
 import { mailboxEmail, newToken } from "../lib/gmail";
 import { syncNative } from "../lib/gmail-native";
+import { syncReplies } from "../lib/gmail-replies";
 
 // Mounted after glyphRouter: its shared cookie auth, verified mailbox ownership,
 // same-origin write protection and no-store headers apply to every native route.
@@ -61,6 +62,8 @@ router.post("/glyph/native/prepare", async (req, res): Promise<void> => {
 router.post("/glyph/native/sync", async (req, res): Promise<void> => {
   const ownerId = getAuth(req).userId;
   if (!ownerId) { res.status(401).json({ error: "Sign in to Glyph." }); return; }
-  res.json(SyncNativeMessagesResponse.parse(await syncNative(ownerId)));
+  const sent = await syncNative(ownerId);
+  const replies = await syncReplies(ownerId);
+  res.json(SyncNativeMessagesResponse.parse({ ...sent, ...replies }));
 });
 export default router;

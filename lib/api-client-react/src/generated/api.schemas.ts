@@ -54,6 +54,10 @@ export interface NativeTracking {
 export interface NativeSync {
   confirmed: number;
   pending: number;
+  repliesDetected: number;
+  replyCheckPartial: boolean;
+  /** @nullable */
+  replyCheckError: string | null;
 }
 
 export interface ActionResult {
@@ -93,6 +97,7 @@ export interface Message {
   sentAt: string | null;
   opens: number;
   clicks: number;
+  replies: number;
   /** @nullable */
   lastActivityAt: string | null;
   starred: boolean;
@@ -107,6 +112,7 @@ export const ActivityType = {
   open: 'open',
   click: 'click',
   sent: 'sent',
+  reply: 'reply',
 } as const;
 
 export interface Activity {
@@ -158,6 +164,7 @@ export interface Overview {
 export interface SettingsInput {
   notifyOpens: boolean;
   notifyClicks: boolean;
+  notifyReplies?: boolean;
   defaultTrackOpens: boolean;
   defaultTrackClicks: boolean;
   /** @maxLength 500 */

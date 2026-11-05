@@ -26,9 +26,10 @@ function AlertWatcher() {
     if (!settings || settings.isDemo) return;
     for (const a of fresh) {
       if (a.isDemo) continue;
-      const want = (a.type === 'open' && settings.notifyOpens) || (a.type === 'click' && settings.notifyClicks);
+      const want = (a.type === 'open' && settings.notifyOpens) || (a.type === 'click' && settings.notifyClicks) || (a.type === 'reply' && (settings.notifyReplies ?? true));
       if (!want) continue;
-      const title = `${a.type === 'open' ? 'Open signal' : 'Click signal'}${a.automated ? ' (likely automated)' : ''}`;
+      const label = a.type === 'open' ? 'Open signal' : a.type === 'click' ? 'Click signal' : 'Reply received';
+      const title = `${label}${a.automated ? ' (likely automated)' : ''}`;
       const description = `${a.recipientName || a.recipientEmail} · ${a.subject}`;
       toast({ title, description });
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {

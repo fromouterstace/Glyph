@@ -1,2 +1,3 @@
 - [Email tracking accuracy](email-tracking-accuracy.md) — engagement signals must not be presented as verified reading or recipient identity.
 - [Gmail-native product scope](gmail-native-product.md) — Gmail's browser compose is the primary workflow, not a standalone composer.
+- [Provider-independent replies](provider-independent-replies.md) — recipient email service must not limit reply detection.

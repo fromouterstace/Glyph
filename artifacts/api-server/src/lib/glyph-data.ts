@@ -10,6 +10,7 @@ export function publicMessage(message: GlyphMessage, events: GlyphEvent[]) {
     createdAt: message.createdAt.toISOString(), sentAt: message.sentAt?.toISOString() ?? null,
     opens: signals.filter((e) => e.type === "open" && !e.automated).length,
     clicks: signals.filter((e) => e.type === "click" && !e.automated).length,
+    replies: signals.filter((e) => e.type === "reply" && !e.automated).length,
     lastActivityAt: (signals[0]?.occurredAt.toISOString() ?? null) as string | null, starred: false, isDemo: false,
     deliverySource: message.deliverySource as "web" | "gmail",
   };
@@ -18,7 +19,7 @@ export function publicMessage(message: GlyphMessage, events: GlyphEvent[]) {
 export function publicEvent(event: GlyphEvent, message: GlyphMessage) {
   return {
     id: event.id, messageId: message.id, recipientName: message.recipientName, recipientEmail: message.recipientEmail,
-    subject: message.subject, type: event.type as "sent" | "open" | "click", occurredAt: event.occurredAt.toISOString(),
+    subject: message.subject, type: event.type as "sent" | "open" | "click" | "reply", occurredAt: event.occurredAt.toISOString(),
     url: event.url, automated: event.automated, source: event.source, read: event.read, isDemo: false,
   };
 }
@@ -30,7 +31,7 @@ export async function ownerData(ownerId: string) {
 }
 
 export const defaultSettings = {
-  notifyOpens: true, notifyClicks: true, defaultTrackOpens: true, defaultTrackClicks: true, trackingBaseUrl: "",
+  notifyOpens: true, notifyClicks: true, notifyReplies: true, defaultTrackOpens: true, defaultTrackClicks: true, trackingBaseUrl: "",
 };
 
 export function overview(messages: ReturnType<typeof publicMessage>[], events: ReturnType<typeof publicEvent>[], isDemo: boolean) {
@@ -70,7 +71,7 @@ export function demoData() {
     id: `demo-${i + 1}`, recipientName, recipientEmail, subject,
     body: `Hi ${recipientName.split(" ")[0]},\n\nThanks for the conversation earlier. I thought you might like a closer look at what we’re building.\n\nHere’s an overview: https://example.com/overview\n\nWould you have 15 minutes this week to catch up?\n\nBest,\nThe Glyph team`,
     trackOpens: true, trackClicks: true, status: "sent" as const,
-    createdAt: ago(minutes + 60), sentAt: ago(minutes), opens, clicks,
+    createdAt: ago(minutes + 60), sentAt: ago(minutes), opens, clicks, replies: 0,
     lastActivityAt: opens ? ago(Math.max(2, minutes - 20)) : null, starred: false, isDemo: true, deliverySource: "web" as const,
   }));
   const events = messages.flatMap((m, i) => {

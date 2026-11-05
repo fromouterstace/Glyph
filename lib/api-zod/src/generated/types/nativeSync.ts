@@ -9,4 +9,8 @@
 export interface NativeSync {
   confirmed: number;
   pending: number;
+  repliesDetected: number;
+  replyCheckPartial: boolean;
+  /** @nullable */
+  replyCheckError: string | null;
 }

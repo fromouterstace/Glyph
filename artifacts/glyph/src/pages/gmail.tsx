@@ -66,6 +66,16 @@ export default function GmailPage() {
         ))}
       </ol>
 
+      <section className="border border-border bg-card p-5" data-testid="section-update-extension">
+        <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">Already installed? Update to v0.2.0</div>
+        <p className="mt-2 text-sm text-muted-foreground">Required for correctly labeled reply notifications.</p>
+        <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm">
+          <li>Download the new ZIP above and extract it.</li>
+          <li>Replace the files inside your original unpacked <code className="font-mono">glyph-extension</code> folder with the new ones (keep the same folder location).</li>
+          <li>Open <code className="break-all font-mono">chrome://extensions</code> or <code className="break-all font-mono">edge://extensions</code> and click Reload on Glyph.</li>
+          <li>Reload any open Gmail tabs.</li>
+        </ol>
+      </section>
       <section className="grid gap-px border border-border bg-border text-sm md:grid-cols-2">
         {[
           ['When is it sent?', 'A native draft becomes sent only after Glyph finds its marker in your Gmail Sent folder. Until then it stays Awaiting Gmail send. Use Sync Gmail status to check now.'],

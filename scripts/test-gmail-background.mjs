@@ -21,10 +21,11 @@ function fixture(options = {}) {
     tabs: { query: async () => options.closed ? [] : [{ id: 1, url: "https://glyph.example/gmail" }],
       update: async () => {}, create: async () => {}, sendMessage: async (_id, msg) => {
         calls.push([msg.action, msg.data]);
-        return { ok: true, data: msg.action === "connection" ? { authorized: true, email: "owner@example.com" } : {} };
+        return { ok: true, data: msg.action === "connection" ? { authorized: true, email: "owner@example.com" } :
+          msg.action === "activity" ? options.events ?? [] : msg.action === "settings" ? options.settings ?? {} : {} };
       } },
     alarms: { create: async () => {}, clear: async () => {}, onAlarm: { addListener() {} } },
-    notifications: { create: async () => {}, onClicked: { addListener() {} } },
+    notifications: { create: async (_id, data) => { calls.push(["notification", data]); }, onClicked: { addListener() {} } },
     action: { setBadgeText: async () => {}, setBadgeBackgroundColor: async () => {} },
   };
   vm.runInNewContext(source, { chrome, URL, Set, Date, Error });
@@ -72,4 +73,26 @@ test("app access is registered only for the explicitly selected origin", async (
   assert.equal(f.registered[0].matches.length, 1);
   assert.equal(f.registered[0].matches[0], "https://glyph.example/*");
   assert.equal(Object.keys(f.stored).some((k) => /token|password|secret/i.test(k)), false);
+});
+test("reply notifications are labeled as replies, not clicks, and respect reply preference", async () => {
+  for (const notifyReplies of [true, false]) {
+    const f = fixture({
+      stored: { seenEvents: [], mailbox: "owner@example.com" },
+      settings: { notifyReplies, notifyClicks: true },
+      events: [{ id: "reply1", type: "reply", recipientEmail: "recipient@outlook.com", subject: "Proposal", read: false }],
+    });
+    await f.request("sync");
+    const notification = f.calls.find((c) => c[0] === "notification");
+    assert.equal(!!notification, notifyReplies);
+    if (notifyReplies) assert.equal(notification[1].title, "Glyph: reply received");
+  }
+});
+test("future unknown event types never become false click notifications", async () => {
+  const f = fixture({
+    stored: { seenEvents: [], mailbox: "owner@example.com" },
+    settings: { notifyClicks: true },
+    events: [{ id: "future1", type: "unknown", read: false }],
+  });
+  await f.request("sync");
+  assert.equal(f.calls.some((c) => c[0] === "notification"), false);
 });

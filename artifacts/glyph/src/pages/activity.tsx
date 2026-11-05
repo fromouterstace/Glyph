@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'wouter';
-import { Eye, MousePointerClick, Send, Bot, CheckCheck } from 'lucide-react';
+import { Eye, MousePointerClick, Send, Bot, CheckCheck, Reply } from 'lucide-react';
 import { useListActivity, useMarkActivityRead, getListActivityQueryKey } from '@workspace/api-client-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Caveat, DemoTag, EmptyState, ErrorState, SectionHead } from '@/components/bits';
@@ -8,7 +8,7 @@ import { errorText, stamp, ago, usePoll, useInvalidateAll, useSession } from '@/
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-const FILTERS = ['all', 'open', 'click', 'sent', 'human', 'automated'] as const;
+const FILTERS = ['all', 'open', 'click', 'reply', 'sent', 'human', 'automated'] as const;
 
 export default function ActivityPage() {
   const poll = usePoll();
@@ -46,11 +46,11 @@ export default function ActivityPage() {
         }
       />
       <Caveat>
-        <strong>Source</strong> tells you who fetched the glyph or link: an image proxy (Gmail, Apple MPP) may load pixels without a human, and security scanners often click every link seconds after delivery. Those are marked <em>auto</em>. No signal here is a guaranteed read.
+        <strong>Source</strong> tells you who fetched the glyph or link: an image proxy (Gmail, Apple MPP) may load pixels without a human, and security scanners often click every link seconds after delivery. Those are marked <em>auto</em>. <strong>Replies</strong> are matched by standard In-Reply-To/References headers, so they work whatever mail service the recipient uses; auto-replies, bounces and your own follow-ups are skipped. Gmail sync scans only your 100 most recent received messages from the last 30 days. A reply does not imply an open. No signal here is a guaranteed read.
       </Caveat>
       <div className="flex flex-wrap gap-1">
         {FILTERS.map((x) => (
-          <button key={x} data-testid={`filter-${x}`} onClick={() => setF(x)} className={cn('rounded-sm px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider', f === x ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted')}>{x}</button>
+          <button key={x} data-testid={`filter-${x}`} onClick={() => setF(x)} className={cn('rounded-sm px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider', f === x ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted')}>{x === 'human' ? 'unflagged' : x}</button>
         ))}
       </div>
       <div className="border border-border bg-card">
@@ -74,8 +74,8 @@ export default function ActivityPage() {
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center gap-2">
                         {!a.read && <span className="size-1.5 rounded-full bg-primary" />}
-                        {a.type === 'open' ? <Eye className="size-4 text-[hsl(var(--chart-2))]" /> : a.type === 'click' ? <MousePointerClick className="size-4 text-primary" /> : <Send className="size-4" />}
-                        <span className="capitalize">{a.type}</span>
+                        {a.type === 'open' ? <Eye className="size-4 text-[hsl(var(--chart-2))]" /> : a.type === 'click' ? <MousePointerClick className="size-4 text-primary" /> : a.type === 'reply' ? <Reply className="size-4 text-accent-foreground" /> : <Send className="size-4" />}
+                        <span>{a.type === 'reply' ? 'Reply' : a.type === 'open' ? 'Open' : a.type === 'click' ? 'Click' : 'Sent'}</span>
                         {a.automated && <span className="inline-flex items-center gap-1 rounded-sm bg-[hsl(40_70%_90%)] px-1 font-mono text-[9px] uppercase text-[hsl(32_70%_28%)]"><Bot className="size-2.5" />auto</span>}
                       </span>
                     </td>
@@ -84,7 +84,7 @@ export default function ActivityPage() {
                       <Link href={`/emails/${a.messageId}`} className="block truncate hover:text-primary hover:underline" data-testid={`link-activity-message-${a.id}`}>{a.subject}</Link>
                       {a.url && <div className="truncate font-mono text-[10px] text-muted-foreground">{a.url}</div>}
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{a.source}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{a.type === 'reply' ? 'Email reply via standard Message-ID headers' : a.source}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-xs"><div>{ago(a.occurredAt)}</div><div className="text-[10px] text-muted-foreground">{stamp(a.occurredAt)}</div></td>
                   </tr>
                 ))}

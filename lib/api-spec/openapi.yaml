@@ -205,10 +205,13 @@ components:
         trackingUrl: { type: string }
     NativeSync:
       type: object
-      required: [confirmed, pending]
+      required: [confirmed, pending, repliesDetected, replyCheckPartial, replyCheckError]
       properties:
         confirmed: { type: integer }
         pending: { type: integer }
+        repliesDetected: { type: integer }
+        replyCheckPartial: { type: boolean }
+        replyCheckError: { type: [string, "null"] }
     ActionResult:
       type: object
       required: [ok]
@@ -226,7 +229,7 @@ components:
         trackClicks: { type: boolean }
     Message:
       type: object
-      required: [id, recipientEmail, recipientName, subject, body, trackOpens, trackClicks, status, createdAt, sentAt, opens, clicks, lastActivityAt, starred, isDemo]
+      required: [id, recipientEmail, recipientName, subject, body, trackOpens, trackClicks, status, createdAt, sentAt, opens, clicks, replies, lastActivityAt, starred, isDemo]
       properties:
         id: { type: string }
         recipientEmail: { type: string }
@@ -240,6 +243,7 @@ components:
         sentAt: { type: [string, "null"] }
         opens: { type: integer }
         clicks: { type: integer }
+        replies: { type: integer }
         lastActivityAt: { type: [string, "null"] }
         starred: { type: boolean }
         isDemo: { type: boolean }
@@ -271,7 +275,7 @@ components:
         recipientName: { type: string }
         recipientEmail: { type: string }
         subject: { type: string }
-        type: { type: string, enum: [open, click, sent] }
+        type: { type: string, enum: [open, click, sent, reply] }
         occurredAt: { type: string }
         url: { type: [string, "null"] }
         automated: { type: boolean }
@@ -306,6 +310,7 @@ components:
       properties:
         notifyOpens: { type: boolean }
         notifyClicks: { type: boolean }
+        notifyReplies: { type: boolean, default: true }
         defaultTrackOpens: { type: boolean }
         defaultTrackClicks: { type: boolean }
         trackingBaseUrl: { type: string, maxLength: 500 }

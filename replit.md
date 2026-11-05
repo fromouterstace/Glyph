@@ -53,7 +53,8 @@ The user clarified: "It should be native to gmail in the browser." Prioritize Gm
 - Native extension source is in `extensions/glyph-gmail`; `node extensions/build.mjs` produces the downloadable ZIP at web app predev/prebuild time. Generated PNG icons and ZIP need not be committed.
 - The extension asks for optional access only to the selected Glyph origin, then uses an open signed-in Glyph tab as a same-origin cookie-auth bridge. No long-lived app/Gmail credentials are copied into the extension. Keep the tab open for preparation and notifications.
 - Native messages start as pending drafts and are confirmed only by marker verification in Gmail Sent, never by a Send click. Sync scans the last 25 sent messages in seven days; use promptly. Never send native drafts through the API.
-- Browser notifications operate while browser/connection tab are running; offline email/push delivery and reply/bounce detection are not implemented.
+- Browser notifications operate while browser/connection tab are running. Reply detection uses provider-neutral In-Reply-To/References and actual sender addresses, read via the connected sender's Gmail metadata API. Recipient services are unrestricted; non-Gmail sender mailbox connections are separate. It excludes automatic replies, sender followups and delivery reports; never infers opens from replies.
+- Reply sync inspects the newest 100 received messages in 30 days and surfaces partial scans/provider failures. It reads headers only, never reply bodies, and never marks provider messages as read. Existing sent records recover their actual RFC Message-ID from Gmail metadata. Bounce reporting remains unsupported.
 
 ## Pointers
 

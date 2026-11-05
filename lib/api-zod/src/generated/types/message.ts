@@ -22,6 +22,7 @@ export interface Message {
   sentAt: string | null;
   opens: number;
   clicks: number;
+  replies: number;
   /** @nullable */
   lastActivityAt: string | null;
   starred: boolean;

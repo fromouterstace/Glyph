@@ -13,4 +13,5 @@ export const ActivityType = {
   open: 'open',
   click: 'click',
   sent: 'sent',
+  reply: 'reply',
 } as const;

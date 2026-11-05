@@ -23,6 +23,10 @@ The helper tab must remain open and signed in for new tracking preparation and e
 
 A prepared draft is not a sent email. Glyph verifies a unique marker in Gmail Sent before counting it as sent or recording engagement. It examines the most recent 25 sent emails from the past seven days; sync promptly after sending. Gmail Undo Send is respected because no send is assumed from a button click.
 
+Reply detection uses standard `In-Reply-To` / `References` headers and the original recipient's actual address. Replies may come from Gmail, Outlook, Yahoo, iCloud, or custom-domain email. The connected **sender** mailbox remains Gmail. Matching does not depend on Gmail conversation IDs or subject lines, and no open is inferred from a reply. Automatic responses, sender followups and delivery reports are excluded. Missing reference headers or a reply from a different sender address may prevent matching.
+
+Sync inspects headers of the most recent 100 received messages in the past 30 days. It reports partial scans and errors explicitly. It does not download reply bodies or attachments or mark Gmail messages as read.
+
 Direct sender compose-image loads are ignored while pending. Image proxies can still prefetch/cache pixels, and a sender viewing a sent copy can cause an open signal. Very early image loads during confirmation may be missed. Link scanners and forwarded mail can distort click attribution. These are not guaranteed read receipts or proof of recipient identity.
 
 Use a stable published Glyph origin for long-term tracking. A preview origin is temporary. This is an unpacked extension, not a Chrome Web Store listing. The manifest requests Gmail access and asks separately for the one Glyph origin you choose; it does not request access to all websites by default.

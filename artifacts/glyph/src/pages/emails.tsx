@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'wouter';
-import { Search, PenLine, Send, Trash2, Pencil, Star, ArrowLeft, Eye, MousePointerClick, Bot, Link2 } from 'lucide-react';
+import { Search, PenLine, Send, Trash2, Pencil, Star, ArrowLeft, Bot, Link2 } from 'lucide-react';
+import { MessageEngagement } from '@/components/engagement';
 import {
   useListMessages,
   useGetMessage,
@@ -102,13 +103,9 @@ export default function Emails() {
                         <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground">{ago(m.sentAt ?? m.createdAt)}</span>
                       </div>
                       <div className="truncate text-xs text-foreground/80">{m.subject}</div>
-                      <div className="mt-1.5 flex items-center gap-2">
-                        <StatusPill status={m.status} />
-                        {m.status !== 'draft' && (
-                          <span className="font-mono text-[10px] text-muted-foreground">
-                            <Eye className="mr-0.5 inline size-3" />{m.opens} <MousePointerClick className="ml-1.5 mr-0.5 inline size-3" />{m.clicks}
-                          </span>
-                        )}
+                      <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
+                        {(m.deliverySource !== 'gmail' || m.status === 'sent') && m.status !== 'sent' && <StatusPill status={m.status} />}
+                        {m.status !== 'draft' || m.deliverySource === 'gmail' ? <MessageEngagement m={m} compact /> : null}
                       </div>
                     </div>
                   </Link>
@@ -170,11 +167,12 @@ function Detail({ id }: { id: string }) {
         <div className="mt-2 text-sm text-muted-foreground">
           to <span className="text-foreground" data-testid="text-recipient">{m.recipientName ? `${m.recipientName} <${m.recipientEmail}>` : m.recipientEmail}</span>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden border border-border bg-border text-xs sm:grid-cols-4">
-          {[['Created', stamp(m.createdAt)], ['Sent', stamp(m.sentAt)], ['Open signals', m.trackOpens ? m.opens : 'off'], ['Click signals', m.trackClicks ? m.clicks : 'off']].map(([k, v]) => (
-            <div key={k as string} className="bg-card p-3"><div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{k}</div><div className="mt-1 font-mono text-sm tabular-nums">{v}</div></div>
+        <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden border border-border bg-border text-xs sm:grid-cols-5">
+          {[['Created', stamp(m.createdAt)], ['Sent', stamp(m.sentAt)], ['Open signals', m.trackOpens ? m.opens : 'off'], ['Click signals', m.trackClicks ? m.clicks : 'off'], ['Replies', m.replies ?? 0]].map(([k, v]) => (
+            <div key={k as string} className="min-w-0 bg-card p-3 last:col-span-2 sm:last:col-span-1"><div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{k}</div><div className="mt-1 font-mono text-sm tabular-nums">{v}</div></div>
           ))}
         </div>
+        {!awaiting && m.status === 'sent' && <div className="mt-3"><MessageEngagement m={m} /></div>}
         {awaiting && <div className="mt-4 space-y-3"><Caveat>Drafted in Gmail with Add glyph. It counts as sent only after Glyph finds its marker in your Gmail Sent folder. Send it from Gmail, then sync.</Caveat><div className="flex flex-wrap gap-2"><SyncGmailButton disabled={!canMutate} /><a href={GMAIL_URL} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-sm border border-border px-3 py-1.5 text-sm hover:border-foreground/40">Open Gmail</a></div></div>}
         {!native && ['draft', 'failed'].includes(m.status) && (
           <div className="mt-4 flex flex-wrap gap-2">
@@ -210,17 +208,17 @@ function Detail({ id }: { id: string }) {
         <div className="p-5 md:p-6">
           <div className="mb-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Signal trail</div>
           {!events.length ? (
-            <p className="text-sm text-muted-foreground">{m.status !== 'sent' && native ? 'Waiting for Gmail Sent confirmation.' : m.status === 'draft' ? 'Not sent yet.' : 'Quiet so far. No pixel loads or clicks recorded.'}</p>
+            <p className="text-sm text-muted-foreground">{m.status !== 'sent' && native ? 'Waiting for Gmail Sent confirmation.' : m.status === 'draft' ? 'Not sent yet.' : 'Quiet so far. No pixel loads, clicks, or replies detected.'}</p>
           ) : (
             <ol className="relative space-y-4 border-l border-border pl-4">
               {events.map((e) => (
                 <li key={e.id} className="relative" data-testid={`event-${e.id}`}>
-                  <span className={cn('absolute -left-[21px] top-1 size-2.5 rounded-[2px]', e.type === 'click' ? 'bg-primary' : e.type === 'open' ? 'bg-[hsl(var(--chart-2))]' : 'bg-foreground')} />
+                  <span className={cn('absolute -left-[21px] top-1 size-2.5 rounded-[2px]', e.type === 'click' ? 'bg-primary' : e.type === 'open' ? 'bg-[hsl(var(--chart-2))]' : e.type === 'reply' ? 'bg-accent-foreground' : 'bg-foreground')} />
                   <div className="flex items-center gap-1.5 text-sm font-medium capitalize">
-                    {e.type === 'sent' ? 'Sent' : `${e.type} signal`}
+                    {e.type === 'sent' ? 'Sent' : e.type === 'reply' ? 'Reply received' : `${e.type} signal`}
                     {e.automated && <span className="inline-flex items-center gap-1 rounded-sm bg-[hsl(40_70%_90%)] px-1 font-mono text-[9px] uppercase text-[hsl(32_70%_28%)]"><Bot className="size-2.5" />auto</span>}
                   </div>
-                  <div className="font-mono text-[10px] text-muted-foreground">{stamp(e.occurredAt)} · {e.source}</div>
+                  <div className="break-words font-mono text-[10px] text-muted-foreground">{stamp(e.occurredAt)} · {e.type === 'reply' ? 'Email reply via standard Message-ID headers' : e.source}</div>
                   {e.url && <div className="mt-0.5 truncate font-mono text-[10px] text-foreground/70">{e.url}</div>}
                 </li>
               ))}

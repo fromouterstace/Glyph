@@ -9,6 +9,7 @@
 export interface SettingsInput {
   notifyOpens: boolean;
   notifyClicks: boolean;
+  notifyReplies?: boolean;
   defaultTrackOpens: boolean;
   defaultTrackClicks: boolean;
   /** @maxLength 500 */
