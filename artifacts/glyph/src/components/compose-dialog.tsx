@@ -142,8 +142,9 @@ function ComposeSession({
               {draftId ? 'Edit draft' : 'New tracked email'}
             </DialogTitle>
             <DialogDescription className="text-xs">
-              One recipient per message, so every signal maps to one person.
-              Plain text; links are tracked automatically.
+              This web composer supports one To recipient. For multiple To, Cc,
+              or Bcc recipients, use the Gmail extension. Signals are not proof
+              of reading. Plain text; links are tracked automatically.
             </DialogDescription>
           </DialogHeader>
           <div className="divide-y divide-border">

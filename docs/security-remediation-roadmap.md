@@ -1,7 +1,8 @@
 # Glyph security remediation roadmap
 
-**Status:** Phases 1 and 2, and Phases 5 and 6's workspace implementations, are
-verified in the workspace; this work has not been published or deployed.
+**Workspace status:** Sections 0–3 and 5–7 have workspace implementation or
+documentation evidence; Section 4 remains open. None of the listed remediations
+has been published. Production release gates remain outstanding.
 **Basis:** Manual security audit dated 2026-11-05  
 **Audience assumption:** The person implementing the work and anyone reviewing
 security priorities.  
@@ -87,16 +88,16 @@ deployment-hardening gaps. Preserve the existing product rules while doing so:
 
 ## Priority sequence
 
-| Order | Workstream                                        | Audit issue                                                                      | Priority                 |
-| ----- | ------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------ |
-| 1     | Safe error reporting                              | SEC-02: SQL parameters and private values in error logs                          | Immediate                |
-| 2     | Authenticated dashboard and public-route policy   | SEC-10: private UI is publicly served; define and enforce intentional exceptions | High                     |
-| 3     | Trusted extension-origin enrollment               | SEC-01: compose data can be sent to a user-approved hostile origin               | Immediate                |
-| 4     | Public tracking abuse controls                    | SEC-03: valid tokens can generate unbounded events and work                      | High                     |
-| 5     | Bounded, owner-scoped data access                 | SEC-05: full histories loaded before limits and filtering                        | High                     |
-| 6     | Connector identity and cache isolation            | SEC-04: stale mailbox authorization after reconnect                              | High                     |
-| 7     | Proxy, origin, and browser hardening              | SEC-06, SEC-07, SEC-08, and confirmed HTTPS/HTTP redirect verification           | After behavior contracts |
-| 8     | Documentation reconciliation and release evidence | SEC-09 and deployment verification gaps                                          | Before release sign-off  |
+| Order | Workstream                                        | Audit issue                                                                      | Priority                 | Current evidence/status                                                       |
+| ----- | ------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------ | ----------------------------------------------------------------------------- |
+| 1     | Safe error reporting                              | SEC-02: SQL parameters and private values in error logs                          | Immediate                | Workspace verified; production/historical log review pending                  |
+| 2     | Authenticated dashboard and public-route policy   | SEC-10: private UI is publicly served; define and enforce intentional exceptions | High                     | Workspace verified; not published                                             |
+| 3     | Trusted extension-origin enrollment               | SEC-01: compose data can be sent to a user-approved hostile origin               | Immediate                | v0.5.0 workspace package; installed-extension rollout not verified            |
+| 4     | Public tracking abuse controls                    | SEC-03: valid tokens can generate unbounded events and work                      | High                     | Development PostgreSQL verified; production schema/edge behavior pending       |
+| 5     | Bounded, owner-scoped data access                 | SEC-05: full histories loaded before limits and filtering                        | High                     | Open; current history reads remain unbounded                                   |
+| 6     | Connector identity and cache isolation            | SEC-04: stale mailbox authorization after reconnect                              | High                     | Workspace verified; controlled live reconnect pending                         |
+| 7     | Proxy, origin, and browser hardening              | SEC-06, SEC-07, SEC-08, and confirmed HTTPS/HTTP redirect verification           | After behavior contracts | Workspace verified; published headers/Clerk/edge validation pending            |
+| 8     | Documentation reconciliation and release evidence | SEC-09 and deployment verification gaps                                          | Before release sign-off  | Workspace documentation reconciled; no new published-release evidence recorded |
 
 Orders 4–6 can proceed in parallel after their API/data contracts are agreed.
 Workstream 7 depends on documenting the real preview, published-domain, and
@@ -308,6 +309,11 @@ verify the real published edge's limits separately.
 
 **Risk addressed:** SEC-05; limits the impact of event amplification.
 
+**Status:** Open / proposed. Current `ownerData` reads all messages for an owner
+and then all their events before in-memory summaries and filters. Database
+pagination, bounded history windows, and database-side aggregation are not
+implemented; do not describe this finding as remediated.
+
 **Implementation**
 
 - Move pagination, status/search filters, time bounds, and result caps into
@@ -426,6 +432,11 @@ before enforcing restrictive browser policies.
 
 **Risk addressed:** SEC-09 and audit limits.
 
+**Status:** Workspace documentation and user-facing copy reconciled on
+2026-11-05. The published deployment is unchanged; no release evidence was
+added to `docs/regression-release-log.csv`, and the less-than-1% regression rate
+remains unknown.
+
 **Implementation**
 
 - Remove the stale one-recipient-only instruction where it conflicts with the
@@ -449,6 +460,10 @@ before enforcing restrictive browser policies.
   authorization and test-owned accounts/content.
 - The less-than-1% regression target remains **unknown** until enough comparable
   releases have been observed over a defined window.
+
+**Workspace evidence:** Full quality, integration, HTTP, and artifact-build gates
+passed on 2026-11-05 after these documentation/UI-label changes. This verifies
+the workspace only; it is not a production release or a regression-rate sample.
 
 ## Cross-cutting engineering gates
 

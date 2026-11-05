@@ -2,6 +2,9 @@
 
 Maintainers: follow [Glyph's product and safety canon](../../docs/glyph-canon.md)
 when changing permissions, the app-origin bridge, tracking, or release behavior.
+See the [security remediation roadmap](../../docs/security-remediation-roadmap.md)
+for current workspace/release status and the [2026-11-05 security audit](../../docs/security-audit-2026-11-05.md)
+for its historical assessment.
 
 1. Extract the downloaded archive.
 2. Open `chrome://extensions` or `edge://extensions`, enable Developer mode, select **Load unpacked**, and choose the extracted `glyph-extension` folder.

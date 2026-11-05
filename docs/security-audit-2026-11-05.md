@@ -32,6 +32,9 @@ No remediation or production changes were performed as part of this audit.
 No real message was sent, no customer pixel was requested, no credentials were
 read or printed, no production records/schema were changed, and nothing was
 published. Isolated database fixtures were created and cleaned up by the suite.
+For subsequent workspace changes and release status, see the
+[security remediation roadmap](security-remediation-roadmap.md). This audit
+remains a dated snapshot and does not establish the current production posture.
 
 ## Scanner and test results
 

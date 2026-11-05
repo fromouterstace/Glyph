@@ -78,7 +78,7 @@ export function OverviewStats({ query }: { query: QueryView<Overview> }) {
             delay={80}
           />
           <Stat
-            label="Open-signal rate"
+            label="Pixel-load rate"
             value={pct(o.openRate)}
             accent
             delay={120}

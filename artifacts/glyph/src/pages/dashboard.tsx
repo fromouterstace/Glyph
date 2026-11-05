@@ -126,10 +126,10 @@ export default function Dashboard() {
             title="Nothing sent yet. That's honest."
             body={
               <>
-                Your live dashboard starts empty, no seeded events. Install the
-                Gmail extension, compose to one person in Gmail, click Add
-                glyph, and send with Gmail. Once the send shows up in your Sent
-                folder, signals land here.
+                Your live dashboard starts empty, with no seeded events. Install
+                the Gmail extension, compose to up to 100 unique To, Cc, and Bcc
+                recipients, click Add glyph, and send with Gmail. Once the send
+                is confirmed from your Sent folder, signals land here.
               </>
             }
             action={

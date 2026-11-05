@@ -199,7 +199,7 @@ export default function ActivityPage() {
                           {a.type === 'reply'
                             ? 'Reply'
                             : a.type === 'open'
-                              ? 'Open'
+                              ? 'Pixel load'
                               : a.type === 'click'
                                 ? 'Click'
                                 : 'Sent'}

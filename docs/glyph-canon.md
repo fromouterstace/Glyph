@@ -19,9 +19,13 @@ product policy.
   Gmail's own rich-text compose. Gmail retains ownership of Send, keyboard
   shortcuts, and Undo Send. The web app is the connection, installation, settings,
   and reporting companion. The web composer is secondary.
-- Only one `To` recipient is supported for a tracked compose. CC, BCC, multiple
-  recipients, unsupported layouts, and plain-text mode must fail safely; do not
-  silently guess the recipient or claim tracking was added.
+- The Gmail extension supports up to 100 unique recipients across To, Cc, and
+  Bcc in one rich-text compose; duplicates and unsupported layouts fail safely.
+  That shared message has one pixel and shared tracked links, so its signals are
+  aggregate and cannot identify which recipient acted.
+- The secondary web composer supports one To address per message; it has no Cc
+  or Bcc fields. A single intended recipient still does not make a pixel or click
+  a verified human action. Plain-text Gmail mode cannot carry a tracking pixel.
 - The sender mailbox is the one Gmail mailbox connected to this deployment. A
   different mailbox requires its own appropriately connected deployment. Gmail
   send-as aliases are not supported. A recipient can use any email service.
@@ -83,11 +87,9 @@ product policy.
 - The public landing page may contain static copy only, not account activity or
   another user's data. Static UI copy and documented first-use preference
   defaults are not activity data.
-- Native Gmail messages may contain multiple To, Cc and Bcc recipients in one
-  normal Gmail send/thread. Persist roles privately and verify them against the
-  sender's Sent copy. Shared pixel/click signals are aggregate, not proof of which
-  recipient acted. Match replies from every original participant; never disclose
-  Bcc addresses in public tracking URLs or notification/activity payloads.
+- Persist native recipient roles privately and verify them against the sender's
+  Sent copy. Match replies from every original participant; never disclose Bcc
+  addresses in public tracking URLs or notification/activity payloads.
 - The connected Gmail connector is a shared server-side resource, not a per-user
   OAuth grant. Before reading mailbox messages, syncing, or sending through it,
   verify the signed-in Clerk user's verified email against the connected mailbox;
