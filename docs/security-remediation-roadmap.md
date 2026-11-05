@@ -1,8 +1,9 @@
 # Glyph security remediation roadmap
 
 **Workspace status:** Sections 0–3 and 5–7 have workspace implementation or
-documentation evidence; Section 4 remains open. None of the listed remediations
-has been published. Production release gates remain outstanding.
+documentation evidence; Section 4 remains open. Phase 8 read-only preflight is
+complete, but release verification is blocked. None of the listed remediations
+has been published.
 **Basis:** Manual security audit dated 2026-11-05  
 **Audience assumption:** The person implementing the work and anyone reviewing
 security priorities.  
@@ -98,6 +99,7 @@ deployment-hardening gaps. Preserve the existing product rules while doing so:
 | 6     | Connector identity and cache isolation            | SEC-04: stale mailbox authorization after reconnect                              | High                     | Workspace verified; controlled live reconnect pending                          |
 | 7     | Proxy, origin, and browser hardening              | SEC-06, SEC-07, SEC-08, and confirmed HTTPS/HTTP redirect verification           | After behavior contracts | Workspace verified; published headers/Clerk/edge validation pending            |
 | 8     | Documentation reconciliation and release evidence | SEC-09 and deployment verification gaps                                          | Before release sign-off  | Workspace documentation reconciled; no new published-release evidence recorded |
+| 9     | Controlled production release and closeout         | Verification of shipped remediations and residual risks                          | Final gate               | Read-only preflight complete; blocked by open Section 4 and pending approval    |
 
 Orders 4–6 can proceed in parallel after their API/data contracts are agreed.
 Workstream 7 depends on documenting the real preview, published-domain, and
@@ -464,6 +466,57 @@ remains unknown.
 **Workspace evidence:** Full quality, integration, HTTP, and artifact-build gates
 passed on 2026-11-05 after these documentation/UI-label changes. This verifies
 the workspace only; it is not a production release or a regression-rate sample.
+
+### 8. Controlled production release verification and closeout
+
+**Purpose:** Verify the published build after the workspace remediations are
+released, then record sanitized evidence and residual risks.
+
+**Status:** Read-only preflight completed at `2026-11-05T21:45:07Z`; release
+verification is blocked. The deployment service reports an active public
+Autoscale deployment at `https://glyph-mail.replit.app` with a successful
+current build. The workspace remediations remain unpublished, and Section 4
+history-query work is still open.
+
+**Read-only production observations**
+
+- The public SPA shell returned HTTP 200 for `/`, `/app`, `/emails`, `/activity`,
+  `/settings`, `/gmail`, and `/sign-in`. A 200 from these paths only confirms
+  that the shell is served; it does not prove the signed-in UI or route guard.
+- Anonymous `GET /api/healthz` returned 200. Anonymous account reads for
+  `/api/glyph/overview`, `/api/glyph/messages`, `/api/glyph/activity`, and
+  `/api/glyph/settings` returned 200. The overview was marked read-only with
+  zero sent, pixel, and click totals; message and activity lists were empty.
+  The settings response exposed only its preference field names in this audit.
+  This is the older deployed behavior, not the current workspace contract,
+  which requires unauthenticated account-data API requests to return 401/403.
+- The inspected HTML and health responses included HSTS. The health response
+  still exposed `X-Powered-By: Express`; CSP, Referrer-Policy,
+  Permissions-Policy, X-Content-Type-Options, and X-Frame-Options were not
+  observed on those responses. This confirms the Phase 6 workspace headers have
+  not yet been verified on the published edge.
+- No pixel token was requested, no event or other production data was written,
+  no email was sent, and no publish or database migration was performed.
+
+**Blockers and release gate**
+
+- Complete Section 4's owner-scoped, bounded history queries and PostgreSQL
+  pagination/aggregation tests, or explicitly document an approved residual
+  risk without marking Section 4 remediated.
+- Publish the reviewed workspace changes only after explicit user approval.
+  Review any production database schema diff separately and obtain explicit
+  authorization before applying it.
+- Use only test-owned sender/recipient accounts and content for a controlled
+  Gmail extension → Sent confirmation → pixel/link request → reply check. Do not
+  use customer tokens, recipients, or messages. A pixel count is recorded only
+  when an eligible request is actually committed; never synthesize an open from
+  a click, send, or reply.
+- After publishing, verify signed-out and signed-in routes, anonymous API
+  rejection, the public token-based pixel/redirect exceptions, extension origin
+  trust, Clerk compatibility, and actual response headers at the deployment
+  edge. Record the UTC observation window and sanitized outcomes only.
+- Keep the regression percentage **unknown** until enough comparable releases
+  complete the defined seven-day observation window.
 
 ## Cross-cutting engineering gates
 
