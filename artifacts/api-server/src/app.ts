@@ -1,6 +1,7 @@
 import express, { type Express } from "express";
 import pinoHttp from "pino-http";
 import router from "./routes";
+import glyphTrackingRouter from "./routes/glyph-tracking";
 import { logger } from "./lib/logger";
 import { clerkMiddleware } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
@@ -27,6 +28,10 @@ app.use(
     },
   }),
 );
+// Tracking images and redirects are deliberately public. In particular, Clerk's
+// development-browser handshake must never replace a pixel with a sign-in redirect.
+// Keep all application routes below Clerk and their existing ownership checks.
+app.use("/api", glyphTrackingRouter);
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 app.use(express.json({ limit: "100kb" }));
 app.use(express.urlencoded({ extended: true }));

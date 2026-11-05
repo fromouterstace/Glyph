@@ -117,6 +117,21 @@ export function Shell({ children }: { children: ReactNode }) {
       </div>
       {open && <div className="fixed inset-0 top-[52px] z-30 bg-sidebar md:hidden">{side}</div>}
       <main className="md:pl-60">
+        {import.meta.env.DEV && (
+          <div role="note" className="border-b border-primary/30 bg-primary/[0.06] px-4 py-3 text-sm md:px-8" data-testid="banner-development">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <strong>This is the development app.</strong>
+              <a href="https://glyph-mail.replit.app/gmail" target="_blank" rel="noreferrer" className="font-semibold text-primary underline underline-offset-4">
+                Open published Glyph
+              </a>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              For real-send testing, sign in to published Glyph and reconnect the Gmail extension there.
+              Emails prepared here keep development tracking links; publishing does not update already-sent emails.
+              Keep the connection tab and tracking links in the same environment.
+            </p>
+          </div>
+        )}
         {isDemo && (
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-b border-dashed border-primary/40 bg-primary/[0.06] px-4 py-2 text-center text-xs" data-testid="banner-demo">
             <span className="font-mono uppercase tracking-wider text-primary">Sample data</span>
