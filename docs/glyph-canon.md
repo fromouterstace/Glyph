@@ -48,6 +48,10 @@ product policy.
 - A prepared draft is not sent. A button click is not proof of send. Confirm a
   native Gmail send from its verified Sent copy and marker; reconcile uncertain
   sends by RFC Message-ID. Do not automatically retry a possibly accepted send.
+- Commit a verified sent-state transition and its one Sent activity event in the
+  same PostgreSQL transaction. Web sending must claim the exact draft contents
+  used to render the message; concurrent edits or a second send must not send a
+  stale snapshot or produce duplicate sends.
 - Explain proxy, cache, scanner, and blocked-image caveats wherever signal counts
   could otherwise read as verified human behavior. Do not market these events as
   guaranteed read receipts.

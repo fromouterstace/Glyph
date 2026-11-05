@@ -12,6 +12,30 @@ const pixel = `${base}/api/glyph/t/not-a-customer-pixel.gif`;
 const request = (url, options = {}) =>
   fetch(url, { signal: AbortSignal.timeout(5_000), ...options });
 
+test('malformed JSON is a client error, not a server failure', async () => {
+  const response = await request(`${base}/api/glyph/messages`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: '{"private_message":',
+  });
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), {
+    error: 'Enter a valid JSON request body.',
+  });
+});
+
+test('oversized JSON returns an explicit payload limit error', async () => {
+  const response = await request(`${base}/api/glyph/messages`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ body: 'x'.repeat(110_000) }),
+  });
+  assert.equal(response.status, 413);
+  assert.deepEqual(await response.json(), {
+    error: 'The request body is too large.',
+  });
+});
+
 test('test-harness identity headers cannot authenticate against the running application', async () => {
   const response = await request(`${base}/api/glyph/messages`, {
     method: 'POST',

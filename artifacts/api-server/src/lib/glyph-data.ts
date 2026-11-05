@@ -1,50 +1,7 @@
-import {
-  db,
-  glyphMessages,
-  glyphEvents,
-  type GlyphMessage,
-  type GlyphEvent,
-} from '@workspace/db';
+import { db, glyphMessages, glyphEvents } from '@workspace/db';
 import { desc, eq, inArray } from 'drizzle-orm';
-
-export function publicMessage(message: GlyphMessage, events: GlyphEvent[]) {
-  const signals = events.filter((e) => e.messageId === message.id);
-  return {
-    id: message.id,
-    recipientEmail: message.recipientEmail,
-    recipientName: message.recipientName,
-    subject: message.subject,
-    body: message.body,
-    trackOpens: message.trackOpens,
-    trackClicks: message.trackClicks,
-    status: message.status as
-      'draft' | 'sent' | 'sending' | 'failed' | 'uncertain',
-    createdAt: message.createdAt.toISOString(),
-    sentAt: message.sentAt?.toISOString() ?? null,
-    opens: signals.filter((e) => e.type === 'open' && !e.automated).length,
-    clicks: signals.filter((e) => e.type === 'click' && !e.automated).length,
-    replies: signals.filter((e) => e.type === 'reply' && !e.automated).length,
-    lastActivityAt: (signals[0]?.occurredAt.toISOString() ?? null) as
-      string | null,
-    deliverySource: message.deliverySource as 'web' | 'gmail',
-  };
-}
-
-export function publicEvent(event: GlyphEvent, message: GlyphMessage) {
-  return {
-    id: event.id,
-    messageId: message.id,
-    recipientName: message.recipientName,
-    recipientEmail: message.recipientEmail,
-    subject: message.subject,
-    type: event.type as 'sent' | 'open' | 'click' | 'reply',
-    occurredAt: event.occurredAt.toISOString(),
-    url: event.url,
-    automated: event.automated,
-    source: event.source,
-    read: event.read,
-  };
-}
+import { publicMessage, publicEvent } from './message-presentation';
+export { publicMessage, publicEvent } from './message-presentation';
 
 export async function ownerData(ownerId: string) {
   const messages = await db

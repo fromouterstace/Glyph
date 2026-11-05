@@ -21,6 +21,38 @@ afterAll(async () => {
   await h?.close();
 });
 
+for (const source of ['web', 'gmail']) {
+  test(`a ${source} link HEAD returns metadata without engagement or Gmail reads`, async () => {
+    const message = await messageFixture(h.sql, {
+      ownerId: h.identity(),
+      source,
+      status: source === 'gmail' ? 'draft' : 'sent',
+    });
+    const token = fixtureId().replaceAll('-', '').padStart(48, '0');
+    await h.sql(
+      'INSERT INTO glyph_links(id,message_id,token,url) VALUES ($1,$2,$3,$4)',
+      [fixtureId(), message.id, token, 'https://example.invalid/proposal'],
+    );
+    const reads = edge.proxy.mock.calls.length;
+    const response = await h.request(`/l/${token}`, {
+      method: 'HEAD',
+      redirect: 'manual',
+    });
+    expect([response.status, response.headers.get('location')]).toEqual([
+      302,
+      'https://example.invalid/proposal',
+    ]);
+    expect(
+      (
+        await h.sql('SELECT type FROM glyph_events WHERE message_id=$1', [
+          message.id,
+        ])
+      ).rows,
+    ).toEqual([]);
+    expect(edge.proxy.mock.calls.length).toBe(reads);
+  });
+}
+
 function reply(id, original, sentAt) {
   return {
     id,

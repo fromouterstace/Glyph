@@ -63,7 +63,7 @@ Node's built-in coverage fails the unit gate below **95% lines, 90% branches,
 100% functions**, aggregated over the selected native-send verification,
 provider-independent reply matching, tracking-origin policy, pixel modules,
 Gmail read throttling, incremental reply-header processing, and request-log
-privacy/correlation serializers.
+privacy/correlation serializers, plus owner-scoped message presentation.
 Both frontend and backend origin helpers are included. This is deliberately
 **not** a claim of whole-app coverage. A negative control proves an uncovered
 branch fails the coverage mechanism. A separate fail-closed LCOV inventory now

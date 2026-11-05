@@ -6,6 +6,7 @@ export const criticalModules = [
   'gmail-rate-limit',
   'reply-header-scan',
   'request-log',
+  'message-presentation',
 ];
 
 export function unitFiles(names) {

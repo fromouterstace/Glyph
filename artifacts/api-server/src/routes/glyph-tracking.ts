@@ -127,6 +127,7 @@ router.get('/glyph/l/:token', async (req, res): Promise<void> => {
     return;
   }
   if (
+    req.method !== 'HEAD' &&
     row.message.deliverySource === 'gmail' &&
     row.message.status === 'draft'
   ) {

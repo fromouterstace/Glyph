@@ -48,6 +48,22 @@ app.use(
     res: express.Response,
     _next: express.NextFunction,
   ) => {
+    const bodyFailure =
+      err && typeof err === 'object' && 'type' in err ? err.type : null;
+    if (
+      !res.headersSent &&
+      (bodyFailure === 'entity.parse.failed' ||
+        bodyFailure === 'entity.too.large')
+    ) {
+      const tooLarge = bodyFailure === 'entity.too.large';
+      req.log.warn({ outcome: bodyFailure }, 'Request body rejected');
+      res.status(tooLarge ? 413 : 400).json({
+        error: tooLarge
+          ? 'The request body is too large.'
+          : 'Enter a valid JSON request body.',
+      });
+      return;
+    }
     if (err instanceof GmailRateLimitError && !res.headersSent) {
       const seconds = Math.max(1, Math.ceil((err.retryAt - Date.now()) / 1000));
       req.log.warn(

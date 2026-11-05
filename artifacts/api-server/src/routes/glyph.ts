@@ -43,6 +43,11 @@ import {
 } from '../lib/gmail';
 import { trackedEmailHtml } from '../lib/email-content';
 import { resolveTrackingOrigin } from '../lib/tracking-origin';
+import { presentOwnerData } from '../lib/message-presentation';
+import {
+  claimDraftForSend,
+  confirmSentMessage,
+} from '../lib/message-lifecycle';
 
 const router = Router();
 const userId = (req: Request) => getAuth(req).userId;
@@ -50,15 +55,7 @@ async function dataFor(req: Request) {
   const ownerId = userId(req);
   if (!ownerId) return { messages: [], events: [] };
   const data = await ownerData(ownerId);
-  return {
-    messages: data.messages.map((m) => publicMessage(m, data.events)),
-    events: data.events.map((e) =>
-      publicEvent(
-        e,
-        data.messages.find((m) => m.id === e.messageId)!,
-      ),
-    ),
-  };
+  return presentOwnerData(data.messages, data.events);
 }
 async function settingsFor(ownerId: string | null) {
   if (!ownerId) return { ...defaultSettings, readOnly: true };
@@ -160,29 +157,33 @@ router.get('/glyph/messages', async (req, res): Promise<void> => {
 });
 router.get('/glyph/messages/:id', async (req, res): Promise<void> => {
   const id = String(req.params.id);
-  const data = await dataFor(req);
-  const message = data.messages.find((m) => m.id === id);
+  const ownerId = userId(req);
+  const message = ownerId ? await ownMessage(ownerId, id) : undefined;
   if (!message) {
     res.status(404).json({ error: 'Email not found' });
     return;
   }
-  const links = userId(req)
-    ? await db.select().from(glyphLinks).where(eq(glyphLinks.messageId, id))
-    : [];
+  const [events, links] = await Promise.all([
+    db
+      .select()
+      .from(glyphEvents)
+      .where(eq(glyphEvents.messageId, id))
+      .orderBy(desc(glyphEvents.occurredAt)),
+    db.select().from(glyphLinks).where(eq(glyphLinks.messageId, id)),
+  ]);
+  const clicksByUrl = new Map<string, number>();
+  for (const event of events) {
+    if (event.type === 'click' && !event.automated && event.url)
+      clicksByUrl.set(event.url, (clicksByUrl.get(event.url) ?? 0) + 1);
+  }
   res.json(
     GetMessageResponse.parse({
-      message,
-      events: data.events.filter((e) => e.messageId === id),
+      message: publicMessage(message, events),
+      events: events.map((event) => publicEvent(event, message)),
       links: links.map((l) => ({
         id: l.id,
         url: l.url,
-        clicks: data.events.filter(
-          (e) =>
-            e.messageId === id &&
-            e.type === 'click' &&
-            e.url === l.url &&
-            !e.automated,
-        ).length,
+        clicks: clicksByUrl.get(l.url) ?? 0,
       })),
     }),
   );
@@ -300,10 +301,12 @@ router.post('/glyph/messages/:id/send', async (req, res): Promise<void> => {
       });
       return;
     }
-    await db
-      .update(glyphMessages)
-      .set({ status: 'sent', gmailId, sentAt: message.sentAt ?? new Date() })
-      .where(eq(glyphMessages.id, id));
+    await confirmSentMessage(message, {
+      gmailId,
+      sentAt: message.sentAt ?? new Date(),
+      source: 'Gmail — verified in Sent',
+      expectedStatuses: ['sending', 'uncertain'],
+    });
     res.json(SendMessageResponse.parse(await responseMessage(id, ownerId)));
     return;
   }
@@ -341,19 +344,12 @@ router.post('/glyph/messages/:id/send', async (req, res): Promise<void> => {
     html,
     rfcMessageId: message.rfcMessageId,
   });
-  const claimed = await db.transaction(async (tx) => {
-    const updated = await tx
-      .update(glyphMessages)
-      .set({ status: 'sending' })
-      .where(and(eq(glyphMessages.id, id), eq(glyphMessages.status, 'draft')))
-      .returning();
-    if (!updated.length) return false;
-    await tx.delete(glyphLinks).where(eq(glyphLinks.messageId, id));
-    if (links.length) await tx.insert(glyphLinks).values(links);
-    return true;
-  });
+  const claimed = await claimDraftForSend(message, links);
   if (!claimed) {
-    res.status(409).json({ error: 'This email is already sending.' });
+    res.status(409).json({
+      error:
+        'This draft changed or is already sending. Review it before sending again.',
+    });
     return;
   }
   try {
@@ -381,22 +377,11 @@ router.post('/glyph/messages/:id/send', async (req, res): Promise<void> => {
     }
     const sent = (await result.json()) as { id?: string };
     if (!sent.id) throw new Error('Gmail returned no message ID');
-    await db.transaction(async (tx) => {
-      await tx
-        .update(glyphMessages)
-        .set({ status: 'sent', gmailId: sent.id!, sentAt: new Date() })
-        .where(eq(glyphMessages.id, id));
-      await tx
-        .insert(glyphEvents)
-        .values({
-          id: randomUUID(),
-          messageId: id,
-          type: 'sent',
-          source: 'Gmail',
-          read: true,
-          fingerprint: `${id}:sent`,
-        })
-        .onConflictDoNothing();
+    await confirmSentMessage(message, {
+      gmailId: sent.id,
+      sentAt: new Date(),
+      source: 'Gmail',
+      expectedStatuses: ['sending'],
     });
     res.json(SendMessageResponse.parse(await responseMessage(id, ownerId)));
   } catch (err) {

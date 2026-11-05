@@ -1,8 +1,8 @@
 import { and, eq } from 'drizzle-orm';
-import { randomUUID } from 'node:crypto';
-import { db, glyphMessages, glyphEvents } from '@workspace/db';
+import { db, glyphMessages } from '@workspace/db';
 import { gmailRequest, mailboxEmail } from './gmail';
 import { matchesNativeSend, type SentCandidate } from './native-verification';
+import { confirmSentMessage } from './message-lifecycle';
 const scans = new Map<
   string,
   { at: number; result: { confirmed: number; pending: number } }
@@ -76,45 +76,16 @@ async function scanNative(ownerId: string) {
         continue;
       const millis = Number(candidate.internalDate);
       const sentAt = Number.isFinite(millis) ? new Date(millis) : new Date();
-      await db.transaction(async (tx) => {
-        const changed = await tx
-          .update(glyphMessages)
-          .set({
-            status: 'sent',
-            gmailId: candidate.id,
-            sentAt,
-            ...(candidate.payload?.headers?.find(
-              (h) => h.name.toLowerCase() === 'message-id',
-            )?.value
-              ? {
-                  rfcMessageId: candidate.payload.headers
-                    .find((h) => h.name.toLowerCase() === 'message-id')!
-                    .value.trim(),
-                }
-              : {}),
-          })
-          .where(
-            and(
-              eq(glyphMessages.id, message.id),
-              eq(glyphMessages.status, 'draft'),
-            ),
-          )
-          .returning();
-        if (!changed.length) return;
-        await tx
-          .insert(glyphEvents)
-          .values({
-            id: randomUUID(),
-            messageId: message.id,
-            type: 'sent',
-            source: 'Gmail browser — verified in Sent',
-            read: true,
-            occurredAt: sentAt,
-            fingerprint: `${message.id}:sent`,
-          })
-          .onConflictDoNothing();
-        confirmed++;
+      const changed = await confirmSentMessage(message, {
+        gmailId: candidate.id!,
+        sentAt,
+        source: 'Gmail browser — verified in Sent',
+        expectedStatuses: ['draft'],
+        rfcMessageId: candidate.payload?.headers
+          ?.find((header) => header.name.toLowerCase() === 'message-id')
+          ?.value.trim(),
       });
+      if (changed) confirmed++;
       matched.add(message.id);
     }
     if (matched.size === pending.length) break;
