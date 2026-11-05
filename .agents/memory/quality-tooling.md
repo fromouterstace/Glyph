@@ -32,3 +32,9 @@ When sharing Vitest hoisted mocks from a helper, declare the hoisted binding fir
 **Why:** Vitest 5 rejected an inline exported `vi.hoisted` variable before discovering any tests. A separate declaration and named export preserves mock hoisting across helper imports.
 
 **How to apply:** Use `const edge = vi.hoisted(...); export { edge };` for shared external-boundary fixtures. Keep the mock itself test-only; never add a production identity-header bypass to simplify authorization tests.
+
+After changing OpenAPI path structure, verify each generated operation URL and its parameter schema, not only whether code generation succeeds.
+
+**Why:** A valid generation run can still bind mutations to a neighboring paged route, silently directing edits or deletes to the wrong endpoint.
+
+**How to apply:** Inspect generated route builders for affected operations and confirm required path/query parameters match the intended API contract before accepting the generated client.
