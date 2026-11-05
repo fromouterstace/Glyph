@@ -1,3 +1,5 @@
+import emailAddresses from "email-addresses";
+
 type GmailPart = {
   mimeType?: string;
   body?: { data?: string };
@@ -5,6 +7,15 @@ type GmailPart = {
   headers?: { name: string; value: string }[];
 };
 export type SentCandidate = { id: string; internalDate?: string; payload?: GmailPart };
+
+function mailboxAddresses(header: string): string[] {
+  // A display name can itself look like an email address. Parse the mailbox
+  // structure, not every address-shaped substring, and fail closed on groups
+  // or malformed headers rather than weakening the one-recipient constraint.
+  const parsed = emailAddresses.parseAddressList({ input: header, strict: true, rfc6532: true });
+  if (!parsed || parsed.some((entry) => entry.type !== "mailbox")) return [];
+  return parsed.flatMap((entry) => entry.type === "mailbox" ? [entry.address] : []);
+}
 
 export function containsNativeMarker(part: GmailPart | undefined, token: string): boolean {
   if (!part) return false;
@@ -19,7 +30,7 @@ export function matchesNativeSend(candidate: SentCandidate, message: {
 }, mailbox: string): boolean {
   const headers = candidate.payload?.headers ?? [];
   const values = (name: string) => headers.filter((h) => h.name.toLowerCase() === name).map((h) => h.value);
-  const addresses = (name: string) => values(name).join(",").match(/[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}/gi) ?? [];
+  const addresses = (name: string) => mailboxAddresses(values(name).join(","));
   const to = addresses("to"), from = addresses("from");
   const sentAt = Number(candidate.internalDate);
   return Number.isFinite(sentAt) && sentAt >= message.createdAt.getTime() &&

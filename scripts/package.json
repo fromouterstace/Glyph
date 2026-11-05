@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test:native-verification": "tsx --test test-native-verification.mjs",
     "test:gmail-extension": "node --test test-gmail-extension.mjs test-gmail-background.mjs",
     "hello": "tsx ./src/hello.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
