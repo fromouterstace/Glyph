@@ -337,7 +337,13 @@ test.each([
           })
         ).status,
       ).toBe(404);
-      expect(detail.events.map((event) => event.type).sort()).toEqual([
+      const eventPage = await (
+        await h.request(
+          `/messages/${f.compose.data.messageId}/events/0`,
+          { user: f.owner },
+        )
+      ).json();
+      expect(eventPage.items.map((event) => event.type).sort()).toEqual([
         'click',
         'open',
         'reply',

@@ -110,6 +110,10 @@ test('message pagination is bounded, stable, filtered, and owner-scoped', async 
   });
   const invalid = await h.request('/messages?limit=101', { user: owner });
   expect(invalid.status).toBe(400);
+  const excessiveOffset = await h.request('/messages?offset=10001', {
+    user: owner,
+  });
+  expect(excessiveOffset.status).toBe(400);
 });
 
 test('message search and signal filters run before pagination', async () => {
@@ -189,6 +193,11 @@ test('message signal history is returned in bounded owner-scoped pages', async (
     total: 121,
     hasMore: true,
   });
+  const excessiveOffset = await h.request(
+    `/messages/${f.foreign.id}/events/10001`,
+    { user: f.other },
+  );
+  expect(excessiveOffset.status).toBe(400);
 });
 
 test('overview counts only the authenticated owner’s engagement', async () => {
@@ -305,6 +314,10 @@ test('activity pagination and filters remain owner-scoped and ordered', async ()
     total: 2,
     hasMore: false,
   });
+  const invalid = await h.request('/activity?offset=10001', {
+    user: f.owner,
+  });
+  expect(invalid.status).toBe(400);
 });
 
 test('marking activity read cannot update another owner’s event', async () => {

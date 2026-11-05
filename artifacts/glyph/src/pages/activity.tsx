@@ -41,6 +41,7 @@ const FILTERS = [
   'human',
   'automated',
 ] as const;
+const MAX_HISTORY_OFFSET = 10_000;
 
 export default function ActivityPage() {
   const poll = usePoll();
@@ -282,13 +283,21 @@ export default function ActivityPage() {
             <button
               type="button"
               data-testid="button-next-activity"
-              disabled={!q.data.pagination.hasMore}
+              disabled={
+                !q.data.pagination.hasMore || offset >= MAX_HISTORY_OFFSET
+              }
               onClick={() => setOffset((current) => current + 50)}
               className="rounded-sm border border-border px-2 py-1 disabled:opacity-40"
             >
               Older
             </button>
           </div>
+          {q.data.pagination.hasMore && offset >= MAX_HISTORY_OFFSET && (
+            <p className="basis-full text-[11px] text-muted-foreground">
+              Older signals remain stored; browsing stops at the 10,000 offset
+              limit. All-time totals remain complete.
+            </p>
+          )}
         </div>
       )}
     </div>

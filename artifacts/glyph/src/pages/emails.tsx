@@ -56,6 +56,7 @@ const STATUSES = [
   'failed',
 ] as const;
 const PAGE_SIZE = 50;
+const MAX_HISTORY_OFFSET = 10_000;
 
 function messageFilters(search: string, status: (typeof STATUSES)[number]) {
   return {
@@ -256,7 +257,10 @@ export default function Emails() {
                 <button
                   type="button"
                   data-testid="button-next-messages"
-                  disabled={!list.data.pagination.hasMore}
+                  disabled={
+                    !list.data.pagination.hasMore ||
+                    offset >= MAX_HISTORY_OFFSET
+                  }
                   onClick={() => setOffset((current) => current + PAGE_SIZE)}
                   className="rounded-sm border border-border px-2 py-1 disabled:opacity-40"
                 >
@@ -265,6 +269,13 @@ export default function Emails() {
               </div>
             </div>
           )}
+          {list.data?.pagination.hasMore &&
+            offset >= MAX_HISTORY_OFFSET && (
+              <p className="border-t border-border px-3 py-2 text-[11px] text-muted-foreground">
+                Older records remain stored; browsing stops at the 10,000
+                offset limit. All-time totals remain complete.
+              </p>
+            )}
         </div>
         <div className={cn(!selected && 'hidden lg:block')}>
           {selected ? (
@@ -519,7 +530,10 @@ function Detail({ id }: { id: string }) {
                 <button
                   type="button"
                   data-testid="button-next-signals"
-                  disabled={!eventPage.data.pagination.hasMore}
+                  disabled={
+                    !eventPage.data.pagination.hasMore ||
+                    eventOffset >= MAX_HISTORY_OFFSET
+                  }
                   onClick={() => setEventOffset((current) => current + PAGE_SIZE)}
                   className="rounded-sm border border-border px-2 py-1 disabled:opacity-40"
                 >
@@ -528,6 +542,13 @@ function Detail({ id }: { id: string }) {
               </div>
             </div>
           )}
+          {eventPage.data?.pagination.hasMore &&
+            eventOffset >= MAX_HISTORY_OFFSET && (
+              <p className="border-t border-border px-5 py-2 text-[11px] text-muted-foreground">
+                Older signals remain stored; browsing stops at the 10,000
+                offset limit. Message totals remain complete.
+              </p>
+            )}
         </div>
       </div>
 

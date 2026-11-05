@@ -1,9 +1,9 @@
 # Glyph security remediation roadmap
 
-**Workspace status:** Sections 0–3 and 5–7 have workspace implementation or
-documentation evidence; Section 4 remains open. Phase 8 read-only preflight is
-complete, but release verification is blocked. None of the listed remediations
-has been published.
+**Workspace status:** Sections 0–7 have workspace implementation or
+documentation evidence; Section 4 is now implemented and verified in the
+workspace. Phase 8 read-only preflight is complete, but release verification is
+blocked pending approval. None of the listed remediations has been published.
 **Basis:** Manual security audit dated 2026-11-05  
 **Audience assumption:** The person implementing the work and anyone reviewing
 security priorities.  
@@ -95,11 +95,11 @@ deployment-hardening gaps. Preserve the existing product rules while doing so:
 | 2     | Authenticated dashboard and public-route policy   | SEC-10: private UI is publicly served; define and enforce intentional exceptions | High                     | Workspace verified; not published                                              |
 | 3     | Trusted extension-origin enrollment               | SEC-01: compose data can be sent to a user-approved hostile origin               | Immediate                | v0.5.0 workspace package; installed-extension rollout not verified             |
 | 4     | Public tracking abuse controls                    | SEC-03: valid tokens can generate unbounded events and work                      | High                     | Development PostgreSQL verified; production schema/edge behavior pending       |
-| 5     | Bounded, owner-scoped data access                 | SEC-05: full histories loaded before limits and filtering                        | High                     | Open; current history reads remain unbounded                                   |
+| 5     | Bounded, owner-scoped data access                 | SEC-05: full histories loaded before limits and filtering                        | High                     | Workspace implemented and verified; not published                              |
 | 6     | Connector identity and cache isolation            | SEC-04: stale mailbox authorization after reconnect                              | High                     | Workspace verified; controlled live reconnect pending                          |
 | 7     | Proxy, origin, and browser hardening              | SEC-06, SEC-07, SEC-08, and confirmed HTTPS/HTTP redirect verification           | After behavior contracts | Workspace verified; published headers/Clerk/edge validation pending            |
 | 8     | Documentation reconciliation and release evidence | SEC-09 and deployment verification gaps                                          | Before release sign-off  | Workspace documentation reconciled; no new published-release evidence recorded |
-| 9     | Controlled production release and closeout        | Verification of shipped remediations and residual risks                          | Final gate               | Read-only preflight complete; blocked by open Section 4 and pending approval   |
+| 9     | Controlled production release and closeout        | Verification of shipped remediations and residual risks                          | Final gate               | Section 4 verified in workspace; release awaits approval                       |
 
 Orders 4–6 can proceed in parallel after their API/data contracts are agreed.
 Workstream 7 depends on documenting the real preview, published-domain, and
@@ -311,32 +311,39 @@ verify the real published edge's limits separately.
 
 **Risk addressed:** SEC-05; limits the impact of event amplification.
 
-**Status:** Open / proposed. Current `ownerData` reads all messages for an owner
-and then all their events before in-memory summaries and filters. Database
-pagination, bounded history windows, and database-side aggregation are not
-implemented; do not describe this finding as remediated.
+**Status:** Implemented and verified in the workspace on 2026-11-05; not
+published. Messages, message signal history, and activity now use database-side
+filters and bounded pages. Overview totals and chart windows are aggregated in
+PostgreSQL rather than materializing an owner's full history in application
+memory.
 
 **Implementation**
 
-- Move pagination, status/search filters, time bounds, and result caps into
-  database queries.
-- Use database aggregation for overview counts and chart windows rather than
-  loading complete histories into application memory.
-- Preserve owner predicates in every count, join, and page query.
-- Introduce indexes only after reviewing query plans and migration impact.
-- Update the API/UI contract to make pagination and partial-history semantics
-  explicit.
+- Message and activity lists use 50-row pages (maximum 100), deterministic
+  timestamp-plus-ID ordering, database-side search/status/type filters, and
+  offsets capped at 10,000. Message signal trails use bounded 50-row pages.
+- Preserve owner predicates in every message page, event page, activity join,
+  aggregate, and bulk read update.
+- Overview counts and 14-day charts use PostgreSQL aggregates; message summaries
+  and per-link clicks are aggregated in the database.
+- Owner/time indexes support the page ordering and filtering. Service tests
+  verify their presence and exercise bounded pagination; production query plans
+  have not been measured.
+- The API and UI expose page ranges, all-time totals, and the 10,000-offset
+  browsing cap. Older records remain stored and included in all-time aggregates.
 
 **Acceptance criteria**
 
 - List/activity endpoints have stable bounded page sizes and deterministic
   cursors or ordering.
 - Summary totals remain correct without reading all historical event rows into
-  application memory.
-- Cross-owner tests prove pagination, counts, filters, and cursors never expose
-  another owner's records.
-- Query-plan or test evidence confirms database-side limits and relevant indexes.
-- UI clearly distinguishes a page/window from an all-time total.
+  application memory, including histories larger than one page.
+- Cross-owner service tests prove pagination, counts, filters, and event pages
+  never expose another owner's records.
+- Service tests assert bounded response sizes, deterministic ordering, and the
+  required PostgreSQL indexes.
+- UI clearly distinguishes page ranges, filtered totals, and all-time message
+  totals, and explains the navigation cap.
 
 **Release gate:** run PostgreSQL contract tests, realistic-volume query checks,
 and UI pagination tests. Any schema migration must be additive, reviewed, and
@@ -473,10 +480,10 @@ the workspace only; it is not a production release or a regression-rate sample.
 released, then record sanitized evidence and residual risks.
 
 **Status:** Read-only preflight completed at `2026-11-05T21:45:07Z`; release
-verification is blocked. The deployment service reports an active public
-Autoscale deployment at `https://glyph-mail.replit.app` with a successful
-current build. The workspace remediations remain unpublished, and Section 4
-history-query work is still open.
+verification remains blocked pending approval. The deployment service reports
+an active public Autoscale deployment at `https://glyph-mail.replit.app` with a
+successful current build. Section 4 is verified in the workspace, but no
+workspace remediation has been published.
 
 **Read-only production observations**
 
@@ -500,12 +507,10 @@ history-query work is still open.
 
 **Blockers and release gate**
 
-- Complete Section 4's owner-scoped, bounded history queries and PostgreSQL
-  pagination/aggregation tests, or explicitly document an approved residual
-  risk without marking Section 4 remediated.
 - Publish the reviewed workspace changes only after explicit user approval.
-  Review any production database schema diff separately and obtain explicit
-  authorization before applying it.
+  Review the database index-definition changes in the Publish schema diff;
+  publish applies the approved development schema to production. No production
+  schema mutation was performed during this work.
 - Use only test-owned sender/recipient accounts and content for a controlled
   Gmail extension → Sent confirmation → pixel/link request → reply check. Do not
   use customer tokens, recipients, or messages. A pixel count is recorded only
