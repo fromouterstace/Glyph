@@ -46,7 +46,7 @@ export default function ActivityPage() {
         }
       />
       <Caveat>
-        <strong>Source</strong> tells you who fetched the glyph or link: an image proxy (Gmail, Apple MPP) may load pixels without a human, and security scanners often click every link seconds after delivery. Those are marked <em>auto</em>. <strong>Replies</strong> are matched by standard In-Reply-To/References headers, so they work whatever mail service the recipient uses; auto-replies, bounces and your own follow-ups are skipped. Gmail sync scans only your 100 most recent received messages from the last 30 days. A reply does not imply an open. No signal here is a guaranteed read.
+        <strong>Source</strong> tells you who fetched the glyph or link: an image proxy (Gmail, Apple MPP) may load pixels without a human, and security scanners often click every link seconds after delivery. Those are marked <em>auto</em>. <strong>Replies</strong> are matched by standard In-Reply-To/References headers, so they work whatever mail service the recipient uses; auto-replies, bounces and your own follow-ups are skipped. Gmail sync scans only your 100 most recent received messages from the last 30 days. Pixel counts are measured image requests and are never inferred from replies. No signal here is a guaranteed read.
       </Caveat>
       <div className="flex flex-wrap gap-1">
         {FILTERS.map((x) => (

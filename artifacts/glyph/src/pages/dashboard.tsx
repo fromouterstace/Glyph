@@ -75,7 +75,7 @@ export default function Dashboard() {
           ) : (
             <>
               <Stat label="Sent" value={o.totalSent} hint="confirmed in Gmail" />
-              <Stat label="Open signals" value={o.totalOpens} hint="pixel loads" delay={40} />
+              <Stat label="Pixel loads" value={o.totalOpens} hint="measured image requests" delay={40} />
               <Stat label="Click signals" value={o.totalClicks} hint="link redirects" delay={80} />
               <Stat label="Open-signal rate" value={pct(o.openRate)} accent delay={120} hint="of tracked sends" />
               <Stat label="Click rate" value={pct(o.clickRate)} delay={160} hint={`${o.unreadCount} unread signals`} />
@@ -173,7 +173,7 @@ export default function Dashboard() {
       )}
 
       <Caveat>
-        <strong>How to read these numbers.</strong> Apple Mail Privacy Protection and Gmail's image proxy can preload or cache the pixel, inflating or hiding opens. Security scanners can follow links before a human does; those are flagged as automated in Activity. Replies are detected by standard Message-ID reference headers during Gmail sync, from any recipient mail service, within your 100 most recent received messages of the last 30 days; a reply proves a response arrived, not who wrote it, and never implies an open. A 0 means no signal detected, not never opened. Bounces aren't tracked.
+        <strong>How to read these numbers.</strong> Apple Mail Privacy Protection and Gmail's image proxy can preload or cache the pixel, inflating or hiding opens. Security scanners can follow links before a human does; those are flagged as automated in Activity. Replies are detected by standard Message-ID reference headers during Gmail sync, from any recipient mail service, within your 100 most recent received messages of the last 30 days. Pixel totals include measured image requests only, never inferred reads from clicks or replies; 0 does not mean unread. Bounces aren't tracked.
       </Caveat>
 
     </div>

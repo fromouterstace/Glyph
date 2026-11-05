@@ -168,7 +168,7 @@ function Detail({ id }: { id: string }) {
           to <span className="text-foreground" data-testid="text-recipient">{m.recipientName ? `${m.recipientName} <${m.recipientEmail}>` : m.recipientEmail}</span>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden border border-border bg-border text-xs sm:grid-cols-5">
-          {[['Created', stamp(m.createdAt)], ['Sent', stamp(m.sentAt)], ['Open signals', m.trackOpens ? m.opens : 'off'], ['Click signals', m.trackClicks ? m.clicks : 'off'], ['Replies', m.replies ?? 0]].map(([k, v]) => (
+          {[['Created', stamp(m.createdAt)], ['Sent', stamp(m.sentAt)], ['Pixel loads', m.trackOpens ? m.opens : 'off'], ['Click signals', m.trackClicks ? m.clicks : 'off'], ['Replies', m.replies ?? 0]].map(([k, v]) => (
             <div key={k as string} className="min-w-0 bg-card p-3 last:col-span-2 sm:last:col-span-1"><div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{k}</div><div className="mt-1 font-mono text-sm tabular-nums">{v}</div></div>
           ))}
         </div>

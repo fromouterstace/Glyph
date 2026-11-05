@@ -5,12 +5,12 @@ import { cn } from '@/lib/utils';
 type Kind = 'sent' | 'open' | 'click' | 'reply';
 const META: Record<Kind, { icon: typeof Send; label: string; on: string }> = {
   sent: { icon: Send, label: 'Sent', on: 'bg-foreground/[0.07] text-foreground border-foreground/20' },
-  open: { icon: Eye, label: 'Opened', on: 'bg-[hsl(var(--chart-2)/0.12)] text-[hsl(var(--chart-2))] border-[hsl(var(--chart-2)/0.35)]' },
+  open: { icon: Eye, label: 'Pixel loads', on: 'bg-[hsl(var(--chart-2)/0.12)] text-[hsl(var(--chart-2))] border-[hsl(var(--chart-2)/0.35)]' },
   click: { icon: MousePointerClick, label: 'Clicked', on: 'bg-primary/10 text-primary border-primary/30' },
   reply: { icon: Reply, label: 'Replied', on: 'bg-accent text-accent-foreground border-[hsl(174_30%_76%)]' },
 };
 
-/** Each signal shown independently. Zero = no signal detected, not "never opened". */
+/** Pixel loads stay numeric and independent of clicks and replies. */
 export function MessageEngagement({ m, className, compact }: { m: Message; className?: string; compact?: boolean }) {
   const native = m.deliverySource === 'gmail';
   const sent = m.status === 'sent';
