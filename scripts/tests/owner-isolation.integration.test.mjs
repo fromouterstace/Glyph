@@ -37,6 +37,13 @@ async function twoOwners() {
   return { owner, other, own, foreign };
 }
 
+async function addEvent(sql, message, type, occurredAt) {
+  await sql(
+    'INSERT INTO glyph_events(id,message_id,type,source,fingerprint,occurred_at) VALUES ($1,$2,$3,$4,$5,$6)',
+    [fixtureId(), message.id, type, 'fixture', fixtureId(), occurredAt],
+  );
+}
+
 test('anonymous account reads require authentication before returning user data', async () => {
   const f = await twoOwners();
   for (const path of [
@@ -54,8 +61,48 @@ test('anonymous account reads require authentication before returning user data'
 
 test('a signed-in owner lists only their own messages', async () => {
   const f = await twoOwners();
-  const rows = await (await h.request('/messages', { user: f.owner })).json();
-  expect(rows.map((row) => row.id)).toEqual([f.own.id]);
+  const page = await (await h.request('/messages', { user: f.owner })).json();
+  expect(page.items.map((row) => row.id)).toEqual([f.own.id]);
+  expect(page.pagination).toEqual({
+    limit: 50,
+    offset: 0,
+    total: 1,
+    hasMore: false,
+  });
+});
+
+test('message pagination is bounded, stable, filtered, and owner-scoped', async () => {
+  const owner = h.identity();
+  const other = h.identity();
+  const own = [];
+  for (let index = 0; index < 5; index++) {
+    const message = await messageFixture(h.sql, { ownerId: owner });
+    await h.sql('UPDATE glyph_messages SET created_at=$2 WHERE id=$1', [
+      message.id,
+      new Date(Date.UTC(2026, 0, 1, index)),
+    ]);
+    own.push(message);
+  }
+  const foreign = await messageFixture(h.sql, { ownerId: other });
+  await h.sql('UPDATE glyph_messages SET created_at=$2 WHERE id=$1', [
+    foreign.id,
+    new Date(Date.UTC(2026, 0, 2)),
+  ]);
+  const page = await (
+    await h.request('/messages?limit=2&offset=1', { user: owner })
+  ).json();
+  expect(page.items.map((row) => row.id)).toEqual([
+    own[3].id,
+    own[2].id,
+  ]);
+  expect(page.pagination).toEqual({
+    limit: 2,
+    offset: 1,
+    total: 5,
+    hasMore: true,
+  });
+  const invalid = await h.request('/messages?limit=101', { user: owner });
+  expect(invalid.status).toBe(400);
 });
 
 test('a foreign message detail cannot expose its body, links or events', async () => {
@@ -75,16 +122,29 @@ test('the rightful owner can retrieve their message with its links and events', 
   const detail = await response.json();
   expect(response.status).toBe(200);
   expect(detail.message.id).toBe(f.foreign.id);
-  expect([detail.links.length, detail.events.length]).toEqual([1, 1]);
+  expect([detail.links.length, detail.events.items.length]).toEqual([1, 1]);
+  expect(detail.events.pagination.total).toBe(1);
 });
 
 test('overview counts only the authenticated owner’s engagement', async () => {
   const f = await twoOwners();
+  await h.sql(
+    `INSERT INTO glyph_events(id,message_id,type,source,fingerprint,occurred_at)
+     SELECT 'event-' || n::text,$1,'open','fixture','fingerprint-' || n::text,
+       TIMESTAMPTZ '2026-01-01 00:00:00+00' + n * INTERVAL '1 second'
+     FROM generate_series(1,125) AS n`,
+    [f.own.id],
+  );
   const overview = await (
     await h.request('/overview', { user: f.owner })
   ).json();
   expect(overview.totalSent).toBe(1);
-  expect(overview.totalOpens).toBe(0);
+  expect(overview.totalOpens).toBe(125);
+  expect(overview.openRate).toBe(100);
+  const messages = await (
+    await h.request('/messages?limit=1', { user: f.owner })
+  ).json();
+  expect(messages.items[0].opens).toBe(125);
 });
 
 for (const method of ['PATCH', 'DELETE', 'POST']) {
@@ -121,10 +181,47 @@ for (const method of ['PATCH', 'DELETE', 'POST']) {
 
 test('activity does not expose another owner’s signals', async () => {
   const f = await twoOwners();
-  const activity = await (
+  const page = await (
     await h.request('/activity', { user: f.owner })
   ).json();
-  expect(activity).toEqual([]);
+  expect(page.items).toEqual([]);
+  expect(page.pagination.total).toBe(0);
+});
+
+test('activity pagination and filters remain owner-scoped and ordered', async () => {
+  const f = await twoOwners();
+  await addEvent(
+    h.sql,
+    f.own,
+    'open',
+    new Date(Date.UTC(2026, 0, 1, 0, 1)),
+  );
+  await addEvent(
+    h.sql,
+    f.own,
+    'open',
+    new Date(Date.UTC(2026, 0, 1, 0, 2)),
+  );
+  await addEvent(
+    h.sql,
+    f.own,
+    'click',
+    new Date(Date.UTC(2026, 0, 1, 0, 3)),
+  );
+  const page = await (
+    await h.request('/activity?limit=1&offset=1&type=open', {
+      user: f.owner,
+    })
+  ).json();
+  expect(page.items).toHaveLength(1);
+  expect(page.items[0].type).toBe('open');
+  expect(page.items[0].messageId).toBe(f.own.id);
+  expect(page.pagination).toEqual({
+    limit: 1,
+    offset: 1,
+    total: 2,
+    hasMore: false,
+  });
 });
 
 test('marking activity read cannot update another owner’s event', async () => {
