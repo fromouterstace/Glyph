@@ -5,8 +5,20 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ListMessagesStatus } from './listMessagesStatus';
 
 export type ListMessagesParams = {
+  /** @maxLength 200 */
   search?: string;
-  status?: string;
+  status?: ListMessagesStatus;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  /**
+   * @minimum 0
+   * @maximum 10000
+   */
+  offset?: number;
 };

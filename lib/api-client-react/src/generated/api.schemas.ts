@@ -146,6 +146,27 @@ export interface Activity {
   read: boolean;
 }
 
+export interface Pagination {
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
+  limit: number;
+  /**
+     * @minimum 0
+     * @maximum 10000
+     */
+  offset: number;
+  /** @minimum 0 */
+  total: number;
+  hasMore: boolean;
+}
+
+export interface ActivityPage {
+  items: Activity[];
+  pagination: Pagination;
+}
+
 export interface TrackedLink {
   id: string;
   url: string;
@@ -154,8 +175,13 @@ export interface TrackedLink {
 
 export interface MessageDetail {
   message: Message;
-  events: Activity[];
+  events: ActivityPage;
   links: TrackedLink[];
+}
+
+export interface MessagePage {
+  items: Message[];
+  pagination: Pagination;
 }
 
 export interface DailyStat {
@@ -207,7 +233,73 @@ export type UnauthorizedResponse = {
 };
 
 export type ListMessagesParams = {
+  /** @maxLength 200 */
   search?: string;
-  status?: string;
+  status?: ListMessagesStatus;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  /**
+   * @minimum 0
+   * @maximum 10000
+   */
+  offset?: number;
 };
+
+export type ListMessagesStatus = typeof ListMessagesStatus[keyof typeof ListMessagesStatus];
+
+
+export const ListMessagesStatus = {
+  all: 'all',
+  draft: 'draft',
+  sending: 'sending',
+  sent: 'sent',
+  failed: 'failed',
+  uncertain: 'uncertain',
+  opened: 'opened',
+  clicked: 'clicked',
+  unopened: 'unopened',
+} as const;
+
+export type GetMessageParams = {
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  eventLimit?: number;
+  /**
+   * @minimum 0
+   * @maximum 10000
+   */
+  eventOffset?: number;
+};
+
+export type ListActivityParams = {
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  /**
+   * @minimum 0
+   * @maximum 10000
+   */
+  offset?: number;
+  type?: ListActivityType;
+};
+
+export type ListActivityType = typeof ListActivityType[keyof typeof ListActivityType];
+
+
+export const ListActivityType = {
+  all: 'all',
+  open: 'open',
+  click: 'click',
+  sent: 'sent',
+  reply: 'reply',
+  human: 'human',
+  automated: 'automated',
+} as const;
 

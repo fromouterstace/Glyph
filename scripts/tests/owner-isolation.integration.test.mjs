@@ -50,6 +50,7 @@ test('anonymous account reads require authentication before returning user data'
     '/overview',
     '/messages',
     `/messages/${f.own.id}`,
+    `/messages/${f.own.id}/events/0`,
     '/activity',
     '/settings',
     '/connection',
@@ -112,6 +113,11 @@ test('a foreign message detail cannot expose its body, links or events', async (
   });
   expect(response.status).toBe(404);
   expect(await response.json()).toEqual({ error: 'Email not found' });
+  const eventResponse = await h.request(
+    `/messages/${f.foreign.id}/events/0`,
+    { user: f.owner },
+  );
+  expect(eventResponse.status).toBe(404);
 });
 
 test('the rightful owner can retrieve their message with its links and events', async () => {
@@ -122,8 +128,35 @@ test('the rightful owner can retrieve their message with its links and events', 
   const detail = await response.json();
   expect(response.status).toBe(200);
   expect(detail.message.id).toBe(f.foreign.id);
-  expect([detail.links.length, detail.events.items.length]).toEqual([1, 1]);
-  expect(detail.events.pagination.total).toBe(1);
+  expect(detail.links).toHaveLength(1);
+  expect(detail.message.opens).toBe(1);
+});
+
+test('message signal history is returned in bounded owner-scoped pages', async () => {
+  const f = await twoOwners();
+  await h.sql(
+    `INSERT INTO glyph_events(id,message_id,type,source,fingerprint,occurred_at)
+     SELECT 'history-event-' || n::text,$1,'open','fixture',
+       'history-fingerprint-' || n::text,
+       TIMESTAMPTZ '2026-01-01 00:00:00+00' + n * INTERVAL '1 second'
+     FROM generate_series(1,120) AS n`,
+    [f.foreign.id],
+  );
+  const page = await (
+    await h.request(`/messages/${f.foreign.id}/events/50`, {
+      user: f.other,
+    })
+  ).json();
+  expect(page.items).toHaveLength(50);
+  expect(page.items.every((event) => event.messageId === f.foreign.id)).toBe(
+    true,
+  );
+  expect(page.pagination).toEqual({
+    limit: 50,
+    offset: 50,
+    total: 121,
+    hasMore: true,
+  });
 });
 
 test('overview counts only the authenticated owner’s engagement', async () => {

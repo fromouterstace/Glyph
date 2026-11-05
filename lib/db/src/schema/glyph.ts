@@ -38,7 +38,11 @@ export const glyphMessages = pgTable(
     sentAt: timestamp('sent_at', { withTimezone: true }),
   },
   (t) => [
-    index('glyph_messages_owner_idx').on(t.ownerId),
+    index('glyph_messages_owner_created_idx').on(
+      t.ownerId,
+      t.createdAt,
+      t.id,
+    ),
     uniqueIndex('glyph_native_compose_idx').on(t.ownerId, t.nativeComposeKey),
   ],
 );
@@ -70,8 +74,12 @@ export const glyphEvents = pgTable(
       .defaultNow(),
   },
   (t) => [
-    index('glyph_events_message_idx').on(t.messageId),
-    index('glyph_events_time_idx').on(t.occurredAt),
+    index('glyph_events_message_time_idx').on(
+      t.messageId,
+      t.occurredAt,
+      t.id,
+    ),
+    index('glyph_events_time_id_idx').on(t.occurredAt, t.id),
   ],
 );
 

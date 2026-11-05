@@ -26,13 +26,16 @@ import type {
 
 import type {
   ActionResult,
-  Activity,
+  ActivityPage,
   Connection,
+  GetMessageParams,
   HealthStatus,
+  ListActivityParams,
   ListMessagesParams,
   Message,
   MessageDetail,
   MessageInput,
+  MessagePage,
   NativeMessageInput,
   NativeSync,
   NativeTracking,
@@ -329,9 +332,9 @@ export const getListMessagesUrl = (params?: ListMessagesParams,) => {
   return stringifiedParams.length > 0 ? `/api/glyph/messages?${stringifiedParams}` : `/api/glyph/messages`
 }
 
-export const listMessages = async (params?: ListMessagesParams, options?: Parameters<typeof customFetch>[1]): Promise<Message[]> => {
+export const listMessages = async (params?: ListMessagesParams, options?: Parameters<typeof customFetch>[1]): Promise<MessagePage> => {
 
-  return customFetch<Message[]>(getListMessagesUrl(params),
+  return customFetch<MessagePage>(getListMessagesUrl(params),
   {
     ...options,
     method: 'GET'
@@ -498,17 +501,26 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getCreateMessageMutationOptions(options), queryClient);
     }
 
-export const getGetMessageUrl = (id: string,) => {
+export const getGetMessageUrl = (id: string,
+    params?: GetMessageParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/glyph/messages/${id}`
+  return stringifiedParams.length > 0 ? `/api/glyph/messages/${id}?${stringifiedParams}` : `/api/glyph/messages/${id}`
 }
 
-export const getMessage = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<MessageDetail> => {
+export const getMessage = async (id: string,
+    params?: GetMessageParams, options?: Parameters<typeof customFetch>[1]): Promise<MessageDetail> => {
 
-  return customFetch<MessageDetail>(getGetMessageUrl(id),
+  return customFetch<MessageDetail>(getGetMessageUrl(id,params),
   {
     ...options,
     method: 'GET'
@@ -521,23 +533,25 @@ export const getMessage = async (id: string, options?: Parameters<typeof customF
 
 
 
-export const getGetMessageQueryKey = (id: string,) => {
+export const getGetMessageQueryKey = (id: string,
+    params?: GetMessageParams,) => {
     return [
-    `/api/glyph/messages/${id}`
+    `/api/glyph/messages/${id}`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetMessageQueryOptions = <TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<UnauthorizedResponse>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getGetMessageQueryOptions = <TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<UnauthorizedResponse>>(id: string,
+    params?: GetMessageParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetMessageQueryKey(id);
+  const queryKey =  queryOptions?.queryKey ?? getGetMessageQueryKey(id,params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMessage>>> = ({ signal }) => getMessage(id, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMessage>>> = ({ signal }) => getMessage(id,params, { signal, ...requestOptions });
 
 
 
@@ -551,7 +565,8 @@ export type GetMessageQueryError = ErrorType<UnauthorizedResponse>
 
 
 export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<UnauthorizedResponse>>(
- id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>> & Pick<
+ id: string,
+    params: undefined |  GetMessageParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getMessage>>,
           TError,
@@ -561,7 +576,8 @@ export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TE
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<UnauthorizedResponse>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>> & Pick<
+ id: string,
+    params?: GetMessageParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getMessage>>,
           TError,
@@ -571,16 +587,18 @@ export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TE
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<UnauthorizedResponse>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ id: string,
+    params?: GetMessageParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
 export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<UnauthorizedResponse>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ id: string,
+    params?: GetMessageParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetMessageQueryOptions(id,options)
+  const queryOptions = getGetMessageQueryOptions(id,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -812,17 +830,24 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getSendMessageMutationOptions(options), queryClient);
     }
 
-export const getListActivityUrl = () => {
+export const getListActivityUrl = (params?: ListActivityParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/glyph/activity`
+  return stringifiedParams.length > 0 ? `/api/glyph/activity?${stringifiedParams}` : `/api/glyph/activity`
 }
 
-export const listActivity = async ( options?: Parameters<typeof customFetch>[1]): Promise<Activity[]> => {
+export const listActivity = async (params?: ListActivityParams, options?: Parameters<typeof customFetch>[1]): Promise<ActivityPage> => {
 
-  return customFetch<Activity[]>(getListActivityUrl(),
+  return customFetch<ActivityPage>(getListActivityUrl(params),
   {
     ...options,
     method: 'GET'
@@ -835,23 +860,23 @@ export const listActivity = async ( options?: Parameters<typeof customFetch>[1])
 
 
 
-export const getListActivityQueryKey = () => {
+export const getListActivityQueryKey = (params?: ListActivityParams,) => {
     return [
-    `/api/glyph/activity`
+    `/api/glyph/activity`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListActivityQueryOptions = <TData = Awaited<ReturnType<typeof listActivity>>, TError = ErrorType<UnauthorizedResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listActivity>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getListActivityQueryOptions = <TData = Awaited<ReturnType<typeof listActivity>>, TError = ErrorType<UnauthorizedResponse>>(params?: ListActivityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listActivity>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListActivityQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListActivityQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listActivity>>> = ({ signal }) => listActivity({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listActivity>>> = ({ signal }) => listActivity(params, { signal, ...requestOptions });
 
 
 
@@ -865,7 +890,7 @@ export type ListActivityQueryError = ErrorType<UnauthorizedResponse>
 
 
 export function useListActivity<TData = Awaited<ReturnType<typeof listActivity>>, TError = ErrorType<UnauthorizedResponse>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listActivity>>, TError, TData>> & Pick<
+ params: undefined |  ListActivityParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listActivity>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listActivity>>,
           TError,
@@ -875,7 +900,7 @@ export function useListActivity<TData = Awaited<ReturnType<typeof listActivity>>
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListActivity<TData = Awaited<ReturnType<typeof listActivity>>, TError = ErrorType<UnauthorizedResponse>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listActivity>>, TError, TData>> & Pick<
+ params?: ListActivityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listActivity>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listActivity>>,
           TError,
@@ -885,16 +910,16 @@ export function useListActivity<TData = Awaited<ReturnType<typeof listActivity>>
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListActivity<TData = Awaited<ReturnType<typeof listActivity>>, TError = ErrorType<UnauthorizedResponse>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listActivity>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: ListActivityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listActivity>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
 export function useListActivity<TData = Awaited<ReturnType<typeof listActivity>>, TError = ErrorType<UnauthorizedResponse>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listActivity>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ params?: ListActivityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listActivity>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getListActivityQueryOptions(options)
+  const queryOptions = getListActivityQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

@@ -50,16 +50,44 @@ paths:
     get:
       operationId: listMessages
       parameters:
-        - { name: search, in: query, schema: { type: string } }
-        - { name: status, in: query, schema: { type: string } }
+        - { name: search, in: query, schema: { type: string, maxLength: 200 } }
+        - {
+            name: status,
+            in: query,
+            schema:
+              {
+                type: string,
+                enum:
+                  [
+                    all,
+                    draft,
+                    sending,
+                    sent,
+                    failed,
+                    uncertain,
+                    opened,
+                    clicked,
+                    unopened,
+                  ],
+              },
+          }
+        - {
+            name: limit,
+            in: query,
+            schema: { type: integer, minimum: 1, maximum: 100, default: 50 },
+          }
+        - {
+            name: offset,
+            in: query,
+            schema:
+              { type: integer, minimum: 0, maximum: 10000, default: 0 },
+          }
       responses:
         '200':
-          description: Authenticated owner's messages
+          description: Bounded, ordered page of the authenticated owner's messages
           content:
             application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/Message' }
+              schema: { $ref: '#/components/schemas/MessagePage' }
         '401': { $ref: '#/components/responses/Unauthorized' }
     post:
       operationId: createMessage
@@ -82,10 +110,28 @@ paths:
       operationId: getMessage
       responses:
         '200':
-          description: Message detail
+          description: Message detail with a bounded signal-history page
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MessageDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /glyph/messages/{id}/events/{offset}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+      - {
+          name: offset,
+          in: path,
+          required: true,
+          schema: { type: integer, minimum: 0, maximum: 10000 },
+        }
+    get:
+      operationId: listMessageEvents
+      responses:
+        '200':
+          description: Bounded signal-history page for an owned message
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActivityPage' }
         '401': { $ref: '#/components/responses/Unauthorized' }
     patch:
       operationId: updateMessage
@@ -121,14 +167,33 @@ paths:
   /glyph/activity:
     get:
       operationId: listActivity
+      parameters:
+        - {
+            name: limit,
+            in: query,
+            schema: { type: integer, minimum: 1, maximum: 100, default: 50 },
+          }
+        - {
+            name: offset,
+            in: query,
+            schema:
+              { type: integer, minimum: 0, maximum: 10000, default: 0 },
+          }
+        - {
+            name: type,
+            in: query,
+            schema:
+              {
+                type: string,
+                enum: [all, open, click, sent, reply, human, automated],
+              },
+          }
       responses:
         '200':
-          description: Authenticated owner's most recent engagement signals
+          description: Bounded, ordered page of the authenticated owner's signals
           content:
             application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/Activity' }
+              schema: { $ref: '#/components/schemas/ActivityPage' }
         '401': { $ref: '#/components/responses/Unauthorized' }
   /glyph/activity/read:
     post:
@@ -318,15 +383,36 @@ components:
         deliverySource: { type: string, enum: [web, gmail] }
     MessageDetail:
       type: object
-      required: [message, events, links]
+      required: [message, links]
       properties:
         message: { $ref: '#/components/schemas/Message' }
-        events:
-          type: array
-          items: { $ref: '#/components/schemas/Activity' }
         links:
           type: array
           items: { $ref: '#/components/schemas/TrackedLink' }
+    Pagination:
+      type: object
+      required: [limit, offset, total, hasMore]
+      properties:
+        limit: { type: integer, minimum: 1, maximum: 100 }
+        offset: { type: integer, minimum: 0, maximum: 10000 }
+        total: { type: integer, minimum: 0 }
+        hasMore: { type: boolean }
+    MessagePage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Message' }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+    ActivityPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Activity' }
+        pagination: { $ref: '#/components/schemas/Pagination' }
     TrackedLink:
       type: object
       required: [id, url, clicks]

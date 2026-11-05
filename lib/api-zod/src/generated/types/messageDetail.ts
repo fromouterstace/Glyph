@@ -5,12 +5,12 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { Activity } from './activity';
+import type { ActivityPage } from './activityPage';
 import type { Message } from './message';
 import type { TrackedLink } from './trackedLink';
 
 export interface MessageDetail {
   message: Message;
-  events: Activity[];
+  events: ActivityPage;
   links: TrackedLink[];
 }
