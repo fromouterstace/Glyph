@@ -51,6 +51,7 @@ They are included in `check:all`, not silently treated as CI-passing unit tests.
 | `pnpm check`                       | Zero-warning lint, verified formatting, strict TypeScript, pure unit tests, local source-contract tests, mocked UI tests, critical coverage and build-gate negative-controls | Installed packages; no Gmail, database, or running app     |
 | `pnpm check:integration`           | Actual PostgreSQL constraints and production tracking router                                                                                                                 | Development/test PostgreSQL; schema create/drop permission |
 | `pnpm check:http`                  | Anonymous access, image responses, authentication/write boundary checks                                                                                                      | Running local app/proxy on port 80                         |
+| `pnpm check:smoke`                 | Read-only page, entry-asset, extension-download, anonymous API and invalid-token delivery checks                                                                             | Running local app/proxy; bounded startup-health preflight  |
 | `pnpm check:all`                   | All of the above                                                                                                                                                             | Running local app plus test database                       |
 | `PORT=3000 BASE_PATH=/ pnpm build` | Fast checks followed by both production artifact bundles                                                                                                                     | Installed packages                                         |
 
@@ -59,6 +60,10 @@ configured publishing builds are gated too. `build:artifact` is the internal
 ungated bundle primitive used _after_ a successful root preflight; it is not a
 release command. Development startup remains fast and does not run the gate.
 Negative-control tests prove a failed preflight prevents each configured build.
+The complete gate also executes smoke and propagates a smoke failure. The UI test
+entrypoint explicitly selects test mode, with a negative control for inherited
+production mode. HTTP contracts wait up to 15 seconds for healthy API JSON before
+their assertions; they do not retry a failed security or persistence assertion.
 The Replit `release` validation runs `pnpm check:all` before building both
 production artifacts. GitHub Actions runs the fast build gate and PostgreSQL
 integration suite; running-app HTTP contracts remain in the configured Replit
@@ -150,3 +155,21 @@ actual recipient image proxy fetching a newly sent pixel, real Chrome/Edge
 extension lifecycle behavior, real provider replies reaching the connected Gmail
 mailbox, and notification delivery across browser/server restarts. Use controlled
 test mailboxes for those release smoke checks; do not manufacture customer opens.
+
+## Running smoke against a published release
+
+Use `pnpm check:smoke https://YOUR-PUBLISHED-ORIGIN` with the current URL returned
+by publishing metadata. Remote targets must use HTTPS, without credentials,
+query strings or subpaths. The default is the local proxy on port 80.
+
+This command issues only anonymous GETs. It uses deliberately invalid tracking
+tokens, so it cannot create customer engagement or follow a customer link. It
+checks HTML shells and directly referenced local JavaScript/CSS, not execution of
+JavaScript, transitive chunks, sign-in, user isolation after sign-in, database
+readiness, Gmail authorization, notification delivery or valid-token persistence.
+An HTML fallback for a missing asset/ZIP fails. An account-read 200 or redirect
+fails even when its result appears empty. Do not relax those assertions to make
+an older published release appear healthy.
+
+See [smoke and server-health audit](smoke-health-audit.md) for the current evidence
+and the distinction between liveness, readiness and a successful user journey.

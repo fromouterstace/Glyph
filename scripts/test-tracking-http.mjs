@@ -1,5 +1,6 @@
-import test from 'node:test';
+import test, { before } from 'node:test';
 import assert from 'node:assert/strict';
+import { waitForHealth } from './lib/health-probe.mjs';
 
 // These checks never target production or request a real customer's pixel.
 const base = process.env.GLYPH_HTTP_BASE_URL || 'http://127.0.0.1:80';
@@ -11,6 +12,9 @@ if (!['127.0.0.1', 'localhost', '[::1]'].includes(origin.hostname))
 const pixel = `${base}/api/glyph/t/not-a-customer-pixel.gif`;
 const request = (url, options = {}) =>
   fetch(url, { signal: AbortSignal.timeout(5_000), ...options });
+
+// Retry startup health only, never a failed security or persistence assertion.
+before(() => waitForHealth({ base }));
 
 test('malformed JSON is a client error, not a server failure', async () => {
   const response = await request(`${base}/api/glyph/messages`, {

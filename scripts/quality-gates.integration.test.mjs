@@ -171,3 +171,52 @@ test('coverage gate actually rejects an uncovered branch in a negative control',
     /coverage.*(threshold|less than)|branch.*coverage/i,
   );
 });
+
+test('the complete release gate executes smoke and propagates its failure', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'glyph-smoke-gate-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const executable = join(directory, 'pnpm');
+  await writeFile(
+    executable,
+    '#!/bin/sh\ncase "$*" in check:smoke) exit 23;; *) exit 0;; esac\n',
+  );
+  await chmod(executable, 0o755);
+  const { scripts } = JSON.parse(
+    await readFile(new URL('../package.json', import.meta.url), 'utf8'),
+  );
+  const result = spawnSync('sh', ['-c', scripts['check:all']], {
+    env: { ...process.env, PATH: `${directory}:${process.env.PATH}` },
+    encoding: 'utf8',
+    timeout: 5_000,
+  });
+  assert.equal(
+    result.status,
+    23,
+    'A removed or ignored smoke gate must not pass.',
+  );
+});
+
+test('the UI test entrypoint overrides inherited production mode', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'glyph-test-mode-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const executable = join(directory, 'vitest');
+  await writeFile(executable, '#!/bin/sh\nprintf "%s" "$NODE_ENV"\n');
+  await chmod(executable, 0o755);
+  const { scripts } = JSON.parse(
+    await readFile(
+      new URL('../artifacts/glyph/package.json', import.meta.url),
+      'utf8',
+    ),
+  );
+  const result = spawnSync('sh', ['-c', scripts.test], {
+    env: {
+      ...process.env,
+      NODE_ENV: 'production',
+      PATH: `${directory}:${process.env.PATH}`,
+    },
+    encoding: 'utf8',
+    timeout: 5_000,
+  });
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout, 'test');
+});
