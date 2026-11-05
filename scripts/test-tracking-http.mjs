@@ -7,13 +7,17 @@ const base = 'http://127.0.0.1:80';
 const pixel = `${base}/api/glyph/t/${'0'.repeat(48)}.gif`;
 
 test('anonymous activity reads contain no fabricated account data', async () => {
-  const [messagesResponse, activityResponse, overviewResponse, sampleIdResponse] =
-    await Promise.all([
-      fetch(`${base}/api/glyph/messages`),
-      fetch(`${base}/api/glyph/activity`),
-      fetch(`${base}/api/glyph/overview`),
-      fetch(`${base}/api/glyph/messages/demo-1`),
-    ]);
+  const [
+    messagesResponse,
+    activityResponse,
+    overviewResponse,
+    sampleIdResponse,
+  ] = await Promise.all([
+    fetch(`${base}/api/glyph/messages`),
+    fetch(`${base}/api/glyph/activity`),
+    fetch(`${base}/api/glyph/overview`),
+    fetch(`${base}/api/glyph/messages/demo-1`),
+  ]);
   assert.equal(messagesResponse.status, 200);
   assert.equal(activityResponse.status, 200);
   assert.equal(overviewResponse.status, 200);

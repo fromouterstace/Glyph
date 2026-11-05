@@ -3,3 +3,4 @@
 - [Provider-independent replies](provider-independent-replies.md) — recipient email service must not limit reply detection.
 - [Editable form lifetimes](form-state-lifecycle.md) — preserve edits during polling; reset forms and confirmations when message identity changes.
 - [Quality-tooling checks](quality-tooling.md) — audit the complete tooling dependency graph and verify formatting independently of writing it.
+- [Database-backed activity](database-backed-activity.md) — persist actual message and engagement data in PostgreSQL; never substitute hardcoded sample records.

@@ -1,13 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'wouter';
-import {
-  Search,
-  PenLine,
-  Send,
-  Trash2,
-  Pencil,
-  Link2,
-} from 'lucide-react';
+import { Search, PenLine, Send, Trash2, Pencil, Link2 } from 'lucide-react';
 import { MessageSummary, SignalTrail } from '@/components/message-summary';
 import { MessageEngagement } from '@/components/engagement';
 import {
@@ -93,7 +86,7 @@ export default function Emails() {
         kicker="Tracked messages"
         title={
           <span className="flex items-center gap-3">
-          Emails {readOnly && <ReadOnlyTag />}
+            Emails {readOnly && <ReadOnlyTag />}
           </span>
         }
         right={

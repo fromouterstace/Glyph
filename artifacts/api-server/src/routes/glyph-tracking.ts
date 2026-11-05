@@ -24,17 +24,15 @@ async function recordSignal(
       ? 'Google image proxy — open signal only'
       : 'Unverified client request';
   const id = randomUUID();
-  await db
-    .insert(glyphEvents)
-    .values({
-      id,
-      messageId,
-      type,
-      url,
-      automated,
-      source,
-      fingerprint: id,
-    });
+  await db.insert(glyphEvents).values({
+    id,
+    messageId,
+    type,
+    url,
+    automated,
+    source,
+    fingerprint: id,
+  });
 }
 
 async function recordOpen(
@@ -89,10 +87,7 @@ router.get('/glyph/t/:token', async (req, res): Promise<void> => {
             .from(glyphMessages)
             .where(eq(glyphMessages.pixelToken, token));
         }
-        const outcome = await recordOpen(
-          message,
-          req.get('user-agent') ?? '',
-        );
+        const outcome = await recordOpen(message, req.get('user-agent') ?? '');
         req.log.info(
           {
             messageId: message?.id ?? null,
