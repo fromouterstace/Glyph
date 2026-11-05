@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode, type ComponentType } from 'react';
-import { ClerkProvider, SignIn, SignUp, useClerk } from '@clerk/react';
+import { ClerkProvider, SignIn, SignUp, Show, useClerk } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import {
   QueryClient,
@@ -39,6 +39,7 @@ const clerkPubKey = publishableKeyFromHost(
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+const postAuthUrl = `${basePath}/gmail`;
 
 function stripBase(path: string): string {
   return basePath && path.startsWith(basePath)
@@ -158,6 +159,7 @@ function SignInPage() {
         routing="path"
         path={`${basePath}/sign-in`}
         signUpUrl={`${basePath}/sign-up`}
+        forceRedirectUrl={postAuthUrl}
       />
     </AuthFrame>
   );
@@ -170,6 +172,7 @@ function SignUpPage() {
         routing="path"
         path={`${basePath}/sign-up`}
         signInUrl={`${basePath}/sign-in`}
+        forceRedirectUrl={postAuthUrl}
       />
     </AuthFrame>
   );
@@ -198,7 +201,49 @@ function ClerkQueryClientCacheInvalidator() {
 }
 
 function HomeRedirect() {
-  return <Redirect to="/app" />;
+  return (
+    <>
+      <Show when="signed-in">
+        <Redirect to="/gmail" />
+      </Show>
+      <Show when="signed-out">
+        <PublicLanding />
+      </Show>
+    </>
+  );
+}
+
+function PublicLanding() {
+  return (
+    <AuthFrame>
+      <div className="max-w-md space-y-5">
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
+          Gmail engagement signals
+        </p>
+        <h1 className="font-display text-4xl font-extrabold leading-tight">
+          Know what happens after you send.
+        </h1>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Sign in to see your tracked messages and follow the instructions for
+          connecting Glyph to Gmail.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="/sign-in"
+            className="rounded-sm bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/sign-up"
+            className="rounded-sm border border-border px-4 py-2.5 text-sm font-semibold"
+          >
+            Create account
+          </Link>
+        </div>
+      </div>
+    </AuthFrame>
+  );
 }
 
 function AppHome() {
@@ -219,6 +264,7 @@ const wrap = (C: ComponentType) => () => (
   </AuthGate>
 );
 const EmailsRoute = wrap(Emails);
+const EmailAliasRoute = () => <Redirect to="/emails" />;
 const ActivityRoute = wrap(ActivityPage);
 const SettingsRoute = wrap(SettingsPage);
 const GmailRoute = wrap(GmailPage);
@@ -262,6 +308,7 @@ function ClerkProviderWithRoutes() {
             <Switch>
               <Route path="/" component={HomeRedirect} />
               <Route path="/app" component={AppHome} />
+              <Route path="/email" component={EmailAliasRoute} />
               <Route path="/emails" component={EmailsRoute} />
               <Route path="/emails/:id" component={EmailsRoute} />
               <Route path="/activity" component={ActivityRoute} />

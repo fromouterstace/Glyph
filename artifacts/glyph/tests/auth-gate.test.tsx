@@ -43,10 +43,10 @@ describe('private account route authentication', () => {
     expect(html).not.toContain('data-redirect');
   });
 
-  it('redirects a signed-out visitor to sign-in and retains the requested path', () => {
+  it('redirects a signed-out visitor to sign-in without rendering private data', () => {
     state.isSignedIn = false;
     const html = renderGate();
-    expect(html).toContain('/sign-in?redirect_url=%2Femails%2Fmessage-123');
+    expect(html).toContain('data-redirect="/sign-in"');
     expect(html).not.toContain('Private account data');
   });
 

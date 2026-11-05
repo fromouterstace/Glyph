@@ -104,7 +104,8 @@ Release verification follows all changed workstreams.
 
 **Status:** Implemented and verified in the workspace on 2026-11-05; not yet
 published. The private-route UI and account API checks pass, including direct
-deep links and anonymous HTTP requests.
+deep links and anonymous HTTP requests. Successful sign-in and sign-up now force
+the Gmail instructions page (`/gmail`) as the landing destination.
 
 **Implementation**
 

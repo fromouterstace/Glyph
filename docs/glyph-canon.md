@@ -25,6 +25,10 @@ product policy.
 - The sender mailbox is the one Gmail mailbox connected to this deployment. A
   different mailbox requires its own appropriately connected deployment. Gmail
   send-as aliases are not supported. A recipient can use any email service.
+- Require Clerk sign-in for `/app`, `/email` (and `/emails`), `/activity`,
+  `/settings`, and `/gmail`, with account-data APIs independently enforcing
+  authentication and owner scope. After sign-in or sign-up, send users to the
+  Gmail instructions at `/gmail`. Keep `/` as a public, static landing page.
 - The earlier Frevana / QBR / NaturalQuoteTracker identifiers belong to a
   different product. Do not add QBR strings, contact IDs, or NQT domain concepts
   to Glyph's message, owner, or event model.
