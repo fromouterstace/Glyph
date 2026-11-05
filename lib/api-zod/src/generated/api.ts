@@ -192,29 +192,6 @@ export const GetMessageParams = zod.object({
   "id": zod.coerce.string()
 })
 
-export const getMessageQueryEventLimitDefault = 50;
-export const getMessageQueryEventLimitMax = 100;
-
-export const getMessageQueryEventOffsetDefault = 0;
-export const getMessageQueryEventOffsetMin = 0;
-export const getMessageQueryEventOffsetMax = 10000;
-
-
-
-export const GetMessageQueryParams = zod.object({
-  "eventLimit": zod.coerce.number().int().min(1).max(getMessageQueryEventLimitMax).default(getMessageQueryEventLimitDefault),
-  "eventOffset": zod.coerce.number().int().min(getMessageQueryEventOffsetMin).max(getMessageQueryEventOffsetMax).default(getMessageQueryEventOffsetDefault)
-})
-
-export const getMessageResponseEventsPaginationLimitMax = 100;
-
-export const getMessageResponseEventsPaginationOffsetMin = 0;
-export const getMessageResponseEventsPaginationOffsetMax = 10000;
-
-export const getMessageResponseEventsPaginationTotalMin = 0;
-
-
-
 export const GetMessageResponse = zod.object({
   "message": zod.object({
   "id": zod.string(),
@@ -236,7 +213,34 @@ export const GetMessageResponse = zod.object({
   "lastActivityAt": zod.string().nullable(),
   "deliverySource": zod.enum(['web', 'gmail']).optional()
 }),
-  "events": zod.object({
+  "links": zod.array(zod.object({
+  "id": zod.string(),
+  "url": zod.string(),
+  "clicks": zod.int()
+}))
+})
+
+
+export const listMessageEventsPathOffsetMin = 0;
+export const listMessageEventsPathOffsetMax = 10000;
+
+
+
+export const ListMessageEventsParams = zod.object({
+  "id": zod.coerce.string(),
+  "offset": zod.coerce.number().int().min(listMessageEventsPathOffsetMin).max(listMessageEventsPathOffsetMax)
+})
+
+export const listMessageEventsResponsePaginationLimitMax = 100;
+
+export const listMessageEventsResponsePaginationOffsetMin = 0;
+export const listMessageEventsResponsePaginationOffsetMax = 10000;
+
+export const listMessageEventsResponsePaginationTotalMin = 0;
+
+
+
+export const ListMessageEventsResponse = zod.object({
   "items": zod.array(zod.object({
   "id": zod.string(),
   "messageId": zod.string(),
@@ -251,22 +255,22 @@ export const GetMessageResponse = zod.object({
   "read": zod.boolean()
 })),
   "pagination": zod.object({
-  "limit": zod.int().min(1).max(getMessageResponseEventsPaginationLimitMax),
-  "offset": zod.int().min(getMessageResponseEventsPaginationOffsetMin).max(getMessageResponseEventsPaginationOffsetMax),
-  "total": zod.int().min(getMessageResponseEventsPaginationTotalMin),
+  "limit": zod.int().min(1).max(listMessageEventsResponsePaginationLimitMax),
+  "offset": zod.int().min(listMessageEventsResponsePaginationOffsetMin).max(listMessageEventsResponsePaginationOffsetMax),
+  "total": zod.int().min(listMessageEventsResponsePaginationTotalMin),
   "hasMore": zod.boolean()
 })
-}),
-  "links": zod.array(zod.object({
-  "id": zod.string(),
-  "url": zod.string(),
-  "clicks": zod.int()
-}))
 })
+
+
+export const updateMessagePathOffsetMin = 0;
+export const updateMessagePathOffsetMax = 10000;
+
 
 
 export const UpdateMessageParams = zod.object({
-  "id": zod.coerce.string()
+  "id": zod.coerce.string(),
+  "offset": zod.coerce.number().int().min(updateMessagePathOffsetMin).max(updateMessagePathOffsetMax)
 })
 
 export const updateMessageBodyRecipientEmailMax = 254;
@@ -310,8 +314,14 @@ export const UpdateMessageResponse = zod.object({
 })
 
 
+export const deleteMessagePathOffsetMin = 0;
+export const deleteMessagePathOffsetMax = 10000;
+
+
+
 export const DeleteMessageParams = zod.object({
-  "id": zod.coerce.string()
+  "id": zod.coerce.string(),
+  "offset": zod.coerce.number().int().min(deleteMessagePathOffsetMin).max(deleteMessagePathOffsetMax)
 })
 
 export const DeleteMessageResponse = zod.void()

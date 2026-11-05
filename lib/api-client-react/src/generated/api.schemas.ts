@@ -121,6 +121,38 @@ export interface Message {
   deliverySource?: MessageDeliverySource;
 }
 
+export interface TrackedLink {
+  id: string;
+  url: string;
+  clicks: number;
+}
+
+export interface MessageDetail {
+  message: Message;
+  links: TrackedLink[];
+}
+
+export interface Pagination {
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
+  limit: number;
+  /**
+     * @minimum 0
+     * @maximum 10000
+     */
+  offset: number;
+  /** @minimum 0 */
+  total: number;
+  hasMore: boolean;
+}
+
+export interface MessagePage {
+  items: Message[];
+  pagination: Pagination;
+}
+
 export type ActivityType = typeof ActivityType[keyof typeof ActivityType];
 
 
@@ -146,41 +178,8 @@ export interface Activity {
   read: boolean;
 }
 
-export interface Pagination {
-  /**
-     * @minimum 1
-     * @maximum 100
-     */
-  limit: number;
-  /**
-     * @minimum 0
-     * @maximum 10000
-     */
-  offset: number;
-  /** @minimum 0 */
-  total: number;
-  hasMore: boolean;
-}
-
 export interface ActivityPage {
   items: Activity[];
-  pagination: Pagination;
-}
-
-export interface TrackedLink {
-  id: string;
-  url: string;
-  clicks: number;
-}
-
-export interface MessageDetail {
-  message: Message;
-  events: ActivityPage;
-  links: TrackedLink[];
-}
-
-export interface MessagePage {
-  items: Message[];
   pagination: Pagination;
 }
 
@@ -262,19 +261,6 @@ export const ListMessagesStatus = {
   clicked: 'clicked',
   unopened: 'unopened',
 } as const;
-
-export type GetMessageParams = {
-  /**
-   * @minimum 1
-   * @maximum 100
-   */
-  eventLimit?: number;
-  /**
-   * @minimum 0
-   * @maximum 10000
-   */
-  eventOffset?: number;
-};
 
 export type ListActivityParams = {
   /**

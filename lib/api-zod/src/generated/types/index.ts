@@ -12,7 +12,6 @@ export * from './activityPage';
 export * from './activityType';
 export * from './connection';
 export * from './dailyStat';
-export * from './getMessageParams';
 export * from './healthStatus';
 export * from './listActivityParams';
 export * from './listActivityType';

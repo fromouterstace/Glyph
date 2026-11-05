@@ -28,7 +28,6 @@ import type {
   ActionResult,
   ActivityPage,
   Connection,
-  GetMessageParams,
   HealthStatus,
   ListActivityParams,
   ListMessagesParams,
@@ -501,26 +500,17 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getCreateMessageMutationOptions(options), queryClient);
     }
 
-export const getGetMessageUrl = (id: string,
-    params?: GetMessageParams,) => {
-  const normalizedParams = new URLSearchParams();
+export const getGetMessageUrl = (id: string,) => {
 
-  Object.entries(params || {}).forEach(([key, value]) => {
 
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/glyph/messages/${id}?${stringifiedParams}` : `/api/glyph/messages/${id}`
+  return `/api/glyph/messages/${id}`
 }
 
-export const getMessage = async (id: string,
-    params?: GetMessageParams, options?: Parameters<typeof customFetch>[1]): Promise<MessageDetail> => {
+export const getMessage = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<MessageDetail> => {
 
-  return customFetch<MessageDetail>(getGetMessageUrl(id,params),
+  return customFetch<MessageDetail>(getGetMessageUrl(id),
   {
     ...options,
     method: 'GET'
@@ -533,25 +523,23 @@ export const getMessage = async (id: string,
 
 
 
-export const getGetMessageQueryKey = (id: string,
-    params?: GetMessageParams,) => {
+export const getGetMessageQueryKey = (id: string,) => {
     return [
-    `/api/glyph/messages/${id}`, ...(params ? [params] : [])
+    `/api/glyph/messages/${id}`
     ] as const;
     }
 
 
-export const getGetMessageQueryOptions = <TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<UnauthorizedResponse>>(id: string,
-    params?: GetMessageParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getGetMessageQueryOptions = <TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<UnauthorizedResponse>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetMessageQueryKey(id,params);
+  const queryKey =  queryOptions?.queryKey ?? getGetMessageQueryKey(id);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMessage>>> = ({ signal }) => getMessage(id,params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMessage>>> = ({ signal }) => getMessage(id, { signal, ...requestOptions });
 
 
 
@@ -565,8 +553,7 @@ export type GetMessageQueryError = ErrorType<UnauthorizedResponse>
 
 
 export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<UnauthorizedResponse>>(
- id: string,
-    params: undefined |  GetMessageParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>> & Pick<
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getMessage>>,
           TError,
@@ -576,8 +563,7 @@ export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TE
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<UnauthorizedResponse>>(
- id: string,
-    params?: GetMessageParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>> & Pick<
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getMessage>>,
           TError,
@@ -587,18 +573,16 @@ export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TE
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<UnauthorizedResponse>>(
- id: string,
-    params?: GetMessageParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
 export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TError = ErrorType<UnauthorizedResponse>>(
- id: string,
-    params?: GetMessageParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMessage>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetMessageQueryOptions(id,params,options)
+  const queryOptions = getGetMessageQueryOptions(id,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -611,15 +595,120 @@ export function useGetMessage<TData = Awaited<ReturnType<typeof getMessage>>, TE
 
 
 
-export const getUpdateMessageUrl = (id: string,) => {
+export const getListMessageEventsUrl = (id: string,
+    offset: number,) => {
 
 
 
 
-  return `/api/glyph/messages/${id}`
+  return `/api/glyph/messages/${id}/events/${offset}`
+}
+
+export const listMessageEvents = async (id: string,
+    offset: number, options?: Parameters<typeof customFetch>[1]): Promise<ActivityPage> => {
+
+  return customFetch<ActivityPage>(getListMessageEventsUrl(id,offset),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMessageEventsQueryKey = (id: string,
+    offset: number,) => {
+    return [
+    `/api/glyph/messages/${id}/events/${offset}`
+    ] as const;
+    }
+
+
+export const getListMessageEventsQueryOptions = <TData = Awaited<ReturnType<typeof listMessageEvents>>, TError = ErrorType<UnauthorizedResponse>>(id: string,
+    offset: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMessageEvents>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMessageEventsQueryKey(id,offset);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMessageEvents>>> = ({ signal }) => listMessageEvents(id,offset, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined && offset !== null && offset !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMessageEvents>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListMessageEventsQueryResult = NonNullable<Awaited<ReturnType<typeof listMessageEvents>>>
+export type ListMessageEventsQueryError = ErrorType<UnauthorizedResponse>
+
+
+export function useListMessageEvents<TData = Awaited<ReturnType<typeof listMessageEvents>>, TError = ErrorType<UnauthorizedResponse>>(
+ id: string,
+    offset: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMessageEvents>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listMessageEvents>>,
+          TError,
+          Awaited<ReturnType<typeof listMessageEvents>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListMessageEvents<TData = Awaited<ReturnType<typeof listMessageEvents>>, TError = ErrorType<UnauthorizedResponse>>(
+ id: string,
+    offset: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMessageEvents>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listMessageEvents>>,
+          TError,
+          Awaited<ReturnType<typeof listMessageEvents>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListMessageEvents<TData = Awaited<ReturnType<typeof listMessageEvents>>, TError = ErrorType<UnauthorizedResponse>>(
+ id: string,
+    offset: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMessageEvents>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListMessageEvents<TData = Awaited<ReturnType<typeof listMessageEvents>>, TError = ErrorType<UnauthorizedResponse>>(
+ id: string,
+    offset: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMessageEvents>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListMessageEventsQueryOptions(id,offset,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateMessageUrl = (id: string,
+    offset: number,) => {
+
+
+
+
+  return `/api/glyph/messages/${id}/events/${offset}`
 }
 
 export const updateMessage = async (id: string,
+    offset: number,
     messageInput: MessageInput, options?: Parameters<typeof customFetch>[1]): Promise<Message> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
@@ -636,7 +725,7 @@ export const updateMessage = async (id: string,
     }
     return headers;
   };
-return customFetch<Message>(getUpdateMessageUrl(id),
+return customFetch<Message>(getUpdateMessageUrl(id,offset),
   {
     ...options,
     method: 'PATCH',
@@ -666,9 +755,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMessage>>, UpdateMessageMutationVariables> = (props) => {
-          const {id,data} = props ?? {};
+          const {id,offset,data} = props ?? {};
 
-          return  updateMessage(id,data,requestOptions)
+          return  updateMessage(id,offset,data,requestOptions)
         }
 
 
@@ -681,7 +770,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateMessageMutationResult = NonNullable<Awaited<ReturnType<typeof updateMessage>>>
     export type UpdateMessageMutationBody = BodyType<MessageInput>
     export type UpdateMessageMutationError = ErrorType<UnauthorizedResponse>
-    export type UpdateMessageMutationVariables = {id: string;data: BodyType<MessageInput>}
+    export type UpdateMessageMutationVariables = {id: string;offset: number;data: BodyType<MessageInput>}
 
     export const useUpdateMessage = <TError = ErrorType<UnauthorizedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMessage>>, TError,UpdateMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -694,17 +783,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getUpdateMessageMutationOptions(options), queryClient);
     }
 
-export const getDeleteMessageUrl = (id: string,) => {
+export const getDeleteMessageUrl = (id: string,
+    offset: number,) => {
 
 
 
 
-  return `/api/glyph/messages/${id}`
+  return `/api/glyph/messages/${id}/events/${offset}`
 }
 
-export const deleteMessage = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+export const deleteMessage = async (id: string,
+    offset: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
 
-  return customFetch<void>(getDeleteMessageUrl(id),
+  return customFetch<void>(getDeleteMessageUrl(id,offset),
   {
     ...options,
     method: 'DELETE'
@@ -734,9 +825,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteMessage>>, DeleteMessageMutationVariables> = (props) => {
-          const {id} = props ?? {};
+          const {id,offset} = props ?? {};
 
-          return  deleteMessage(id,requestOptions)
+          return  deleteMessage(id,offset,requestOptions)
         }
 
 
@@ -749,7 +840,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type DeleteMessageMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMessage>>>
 
     export type DeleteMessageMutationError = ErrorType<UnauthorizedResponse>
-    export type DeleteMessageMutationVariables = {id: string}
+    export type DeleteMessageMutationVariables = {id: string;offset: number}
 
     export const useDeleteMessage = <TError = ErrorType<UnauthorizedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMessage>>, TError,DeleteMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
