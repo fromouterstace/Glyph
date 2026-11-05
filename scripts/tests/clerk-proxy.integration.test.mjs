@@ -1,28 +1,16 @@
 import { PassThrough, Writable } from 'node:stream';
 import { once } from 'node:events';
 import { readFile } from 'node:fs/promises';
-import { afterEach, expect, test, vi } from 'vitest';
-
-const proxyState = vi.hoisted(() => ({ options: undefined, calls: 0 }));
-vi.mock('http-proxy-middleware', () => ({
-  createProxyMiddleware(options) {
-    proxyState.options = options;
-    return (_req, _res, next) => {
-      proxyState.calls++;
-      next?.();
-    };
-  },
-}));
+import { expect, test } from 'vitest';
 
 import {
   clerkProxyMiddleware,
+  clerkProxyOptions,
   getClerkProxyHost,
   getTrustedRequestOrigin,
   isSameTrustedOrigin,
   relayClerkResponse,
 } from '../../artifacts/api-server/src/middlewares/clerkProxyMiddleware.ts';
-
-afterEach(() => vi.unstubAllEnvs());
 
 function makeResponse() {
   const chunks = [];
@@ -68,7 +56,6 @@ test('forwarded host and protocol must each be a single valid value', () => {
         'x-forwarded-host': 'glyph.example',
         'x-forwarded-proto': 'https',
       },
-      socket: {},
     }),
   ).toBe('https://glyph.example');
   expect(
@@ -79,7 +66,6 @@ test('forwarded host and protocol must each be a single valid value', () => {
   expect(
     getTrustedRequestOrigin({
       headers: { host: 'glyph.example', 'x-forwarded-proto': 'https,http' },
-      socket: {},
     }),
   ).toBeUndefined();
   expect(
@@ -88,6 +74,34 @@ test('forwarded host and protocol must each be a single valid value', () => {
   expect(
     isSameTrustedOrigin('https://glyph.example/path', 'https://glyph.example'),
   ).toBe(false);
+});
+
+test('production origin is restricted to the verified published hostname', () => {
+  const previousNodeEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'production';
+  try {
+    expect(
+      getTrustedRequestOrigin({
+        headers: {
+          host: 'internal',
+          'x-forwarded-host': 'glyph-mail.replit.app',
+          'x-forwarded-proto': 'https',
+        },
+      }),
+    ).toBe('https://glyph-mail.replit.app');
+    expect(
+      getTrustedRequestOrigin({
+        headers: {
+          host: 'internal',
+          'x-forwarded-host': 'attacker.invalid',
+          'x-forwarded-proto': 'https',
+        },
+      }),
+    ).toBeUndefined();
+  } finally {
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+  }
 });
 
 test('static deployment headers keep framing, MIME, and referrer policies explicit', async () => {
@@ -176,24 +190,52 @@ test('aborted upstream and proxy timeout produce bounded, controlled errors', as
     'private upstream detail',
   );
 
+  const options = clerkProxyOptions('test-only-placeholder');
+  expect(options.proxyTimeout).toBe(10_000);
+  expect(options.timeout).toBe(15_000);
+  const timedOut = makeResponse();
+  options.on.error(
+    Object.assign(new Error('timeout'), { code: 'ETIMEDOUT' }),
+    {},
+    timedOut.response,
+  );
+  await once(timedOut.response, 'finish');
+  expect(timedOut.status).toBe(504);
+});
+
+test('production Clerk proxy rejects ambiguous headers and missing credentials', async () => {
   const previousNodeEnv = process.env.NODE_ENV;
   const previousSecret = process.env.CLERK_SECRET_KEY;
   process.env.NODE_ENV = 'production';
   process.env.CLERK_SECRET_KEY = 'test-only-placeholder';
   try {
-    proxyState.options = undefined;
-    proxyState.calls = 0;
-    clerkProxyMiddleware();
-    expect(proxyState.options.proxyTimeout).toBe(10_000);
-    expect(proxyState.options.timeout).toBe(15_000);
-    const timedOut = makeResponse();
-    proxyState.options.on.error(
-      Object.assign(new Error('timeout'), { code: 'ETIMEDOUT' }),
-      {},
-      timedOut.response,
+    const invalid = makeResponse();
+    clerkProxyMiddleware()(
+      {
+        headers: {
+          host: 'glyph.example',
+          'x-forwarded-host': 'glyph.example, attacker.invalid',
+          'x-forwarded-proto': 'https',
+        },
+      },
+      invalid.response,
+      () => {},
     );
-    await once(timedOut.response, 'finish');
-    expect(timedOut.status).toBe(504);
+    await once(invalid.response, 'finish');
+    expect(invalid.status).toBe(400);
+
+    process.env.CLERK_SECRET_KEY = '';
+    const unavailable = makeResponse();
+    clerkProxyMiddleware()(
+      { headers: { host: 'glyph.example' } },
+      unavailable.response,
+      () => {},
+    );
+    await once(unavailable.response, 'finish');
+    expect(unavailable.status).toBe(503);
+    expect(Buffer.concat(unavailable.chunks).toString()).not.toContain(
+      'test-only-placeholder',
+    );
   } finally {
     if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = previousNodeEnv;

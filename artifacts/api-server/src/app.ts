@@ -34,8 +34,6 @@ app.use((_req, res, next) => {
     'Content-Security-Policy':
       "frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
   });
-  if (process.env.NODE_ENV === 'production')
-    res.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains');
   next();
 });
 // Tracking images and redirects are deliberately public. In particular, Clerk's

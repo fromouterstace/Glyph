@@ -196,6 +196,25 @@ product policy.
 - Use a stable published HTTPS origin for new real sends, connection, redirects,
   pixels, and reporting. The extension connection, server-approved tracking URLs,
   and dashboard must refer to the same deployment origin.
+- Do not enable blanket Express proxy trust. Resolve the public request origin
+  from one validated forwarded host/protocol value, or the direct Host header
+  when no forwarded host exists. Reject comma-separated or duplicate forwarded
+  values for browser writes and Clerk proxy requests. Require the browser Origin
+  to exactly equal the normalized request origin; do not use the first value in
+  an ambiguous header list.
+- Production browser writes and Clerk proxy requests currently allow only the
+  verified `glyph-mail.replit.app` host. A custom domain must be explicitly
+  allowlisted and have its Clerk proxy/sign-in flow verified before use.
+- Keep Clerk proxy responses bounded: stream responses with known lengths,
+  buffer chunked responses only up to the configured cap, and return controlled
+  timeout/overflow/upstream-failure responses. Preserve bodyless HEAD/204/304
+  behavior and verify actual published Clerk assets before changing those limits.
+- API responses set frame, MIME, referrer, and permissions protections; static
+  response-header rules are configured in `.replit`, but their effect on this
+  Autoscale deployment's static artifact must be confirmed after publishing. Do
+  not add a restrictive script CSP or Clerk authorized-party rule until the real
+  preview, published domain, and any supported custom domain have been verified;
+  the development preview does not prove production behavior.
 - Never use a preview, local, temporary, or one deployment's origin for a message
   sent from another deployment. Do not repair an already sent message by editing
   its pixel host: its token and event live in the original environment's database.

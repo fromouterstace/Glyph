@@ -7,3 +7,4 @@
 - [Database-backed activity](database-backed-activity.md) — persist actual message and engagement data in PostgreSQL; never substitute hardcoded sample records.
 - [Extension lifecycle](extension-lifecycle.md) — extension updates can invalidate open Gmail tabs; guard messaging and offer draft-safe manual recovery.
 - [Gmail read budgets](gmail-read-budgets.md) — mailbox readers share quotas; honor cooldowns, preserve partial progress, and never retry sends automatically.
+- [Replit response-header scope](replit-response-headers.md) — static response-header config may not affect an Autoscale app's static artifact; verify published responses.

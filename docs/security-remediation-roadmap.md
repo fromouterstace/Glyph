@@ -1,7 +1,7 @@
 # Glyph security remediation roadmap
 
-**Status:** Phases 1 and 2, and Phase 5's workspace implementation, are verified
-in the workspace; none of that work has been published or deployed.
+**Status:** Phases 1 and 2, and Phases 5 and 6's workspace implementations, are
+verified in the workspace; this work has not been published or deployed.
 **Basis:** Manual security audit dated 2026-11-05  
 **Audience assumption:** The person implementing the work and anyone reviewing
 security priorities.  
@@ -35,6 +35,13 @@ Checked against the published deployment `https://glyph-mail.replit.app` on
   A connection to the HTTP port (80) was refused from the audit environment, so
   an HTTP-to-HTTPS redirect response could not be observed. HTTPS operation is
   confirmed; redirect behavior is not independently confirmed.
+- Before the Phase 6 changes were published, `/`, `/app`, and `/sign-in`
+  returned HSTS but no Content-Security-Policy, Referrer-Policy,
+  Permissions-Policy, X-Content-Type-Options, or X-Frame-Options. `/api/healthz`
+  also exposed `X-Powered-By: Express`. The public Clerk environment endpoint
+  returned 200 with security headers, duplicate HSTS values, and the Express
+  fingerprint. These are observations of the currently published build, not the
+  new workspace configuration.
 
 **Conclusion:** No, the entire app is not behind authentication. The private
 data mutations and returned account data appear protected by session and
@@ -365,6 +372,12 @@ clear reconnect recovery path.
 **Risk addressed:** SEC-06, SEC-07, SEC-08. These are hardening items; the audit
 did not reproduce a CSRF or Clerk authentication bypass.
 
+**Status:** Implemented and verified in the workspace on 2026-11-05. The
+published response-header and Clerk sign-in checks must be repeated after
+publishing; the known live measurements above are from the pre-change build.
+Restrictive script CSP and Clerk authorized-party restrictions remain deferred
+until preview and custom-domain compatibility can be verified.
+
 **Implementation**
 
 - Document trusted proxy behavior and public origins; validate full normalized
@@ -379,6 +392,20 @@ did not reproduce a CSRF or Clerk authentication bypass.
   frame-ancestor, Referrer-Policy, Permissions-Policy, and HSTS only where
   deployment requirements are understood. Disable unnecessary Express
   fingerprint headers.
+- Workspace implementation: browser writes and the Clerk proxy accept only a
+  single unambiguous forwarded host/protocol; browser Origin must exactly match
+  that normalized request origin. Express does not enable blanket proxy trust.
+  Production requests are additionally limited to the currently verified
+  `glyph-mail.replit.app` origin; a custom domain requires an explicit allowlist
+  change and auth verification.
+  Chunked Clerk responses are capped at 1 MiB; length-known assets stream
+  without buffering. Proxy deadlines are 10 seconds upstream and 15 seconds
+  overall. API response headers set frame-ancestor/object/base restrictions,
+  Referrer-Policy, Permissions-Policy, MIME sniffing protection, and frame
+  protection. Static response-header rules were added to `.replit`; because the
+  current deployment is Autoscale with a static web artifact, verify those
+  rules affect the public HTML responses before calling them effective. HSTS is
+  already supplied by the published edge.
 
 **Acceptance criteria**
 

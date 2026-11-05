@@ -29,6 +29,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const CLERK_FAPI = 'https://frontend-api.clerk.dev';
 export const CLERK_PROXY_PATH = '/api/__clerk';
+const trustedProductionHosts = new Set(['glyph-mail.replit.app']);
 
 function singleHeader(value: string | string[] | undefined) {
   if (Array.isArray(value)) return value.length === 1 ? value[0] : undefined;
@@ -68,10 +69,15 @@ export function getClerkProxyHost(req: {
 }
 
 export function getTrustedRequestOrigin(
-  req: Pick<IncomingMessage, 'headers' | 'socket'>,
+  req: Pick<IncomingMessage, 'headers'>,
 ): string | undefined {
   const host = trustedHost(req.headers);
   if (!host) return undefined;
+  if (
+    process.env.NODE_ENV === 'production' &&
+    !trustedProductionHosts.has(host)
+  )
+    return undefined;
   const forwarded = req.headers['x-forwarded-proto'];
   const proto =
     forwarded === undefined
@@ -194,7 +200,9 @@ function sendFixedError(
   res.end(body);
 }
 
-export function clerkProxyOptions(secretKey: string) {
+export function clerkProxyOptions(
+  secretKey: string,
+): Parameters<typeof createProxyMiddleware>[0] {
   return {
     target: CLERK_FAPI,
     changeOrigin: true,
