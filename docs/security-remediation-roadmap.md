@@ -345,9 +345,16 @@ memory.
 - UI clearly distinguishes page ranges, filtered totals, and all-time message
   totals, and explains the navigation cap.
 
-**Release gate:** run PostgreSQL contract tests, realistic-volume query checks,
-and UI pagination tests. Any schema migration must be additive, reviewed, and
-separately authorized for production.
+**Workspace verification:** `pnpm check:all` passed on 2026-11-05: 95 unit,
+45 extension-contract, 24 UI, 7 quality-gate, 21 PostgreSQL-contract, 60
+service-integration, and 24 HTTP-contract tests (276 total), along with lint,
+formatting, TypeScript, and artifact builds. Service tests cover histories
+larger than a page, owner isolation, stable ordering, and required indexes.
+
+**Remaining release checks:** production-scale query plans and latency have not
+been measured. Review the index-definition changes in the production schema
+diff before publishing, then monitor query latency. Do not apply a production
+schema change without explicit approval.
 
 ### 5. Bind authorization and sync caches to the active mailbox
 
@@ -479,11 +486,12 @@ the workspace only; it is not a production release or a regression-rate sample.
 **Purpose:** Verify the published build after the workspace remediations are
 released, then record sanitized evidence and residual risks.
 
-**Status:** Read-only preflight completed at `2026-11-05T21:45:07Z`; release
-verification remains blocked pending approval. The deployment service reports
-an active public Autoscale deployment at `https://glyph-mail.replit.app` with a
-successful current build. Section 4 is verified in the workspace, but no
-workspace remediation has been published.
+**Status:** The full workspace release gate passed on 2026-11-05. Read-only
+production preflight was completed at `2026-11-05T21:45:07Z`; production release
+remains blocked pending approval. The deployment service reports an active
+public Autoscale deployment at `https://glyph-mail.replit.app` with a
+successful current build. No workspace remediation has been published, and no
+production schema or customer data was changed.
 
 **Read-only production observations**
 
