@@ -220,13 +220,15 @@ export default function ActivityPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="font-medium">
-                      {a.type === 'open' || a.type === 'click'
-                        ? 'Not attributed'
-                        : a.recipientName || a.recipientEmail}
+                        {a.type === 'open' || a.type === 'click'
+                          ? 'Not attributed'
+                          : a.recipientName || a.recipientEmail}
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {a.recipientEmail}
-                      </div>
+                      {a.type !== 'open' && a.type !== 'click' && (
+                        <div className="text-xs text-muted-foreground">
+                          {a.recipientEmail}
+                        </div>
+                      )}
                     </td>
                     <td className="max-w-[260px] px-4 py-3">
                       <Link
