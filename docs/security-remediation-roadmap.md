@@ -88,14 +88,14 @@ deployment-hardening gaps. Preserve the existing product rules while doing so:
 
 ## Priority sequence
 
-| Order | Workstream                                        | Audit issue                                                                      | Priority                 | Current evidence/status                                                       |
-| ----- | ------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------ | ----------------------------------------------------------------------------- |
-| 1     | Safe error reporting                              | SEC-02: SQL parameters and private values in error logs                          | Immediate                | Workspace verified; production/historical log review pending                  |
-| 2     | Authenticated dashboard and public-route policy   | SEC-10: private UI is publicly served; define and enforce intentional exceptions | High                     | Workspace verified; not published                                             |
-| 3     | Trusted extension-origin enrollment               | SEC-01: compose data can be sent to a user-approved hostile origin               | Immediate                | v0.5.0 workspace package; installed-extension rollout not verified            |
+| Order | Workstream                                        | Audit issue                                                                      | Priority                 | Current evidence/status                                                        |
+| ----- | ------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------ |
+| 1     | Safe error reporting                              | SEC-02: SQL parameters and private values in error logs                          | Immediate                | Workspace verified; production/historical log review pending                   |
+| 2     | Authenticated dashboard and public-route policy   | SEC-10: private UI is publicly served; define and enforce intentional exceptions | High                     | Workspace verified; not published                                              |
+| 3     | Trusted extension-origin enrollment               | SEC-01: compose data can be sent to a user-approved hostile origin               | Immediate                | v0.5.0 workspace package; installed-extension rollout not verified             |
 | 4     | Public tracking abuse controls                    | SEC-03: valid tokens can generate unbounded events and work                      | High                     | Development PostgreSQL verified; production schema/edge behavior pending       |
 | 5     | Bounded, owner-scoped data access                 | SEC-05: full histories loaded before limits and filtering                        | High                     | Open; current history reads remain unbounded                                   |
-| 6     | Connector identity and cache isolation            | SEC-04: stale mailbox authorization after reconnect                              | High                     | Workspace verified; controlled live reconnect pending                         |
+| 6     | Connector identity and cache isolation            | SEC-04: stale mailbox authorization after reconnect                              | High                     | Workspace verified; controlled live reconnect pending                          |
 | 7     | Proxy, origin, and browser hardening              | SEC-06, SEC-07, SEC-08, and confirmed HTTPS/HTTP redirect verification           | After behavior contracts | Workspace verified; published headers/Clerk/edge validation pending            |
 | 8     | Documentation reconciliation and release evidence | SEC-09 and deployment verification gaps                                          | Before release sign-off  | Workspace documentation reconciled; no new published-release evidence recorded |
 

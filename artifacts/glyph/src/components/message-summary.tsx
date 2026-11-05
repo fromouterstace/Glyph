@@ -73,9 +73,9 @@ export function MessageSummary({
           ))}
         {shared && (
           <p className="mt-2 text-xs">
-            Shared message: pixel loads and link requests are aggregate signals, not
-            proof of which recipient acted. Bcc addresses are shown only in your
-            private dashboard.
+            Shared message: pixel loads and link requests are aggregate signals,
+            not proof of which recipient acted. Bcc addresses are shown only in
+            your private dashboard.
           </p>
         )}
       </div>
