@@ -176,7 +176,6 @@ function editor(index = 0) {
     <button id="send${index}">Send</button></div>`;
 }
 // Test harness construction is reusable setup, not a single test case.
-// eslint-disable-next-line max-lines-per-function
 function fixture(t, options = {}) {
   const dom = new JSDOM(
     `<a aria-label="Google Account: Owner (owner@example.com)" href="https://accounts.google.com/SignOutOptions"></a>${editor()}${options.two ? editor(1) : ''}`,

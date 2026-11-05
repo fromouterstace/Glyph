@@ -31,7 +31,7 @@ UUIDs, opaque tokens, or email headers with QBR identifiers.
 | Observability is an assertion     | Substantial for tracking       | Database-backed route tests now use real Pino HTTP middleware and production serializers, requiring correlated success/failure logs and token redaction. This does not prove logging for every application operation.                                                                             |
 | Permanent regression harness      | Substantial                    | Malformed GIF, extension context loss, origin mismatch, reply matching, form lifetime, and rate-limit cases remain executable. Build/coverage negative controls prove the gates can fail. “Test first for every future bug” remains a development practice, not a mechanically provable property. |
 | Clear names and failure messages  | Substantial                    | Scenario names state rules; property failures identify their host fixture; gate failures identify missing enforcement. Generic assertion differences still supplement scenario names in older cases.                                                                                              |
-| Test size                         | Enforced                       | Lint caps test functions at 50 lines. Explicit exceptions cover reusable fixtures and a `describe` grouping, not individual cases. Current integration scenarios also fit below the checklist's 150-line ceiling.                                                                                 |
+| Test size                         | Enforced                       | Lint now caps unit, contract, integration, and end-to-end test functions at 50, 100, 150, and 200 lines respectively. A negative-control gate verifies each layer's classification and rejects the over-budget case.                                                                              |
 | Single issue/item                 | Improved                       | The multi-purpose Add-glyph scenario was split into pixel/copy integrity, link rewriting, request payload, and native-Send safety cases. Multi-step cases remain only where the rule is a sequence, such as invalidation or confirmation.                                                         |
 
 ## Changes made during this audit
@@ -41,8 +41,8 @@ UUIDs, opaque tokens, or email headers with QBR identifiers.
   All remain mandatory in the main check.
 - Kept pure origin policy checks in unit coverage; moved only the on-disk popup
   default assertion into a source-contract file.
-- Replaced a permissive 150-line test-function lint limit with 50 lines, excluding
-  documented reusable setup and suite grouping.
+- Added per-layer 50/100/150/200-line budgets, retaining explicit exemptions only
+  for reusable setup and suite grouping.
 - Split the broad compose case into focused assertions of separate behaviors.
 - Replaced the tracking-route logger stub with real Pino middleware. The same
   request/response serializers are used in the application and integration tests.

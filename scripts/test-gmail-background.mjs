@@ -9,7 +9,6 @@ const source = await readFile(
   'utf8',
 );
 // Test harness construction is reusable setup, not a single test case.
-// eslint-disable-next-line max-lines-per-function
 function fixture(options = {}) {
   const clock = FakeTimers.createClock(Date.UTC(2026, 10, 4, 12));
   let listener;

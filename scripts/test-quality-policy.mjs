@@ -10,10 +10,11 @@ test('new conventionally named unit tests are automatically included', () => {
   ]);
 });
 
-test('unit discovery excludes integration and source-reading contract suites', () => {
+test('unit discovery excludes contract, integration, and end-to-end suites', () => {
   assert.deepEqual(
     unitFiles([
       'database.integration.test.mjs',
+      'tracking-journey.e2e.test.mjs',
       'test-tracking-http.mjs',
       'test-gmail-background.mjs',
       'test-gmail-extension.mjs',

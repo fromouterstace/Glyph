@@ -12,6 +12,41 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
+function runLint(filename, input) {
+  return spawnSync(
+    'pnpm',
+    [
+      'exec',
+      'eslint',
+      '--stdin',
+      '--stdin-filename',
+      filename,
+      '--format',
+      'json',
+    ],
+    {
+      cwd: new URL('..', import.meta.url),
+      input,
+      encoding: 'utf8',
+      timeout: 20_000,
+    },
+  );
+}
+
+function testCase(title, lines) {
+  return `test(${JSON.stringify(title)}, () => {\n${'  assert.ok(true);\n'.repeat(lines)}});`;
+}
+
+function sizePolicySource(maximum) {
+  return [
+    "import test from 'node:test';",
+    "import assert from 'node:assert/strict';",
+    testCase('within the layer budget', maximum - 10),
+    testCase('over the layer budget', maximum + 10),
+    '',
+  ].join('\n');
+}
+
 test('the coverage inventory CLI rejects a report with omitted critical sources', async (t) => {
   const directory = await mkdtemp(join(tmpdir(), 'glyph-inventory-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
@@ -30,27 +65,12 @@ test('the coverage inventory CLI rejects a report with omitted critical sources'
 });
 
 test('release lint rejects skipped tests, option-based skips, and chained focus', () => {
-  const result = spawnSync(
-    'pnpm',
-    [
-      'exec',
-      'eslint',
-      '--stdin',
-      '--stdin-filename',
-      'scripts/test-injected-policy.mjs',
-      '--format',
-      'json',
-    ],
-    {
-      cwd: new URL('..', import.meta.url),
-      input:
-        "import test from 'node:test';\n" +
-        "test.skip('disabled', () => {});\n" +
-        "test('disabled', {skip: true}, () => {});\n" +
-        "test.only.each([])('focused', () => {});\n",
-      encoding: 'utf8',
-      timeout: 20_000,
-    },
+  const result = runLint(
+    'scripts/test-injected-policy.mjs',
+    "import test from 'node:test';\n" +
+      "test.skip('disabled', () => {});\n" +
+      "test('disabled', {skip: true}, () => {});\n" +
+      "test.only.each([])('focused', () => {});\n",
   );
   assert.equal(result.status, 1, 'Disabled or focused cases must fail lint.');
   const findings = JSON.parse(result.stdout).flatMap((file) => file.messages);
@@ -60,6 +80,25 @@ test('release lint rejects skipped tests, option-based skips, and chained focus'
     3,
     'Every supported test-hiding syntax must be rejected, including chained calls.',
   );
+});
+
+test('lint enforces the 50/100/150/200-line budgets by test layer', () => {
+  const layers = [
+    ['scripts/test-unit-budget.mjs', 50, 'unit'],
+    ['scripts/budget.contract.test.mjs', 100, 'contract'],
+    ['scripts/tests/budget.integration.test.mjs', 150, 'integration'],
+    ['scripts/tests/budget.e2e.test.mjs', 200, 'end-to-end'],
+  ];
+  for (const [filename, maximum, layer] of layers) {
+    const result = runLint(filename, sizePolicySource(maximum));
+    assert.equal(result.status, 1, `${layer} over-budget case must fail lint.`);
+    const messages = JSON.parse(result.stdout).flatMap((file) => file.messages);
+    assert.deepEqual(
+      messages.map((message) => message.ruleId),
+      ['max-lines-per-function'],
+      `${layer} under-budget case must pass; only the oversized case should fail.`,
+    );
+  }
 });
 
 for (const relative of [

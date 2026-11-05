@@ -14,11 +14,20 @@ service suites; the running-app HTTP gate also rejects test-only identity header
 ## Business truth comes first
 
 Every test names the rule it proves and uses Arrange–Act–Assert. Prefer one act,
-one focused fixture, and one assertion cluster (outcome plus invariants). Default
-limits: unit test body at most 50 lines, integration scenario at most 150, browser
-scenario at most 200; exclude reusable setup. Do not inflate assertions to chase
-counts. A sequence is appropriate only when the rule itself is sequential, such
-as extension invalidation or duplicate-request handling.
+one focused fixture, and one assertion cluster (outcome plus invariants). Lint
+enforces these per-test function budgets, excluding blank lines and comments:
+
+| Test layer  | Maximum lines | Typical scope                                            |
+| ----------- | ------------: | -------------------------------------------------------- |
+| Unit        |            50 | Pure logic and isolated UI behavior                      |
+| Contract    |           100 | One module boundary, adapter, or source/runtime contract |
+| Integration |           150 | One behavior spanning the service and a real dependency  |
+| End-to-end  |           200 | One user-visible journey and at most one high-risk edge  |
+
+Reusable setup and fixtures should live in separate helpers rather than inflate
+the test case. Do not inflate assertions to chase counts. A sequence is
+appropriate only when the rule itself is sequential, such as extension
+invalidation or duplicate-request handling.
 
 NQT examples in the source guidance are not Glyph schema requirements. Use Glyph's
 actual message IDs, opaque tokens, owner boundaries and standard email headers.
@@ -50,6 +59,10 @@ configured publishing builds are gated too. `build:artifact` is the internal
 ungated bundle primitive used _after_ a successful root preflight; it is not a
 release command. Development startup remains fast and does not run the gate.
 Negative-control tests prove a failed preflight prevents each configured build.
+The Replit `release` validation runs `pnpm check:all` before building both
+production artifacts. GitHub Actions runs the fast build gate and PostgreSQL
+integration suite; running-app HTTP contracts remain in the configured Replit
+gate because they require a running API with Clerk configuration.
 
 GitHub Actions runs gated builds and PostgreSQL integration on pull requests and
 main pushes using a disposable PostgreSQL service. This workflow activates when
@@ -70,12 +83,14 @@ branch fails the coverage mechanism. A separate fail-closed LCOV inventory now
 requires every selected critical backend source and the frontend origin source
 to be present; high percentages cannot hide an omitted source.
 
-New `test-*.mjs` and `*.test.mjs` unit files are discovered automatically. Database
-tests use `.integration.test.mjs`; tests that read extension output/source are
-explicit local source-contract checks, not pure unit tests; the running-app HTTP
-suite is explicitly separate. Missing unit discovery fails rather than returning
-green. Lint rejects focused, skipped, and TODO test calls and caps test functions
-at 50 lines. Never quarantine a flaky test silently.
+New `test-*.mjs` and `*.test.mjs` unit files are discovered automatically.
+Database tests use `.integration.test.mjs`; tests that read extension output/source
+are explicit local source-contract checks, not pure unit tests; the running-app
+HTTP suite is explicitly separate. `.e2e.test.*` cases are excluded from unit
+coverage and must be added to the full check/CI runner when introduced. Missing
+unit discovery fails rather than returning green. Lint rejects focused, skipped,
+and TODO test calls and negative-control tests prove all four size budgets.
+Never quarantine a flaky test silently.
 
 ## Risk matrix
 

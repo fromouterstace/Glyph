@@ -224,15 +224,19 @@ product policy.
 
 ### Size and I/O boundaries
 
-- **Unit tests:** default choice for pure logic; at most **50 lines of test code**,
-  excluding shared setup/fixtures; one act, no filesystem/database/network I/O;
-  keep assertions to the outcome plus a small number of related invariants.
-- **Integration tests:** one module plus its real contract boundary (PostgreSQL,
-  HTTP, or provider adapter); **120–150 lines maximum per scenario**; use a
+- **Unit tests:** default choice for pure logic; at most **50 lines per test
+  function**; one act, no filesystem/database/network I/O; keep assertions to the
+  outcome plus a small number of related invariants.
+- **Contract tests:** at most **100 lines per test function** for one module,
+  adapter, or source/runtime contract.
+- **Integration tests:** one behavior across a real boundary (PostgreSQL, HTTP,
+  or provider adapter); at most **150 lines per test function**; use a
   purpose-built fixture instead of a kitchen sink.
-- **End-to-end tests:** keep scenarios few and focused, **at most 200 lines per
-  scenario**. Test the user-visible journey and one high-risk edge separately
-  instead of making one mega-script.
+- **End-to-end tests:** keep scenarios few and focused, at most **200 lines per
+  test function**. Test the user-visible journey and one high-risk edge
+  separately instead of making one mega-script.
+- Lint enforces these four size budgets. Reusable fixture helpers should be
+  extracted; any longer helper exception must state why inline.
 - More than one separate issue, fixture focus, or assertion cluster is a signal
   to split. If a fixture needs more than three domain objects, reduce it, extract
   a named reusable builder, or split the scenario.

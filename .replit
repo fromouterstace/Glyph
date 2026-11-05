@@ -69,12 +69,12 @@ isValidation = true
 name = "release"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "PORT=3000 BASE_PATH=/ pnpm build"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm check:all && PORT=3000 BASE_PATH=/ pnpm -r --if-present run build:artifact"
 
 [agent]
 stack = "PNPM_WORKSPACE"

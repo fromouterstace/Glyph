@@ -62,6 +62,7 @@ export default defineConfig(
       'scripts/*.test.mjs',
       'scripts/tests/**/*.test.mjs',
       'artifacts/glyph/tests/**/*.{ts,tsx}',
+      '**/*.e2e.test.{js,mjs,ts,tsx}',
     ],
     rules: {
       'no-restricted-syntax': [
@@ -86,11 +87,38 @@ export default defineConfig(
     },
   },
   {
-    files: ['scripts/tests/**/*.integration.test.mjs'],
+    files: [
+      'scripts/*.contract.test.mjs',
+      'scripts/**/*.contract.test.mjs',
+      'scripts/test-gmail-extension.mjs',
+      'scripts/test-gmail-background.mjs',
+      'scripts/test-tracking-http.mjs',
+    ],
+    rules: {
+      'max-lines-per-function': [
+        'error',
+        { max: 100, skipBlankLines: true, skipComments: true },
+      ],
+    },
+  },
+  {
+    files: [
+      'scripts/*.integration.test.mjs',
+      'scripts/**/*.integration.test.mjs',
+    ],
     rules: {
       'max-lines-per-function': [
         'error',
         { max: 150, skipBlankLines: true, skipComments: true },
+      ],
+    },
+  },
+  {
+    files: ['**/*.e2e.test.{js,mjs,ts,tsx}'],
+    rules: {
+      'max-lines-per-function': [
+        'error',
+        { max: 200, skipBlankLines: true, skipComments: true },
       ],
     },
   },
