@@ -16,7 +16,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Caveat,
-  DemoTag,
+  ReadOnlyTag,
   EmptyState,
   ErrorState,
   SectionHead,
@@ -53,7 +53,7 @@ export default function ActivityPage() {
   const mark = useMarkActivityRead();
   const [f, setF] = useState<(typeof FILTERS)[number]>('all');
   const data = q.data ?? [];
-  const isDemo = data.some((a) => a.isDemo) || !isSignedIn;
+  const readOnly = !isSignedIn;
   const unread = data.filter((a) => !a.read).length;
   const rows = useMemo(
     () =>
@@ -75,13 +75,13 @@ export default function ActivityPage() {
         kicker="Engagement feed"
         title={
           <span className="flex items-center gap-3">
-            Activity {isDemo && <DemoTag />}
+            Activity {readOnly && <ReadOnlyTag />}
           </span>
         }
         right={
           <button
             data-testid="button-mark-read"
-            disabled={!isSignedIn || isDemo || unread === 0 || mark.isPending}
+            disabled={!isSignedIn || unread === 0 || mark.isPending}
             onClick={() =>
               mark.mutate(undefined, {
                 onSuccess: () => {

@@ -8,5 +8,5 @@
 import type { SettingsInput } from './settingsInput';
 
 export type Settings = SettingsInput & {
-  isDemo: boolean;
+  readOnly: boolean;
 };

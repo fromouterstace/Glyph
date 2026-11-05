@@ -59,7 +59,7 @@ export const SyncNativeMessagesResponse = zod.object({
 
 
 export const GetOverviewResponse = zod.object({
-  "isDemo": zod.boolean(),
+  "readOnly": zod.boolean(),
   "totalSent": zod.int(),
   "totalOpens": zod.int(),
   "totalClicks": zod.int(),
@@ -95,8 +95,6 @@ export const ListMessagesResponseItem = zod.object({
   "clicks": zod.int(),
   "replies": zod.int(),
   "lastActivityAt": zod.string().nullable(),
-  "starred": zod.boolean(),
-  "isDemo": zod.boolean(),
   "deliverySource": zod.enum(['web', 'gmail']).optional()
 })
 export const ListMessagesResponse = zod.array(ListMessagesResponseItem)
@@ -136,8 +134,6 @@ export const CreateMessageResponse = zod.object({
   "clicks": zod.int(),
   "replies": zod.int(),
   "lastActivityAt": zod.string().nullable(),
-  "starred": zod.boolean(),
-  "isDemo": zod.boolean(),
   "deliverySource": zod.enum(['web', 'gmail']).optional()
 })
 
@@ -162,8 +158,6 @@ export const GetMessageResponse = zod.object({
   "clicks": zod.int(),
   "replies": zod.int(),
   "lastActivityAt": zod.string().nullable(),
-  "starred": zod.boolean(),
-  "isDemo": zod.boolean(),
   "deliverySource": zod.enum(['web', 'gmail']).optional()
 }),
   "events": zod.array(zod.object({
@@ -177,8 +171,7 @@ export const GetMessageResponse = zod.object({
   "url": zod.string().nullable(),
   "automated": zod.boolean(),
   "source": zod.string(),
-  "read": zod.boolean(),
-  "isDemo": zod.boolean()
+  "read": zod.boolean()
 })),
   "links": zod.array(zod.object({
   "id": zod.string(),
@@ -226,8 +219,6 @@ export const UpdateMessageResponse = zod.object({
   "clicks": zod.int(),
   "replies": zod.int(),
   "lastActivityAt": zod.string().nullable(),
-  "starred": zod.boolean(),
-  "isDemo": zod.boolean(),
   "deliverySource": zod.enum(['web', 'gmail']).optional()
 })
 
@@ -258,8 +249,6 @@ export const SendMessageResponse = zod.object({
   "clicks": zod.int(),
   "replies": zod.int(),
   "lastActivityAt": zod.string().nullable(),
-  "starred": zod.boolean(),
-  "isDemo": zod.boolean(),
   "deliverySource": zod.enum(['web', 'gmail']).optional()
 })
 
@@ -275,8 +264,7 @@ export const ListActivityResponseItem = zod.object({
   "url": zod.string().nullable(),
   "automated": zod.boolean(),
   "source": zod.string(),
-  "read": zod.boolean(),
-  "isDemo": zod.boolean()
+  "read": zod.boolean()
 })
 export const ListActivityResponse = zod.array(ListActivityResponseItem)
 
@@ -299,7 +287,7 @@ export const GetSettingsResponse = zod.object({
   "defaultTrackClicks": zod.boolean(),
   "trackingBaseUrl": zod.string().max(getSettingsResponseOneTrackingBaseUrlMax)
 }).and(zod.object({
-  "isDemo": zod.boolean()
+  "readOnly": zod.boolean()
 }))
 
 
@@ -330,7 +318,7 @@ export const UpdateSettingsResponse = zod.object({
   "defaultTrackClicks": zod.boolean(),
   "trackingBaseUrl": zod.string().max(updateSettingsResponseOneTrackingBaseUrlMax)
 }).and(zod.object({
-  "isDemo": zod.boolean()
+  "readOnly": zod.boolean()
 }))
 
 

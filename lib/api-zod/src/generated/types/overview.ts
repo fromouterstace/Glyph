@@ -8,7 +8,7 @@
 import type { DailyStat } from './dailyStat';
 
 export interface Overview {
-  isDemo: boolean;
+  readOnly: boolean;
   totalSent: number;
   totalOpens: number;
   totalClicks: number;

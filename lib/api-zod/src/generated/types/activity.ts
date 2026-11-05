@@ -20,5 +20,4 @@ export interface Activity {
   automated: boolean;
   source: string;
   read: boolean;
-  isDemo: boolean;
 }

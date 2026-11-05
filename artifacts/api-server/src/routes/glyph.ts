@@ -27,7 +27,6 @@ import {
 } from '@workspace/api-zod';
 import {
   defaultSettings,
-  demoData,
   ownerData,
   overview,
   publicEvent,
@@ -48,7 +47,7 @@ const router = Router();
 const userId = (req: Request) => getAuth(req).userId;
 async function dataFor(req: Request) {
   const ownerId = userId(req);
-  if (!ownerId) return demoData();
+  if (!ownerId) return { messages: [], events: [] };
   const data = await ownerData(ownerId);
   return {
     messages: data.messages.map((m) => publicMessage(m, data.events)),
@@ -61,12 +60,12 @@ async function dataFor(req: Request) {
   };
 }
 async function settingsFor(ownerId: string | null) {
-  if (!ownerId) return { ...defaultSettings, isDemo: true };
+  if (!ownerId) return { ...defaultSettings, readOnly: true };
   const [row] = await db
     .select()
     .from(glyphSettings)
     .where(eq(glyphSettings.ownerId, ownerId));
-  return { ...(row ?? defaultSettings), isDemo: false };
+  return { ...(row ?? defaultSettings), readOnly: false };
 }
 const ownMessage = async (ownerId: string, id: string) => {
   const [row] = await db
@@ -95,7 +94,7 @@ router.use('/glyph', async (req, res, next): Promise<void> => {
   const ownerId = userId(req);
   if (!ownerId) {
     res.status(401).json({
-      error: 'Sign in to use your Gmail account. Demo data cannot be changed.',
+      error: 'Sign in to view and change your account data.',
     });
     return;
   }
@@ -484,7 +483,7 @@ router.get('/glyph/connection', async (req, res): Promise<void> => {
         authorized: false,
         email: null,
         message:
-          'Explore sample data, then sign in using the email address of the Gmail account connected to this project.',
+          'Sign in with the verified email address of the connected Gmail account to view your saved data.',
       }),
     );
     return;

@@ -41,7 +41,7 @@ function AlertWatcher() {
     }
     const fresh = activity.filter((a) => !seen.current!.has(a.id));
     fresh.forEach((a) => seen.current!.add(a.id));
-    if (!settings || settings.isDemo) return;
+    if (!settings || settings.readOnly) return;
     const enabled = {
       open: settings.notifyOpens,
       click: settings.notifyClicks,
@@ -55,7 +55,7 @@ function AlertWatcher() {
       sent: 'Sent',
     };
     for (const a of fresh) {
-      if (a.isDemo || !enabled[a.type]) continue;
+      if (!enabled[a.type]) continue;
       const label = labels[a.type];
       const title = `${label}${a.automated ? ' (likely automated)' : ''}`;
       const description = `${a.recipientName || a.recipientEmail} · ${a.subject}`;
@@ -92,7 +92,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const { data: ov } = useGetOverview({
     query: { refetchInterval: poll, queryKey: getGetOverviewQueryKey() },
   });
-  const isDemo = ov?.isDemo ?? !isSignedIn;
+  const readOnly = ov?.readOnly ?? !isSignedIn;
 
   const side = (
     <div className="flex h-full flex-col">
@@ -158,7 +158,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 {user?.primaryEmailAddress?.emailAddress ?? 'Signed in'}
               </div>
               <div className="font-mono text-[10px] text-sidebar-foreground/50">
-                {isDemo ? 'demo' : 'live session'}
+                {readOnly ? 'read-only' : 'live session'}
               </div>
             </div>
             <button
@@ -217,23 +217,23 @@ export function Shell({ children }: { children: ReactNode }) {
             </p>
           </div>
         )}
-        {isDemo && (
+        {readOnly && (
           <div
             className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-b border-dashed border-primary/40 bg-primary/[0.06] px-4 py-2 text-center text-xs"
-            data-testid="banner-demo"
+            data-testid="banner-readonly"
           >
             <span className="font-mono uppercase tracking-wider text-primary">
-              Sample data
+              Read-only preview
             </span>
             <span className="text-foreground/70">
-              Everything below is illustrative. Nothing here was sent.
+              Account activity loads from PostgreSQL after you sign in.
             </span>
             {!isSignedIn && (
               <Link
                 href="/sign-in"
                 className="font-semibold text-primary underline-offset-4 hover:underline"
               >
-                Sign in to use your Gmail
+                Sign in to view your saved email activity
               </Link>
             )}
           </div>

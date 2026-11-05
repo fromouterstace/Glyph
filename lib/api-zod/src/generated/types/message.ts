@@ -25,7 +25,5 @@ export interface Message {
   replies: number;
   /** @nullable */
   lastActivityAt: string | null;
-  starred: boolean;
-  isDemo: boolean;
   deliverySource?: MessageDeliverySource;
 }

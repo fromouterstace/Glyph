@@ -58,16 +58,16 @@ export function StatusPill({ status }: { status: MessageStatus }) {
   );
 }
 
-export function DemoTag({ className }: { className?: string }) {
+export function ReadOnlyTag({ className }: { className?: string }) {
   return (
     <span
-      data-testid="tag-demo"
+      data-testid="tag-readonly"
       className={cn(
         'inline-flex items-center rounded-sm border border-dashed border-primary/60 bg-primary/5 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-primary',
         className,
       )}
     >
-      Sample data
+      Read only
     </span>
   );
 }
@@ -247,8 +247,8 @@ export function SignInNudge({ what }: { what: string }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border border-dashed border-primary/50 bg-primary/5 px-4 py-3 text-sm">
       <span>
-        You're viewing sample data. Sign in with the account that owns the
-        connected Gmail to {what}.
+        Sign in with the email address of the connected Gmail account to {what}
+        and view its saved activity.
       </span>
       <Link
         href="/sign-in"

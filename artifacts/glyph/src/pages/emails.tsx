@@ -6,7 +6,6 @@ import {
   Send,
   Trash2,
   Pencil,
-  Star,
   Link2,
 } from 'lucide-react';
 import { MessageSummary, SignalTrail } from '@/components/message-summary';
@@ -34,7 +33,7 @@ import {
 import {
   Avatar,
   Caveat,
-  DemoTag,
+  ReadOnlyTag,
   EmptyState,
   ErrorState,
   SectionHead,
@@ -86,7 +85,7 @@ export default function Emails() {
   const list = useListMessages(p, {
     query: { refetchInterval: poll, queryKey: getListMessagesQueryKey(p) },
   });
-  const isDemo = list.data?.some((m) => m.isDemo) ?? !isSignedIn;
+  const readOnly = !isSignedIn;
 
   return (
     <div className="space-y-6">
@@ -94,7 +93,7 @@ export default function Emails() {
         kicker="Tracked messages"
         title={
           <span className="flex items-center gap-3">
-            Emails {isDemo && <DemoTag />}
+          Emails {readOnly && <ReadOnlyTag />}
           </span>
         }
         right={
@@ -211,9 +210,6 @@ export default function Emails() {
                             gmail
                           </span>
                         )}
-                        {m.starred && (
-                          <Star className="size-3 fill-primary text-primary" />
-                        )}
                         <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground">
                           {ago(m.sentAt ?? m.createdAt)}
                         </span>
@@ -284,7 +280,7 @@ function Detail({ id }: { id: string }) {
       </div>
     );
   const { message: m, events, links } = q.data;
-  const canMutate = isSignedIn && !m.isDemo;
+  const canMutate = isSignedIn;
   const native = m.deliverySource === 'gmail';
   const awaiting = native && m.status !== 'sent';
 

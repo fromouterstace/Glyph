@@ -24,7 +24,7 @@ const mocks = vi.hoisted(() => ({
     notifyClicks: true,
     notifyReplies: true,
     trackingBaseUrl: '',
-    isDemo: false,
+    readOnly: false,
   },
 }));
 
@@ -46,7 +46,7 @@ vi.mock('@/hooks/use-toast', () => ({
 }));
 vi.mock('@/components/bits', () => ({
   Caveat: ({ children }: { children: ReactNode }) => <aside>{children}</aside>,
-  DemoTag: () => <span>Sample</span>,
+  ReadOnlyTag: () => <span>Read only</span>,
   SectionHead: () => <header>Settings</header>,
   SignInNudge: () => null,
   ErrorState: () => <div>Error</div>,
@@ -67,11 +67,9 @@ const message = {
   opens: 0,
   clicks: 0,
   replies: 0,
-  starred: false,
   createdAt: '2026-11-05T00:00:00Z',
   sentAt: null,
   lastActivityAt: null,
-  isDemo: false,
 };
 const field = (id: string) => screen.getByTestId(id) as HTMLInputElement;
 
@@ -79,7 +77,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.settings.trackingBaseUrl = '';
   mocks.settings.defaultTrackOpens = true;
-  mocks.settings.isDemo = false;
+  mocks.settings.readOnly = false;
   vi.stubGlobal(
     'ResizeObserver',
     class {
@@ -270,8 +268,8 @@ describe('settings editing', () => {
     );
   });
 
-  it('keeps sample settings read-only', () => {
-    mocks.settings.isDemo = true;
+  it('keeps signed-out settings read-only', () => {
+    mocks.settings.readOnly = true;
     render(<SettingsPage />);
     expect(field('input-tracking-url').disabled).toBe(true);
     expect(

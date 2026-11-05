@@ -1,7 +1,7 @@
 import { Link } from 'wouter';
 import { ArrowLeft, Bot } from 'lucide-react';
 import type { Activity, Message } from '@workspace/api-client-react';
-import { DemoTag, StatusPill } from '@/components/bits';
+import { StatusPill } from '@/components/bits';
 import { MessageEngagement } from '@/components/engagement';
 import { stamp } from '@/lib/glyph';
 import { cn } from '@/lib/utils';
@@ -39,7 +39,6 @@ export function MessageSummary({
             via Gmail
           </span>
         )}
-        {m.isDemo && <DemoTag />}
       </div>
       <h2
         className="font-display mt-3 text-2xl font-bold md:text-3xl"

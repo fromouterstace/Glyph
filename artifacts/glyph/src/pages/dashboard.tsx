@@ -19,7 +19,7 @@ import {
   Avatar,
   Caveat,
   DailyBars,
-  DemoTag,
+  ReadOnlyTag,
   EmptyState,
   ErrorState,
   StatusPill,
@@ -39,10 +39,10 @@ export default function Dashboard() {
   const msgs = useListMessages();
   const conn = useGetConnection();
   const o = ov.data;
-  const isDemo = o?.isDemo ?? !isSignedIn;
+  const readOnly = o?.readOnly ?? !isSignedIn;
   const empty =
     !!o &&
-    !o.isDemo &&
+    !o.readOnly &&
     o.totalSent === 0 &&
     msgs.isSuccess &&
     msgs.data.length === 0;
@@ -55,7 +55,7 @@ export default function Dashboard() {
             <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
               After send
             </span>
-            {isDemo && <DemoTag />}
+            {readOnly && <ReadOnlyTag />}
           </div>
           <h1 className="font-display mt-2 text-4xl font-extrabold leading-[0.95] md:text-6xl">
             {isSignedIn ? (

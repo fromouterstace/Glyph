@@ -11,7 +11,7 @@ import { GmailConnection } from '@/components/gmail-connection';
 import { validTrackingOrigin } from '@/lib/tracking-origin';
 import {
   Caveat,
-  DemoTag,
+  ReadOnlyTag,
   ErrorState,
   SectionHead,
   SignInNudge,
@@ -29,8 +29,8 @@ export default function SettingsPage() {
   const saved = s.data ? editableSettings(s.data) : null;
   const form = edits ?? saved;
 
-  const isDemo = s.data?.isDemo ?? !isSignedIn;
-  const locked = !isSignedIn || isDemo;
+  const readOnly = s.data?.readOnly ?? !isSignedIn;
+  const locked = !isSignedIn || readOnly;
   const url = form?.trackingBaseUrl.trim() ?? '';
   const urlBad = !validTrackingOrigin(url);
   const dirty = settingsChanged(form, saved);
@@ -65,7 +65,7 @@ export default function SettingsPage() {
         kicker="Configuration"
         title={
           <span className="flex items-center gap-3">
-            Settings {isDemo && <DemoTag />}
+            Settings {readOnly && <ReadOnlyTag />}
           </span>
         }
       />
@@ -176,9 +176,9 @@ export default function SettingsPage() {
 }
 
 function editableSettings({
-  isDemo: _demo,
+  readOnly: _readOnly,
   ...settings
-}: SettingsInput & { isDemo?: boolean }): SettingsInput {
+}: SettingsInput & { readOnly?: boolean }): SettingsInput {
   return { ...settings, notifyReplies: settings.notifyReplies ?? true };
 }
 

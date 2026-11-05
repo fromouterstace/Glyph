@@ -100,8 +100,6 @@ export interface Message {
   replies: number;
   /** @nullable */
   lastActivityAt: string | null;
-  starred: boolean;
-  isDemo: boolean;
   deliverySource?: MessageDeliverySource;
 }
 
@@ -128,7 +126,6 @@ export interface Activity {
   automated: boolean;
   source: string;
   read: boolean;
-  isDemo: boolean;
 }
 
 export interface TrackedLink {
@@ -151,7 +148,7 @@ export interface DailyStat {
 }
 
 export interface Overview {
-  isDemo: boolean;
+  readOnly: boolean;
   totalSent: number;
   totalOpens: number;
   totalClicks: number;
@@ -172,7 +169,7 @@ export interface SettingsInput {
 }
 
 export type Settings = SettingsInput & {
-  isDemo: boolean;
+  readOnly: boolean;
 };
 
 export interface Connection {

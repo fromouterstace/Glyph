@@ -6,15 +6,31 @@ import assert from 'node:assert/strict';
 const base = 'http://127.0.0.1:80';
 const pixel = `${base}/api/glyph/t/${'0'.repeat(48)}.gif`;
 
-test('anonymous message reads contain sample data only', async () => {
-  const response = await fetch(`${base}/api/glyph/messages`, {
-    headers: { accept: 'application/json' },
-  });
-  assert.equal(response.status, 200);
-  const messages = await response.json();
-  assert.ok(Array.isArray(messages));
-  assert.ok(messages.length > 0);
-  assert.ok(messages.every((message) => message.isDemo === true));
+test('anonymous activity reads contain no fabricated account data', async () => {
+  const [messagesResponse, activityResponse, overviewResponse, sampleIdResponse] =
+    await Promise.all([
+      fetch(`${base}/api/glyph/messages`),
+      fetch(`${base}/api/glyph/activity`),
+      fetch(`${base}/api/glyph/overview`),
+      fetch(`${base}/api/glyph/messages/demo-1`),
+    ]);
+  assert.equal(messagesResponse.status, 200);
+  assert.equal(activityResponse.status, 200);
+  assert.equal(overviewResponse.status, 200);
+  assert.equal(sampleIdResponse.status, 404);
+  assert.deepEqual(await messagesResponse.json(), []);
+  assert.deepEqual(await activityResponse.json(), []);
+  const overview = await overviewResponse.json();
+  assert.equal(overview.readOnly, true);
+  assert.equal(overview.totalSent, 0);
+  assert.equal(overview.totalOpens, 0);
+  assert.equal(overview.totalClicks, 0);
+  assert.equal(overview.daily.length, 14);
+  assert.ok(
+    overview.daily.every(
+      ({ sent, opens, clicks }) => sent === 0 && opens === 0 && clicks === 0,
+    ),
+  );
 });
 
 for (const [method, path] of [

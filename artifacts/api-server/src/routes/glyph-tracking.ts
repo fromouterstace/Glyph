@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { db, glyphEvents, glyphLinks, glyphMessages } from '@workspace/db';
 import { syncNative } from '../lib/gmail-native';
@@ -9,11 +9,10 @@ const router = Router();
 
 async function recordSignal(
   messageId: string,
-  token: string,
   type: 'open' | 'click',
   agent: string,
   url: string | null,
-) {
+): Promise<void> {
   const automated =
     /bot|crawler|spider|scanner|safelinks|proofpoint|barracuda|mimecast|headless|preview/i.test(
       agent,
@@ -24,38 +23,30 @@ async function recordSignal(
     : proxy
       ? 'Google image proxy — open signal only'
       : 'Unverified client request';
-  const bucket = Math.floor(Date.now() / 60_000);
-  const fingerprint = createHash('sha256')
-    .update(`${token}:${type}:${agent}:${bucket}`)
-    .digest('hex');
-  const inserted = await db
+  const id = randomUUID();
+  await db
     .insert(glyphEvents)
     .values({
-      id: randomUUID(),
+      id,
       messageId,
       type,
       url,
       automated,
       source,
-      fingerprint,
-    })
-    .onConflictDoNothing()
-    .returning({ id: glyphEvents.id });
-  return inserted.length > 0;
+      fingerprint: id,
+    });
 }
 
 async function recordOpen(
   message: typeof glyphMessages.$inferSelect | undefined,
-  token: string,
   agent: string,
 ) {
   if (!message) return 'unknown_pixel';
   if (!message.trackOpens) return 'tracking_disabled';
   if (!['sent', 'sending', 'uncertain'].includes(message.status))
     return 'send_not_confirmed';
-  return (await recordSignal(message.id, token, 'open', agent, null))
-    ? 'recorded'
-    : 'duplicate';
+  await recordSignal(message.id, 'open', agent, null);
+  return 'recorded';
 }
 
 router.get('/glyph/t/:token', async (req, res): Promise<void> => {
@@ -100,7 +91,6 @@ router.get('/glyph/t/:token', async (req, res): Promise<void> => {
         }
         const outcome = await recordOpen(
           message,
-          token,
           req.get('user-agent') ?? '',
         );
         req.log.info(
@@ -173,7 +163,6 @@ router.get('/glyph/l/:token', async (req, res): Promise<void> => {
     try {
       await recordSignal(
         row.message.id,
-        token,
         'click',
         req.get('user-agent') ?? '',
         row.link.url,

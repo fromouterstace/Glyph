@@ -39,7 +39,7 @@ paths:
       operationId: getOverview
       responses:
         '200':
-          description: Engagement overview, anonymous requests return labeled sample data
+          description: Engagement overview from PostgreSQL; anonymous responses are empty and read-only
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Overview' }
@@ -253,8 +253,6 @@ components:
           clicks,
           replies,
           lastActivityAt,
-          starred,
-          isDemo,
         ]
       properties:
         id: { type: string }
@@ -272,8 +270,6 @@ components:
         clicks: { type: integer }
         replies: { type: integer }
         lastActivityAt: { type: [string, 'null'] }
-        starred: { type: boolean }
-        isDemo: { type: boolean }
         deliverySource: { type: string, enum: [web, gmail] }
     MessageDetail:
       type: object
@@ -308,7 +304,6 @@ components:
           automated,
           source,
           read,
-          isDemo,
         ]
       properties:
         id: { type: string }
@@ -322,12 +317,11 @@ components:
         automated: { type: boolean }
         source: { type: string }
         read: { type: boolean }
-        isDemo: { type: boolean }
     Overview:
       type: object
       required:
         [
-          isDemo,
+          readOnly,
           totalSent,
           totalOpens,
           totalClicks,
@@ -337,7 +331,7 @@ components:
           daily,
         ]
       properties:
-        isDemo: { type: boolean }
+        readOnly: { type: boolean }
         totalSent: { type: integer }
         totalOpens: { type: integer }
         totalClicks: { type: integer }
@@ -376,9 +370,9 @@ components:
       allOf:
         - { $ref: '#/components/schemas/SettingsInput' }
         - type: object
-          required: [isDemo]
+          required: [readOnly]
           properties:
-            isDemo: { type: boolean }
+            readOnly: { type: boolean }
     Connection:
       type: object
       required: [connected, email, authorized, message]

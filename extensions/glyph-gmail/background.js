@@ -105,7 +105,6 @@ async function poll() {
       if (
         baseline ||
         seen.has(event.id) ||
-        event.isDemo ||
         event.automated ||
         !['open', 'click', 'reply'].includes(event.type) ||
         event.read
@@ -137,7 +136,7 @@ async function poll() {
       lastPoll: new Date().toISOString(),
     });
     const unread = events.filter(
-      (e) => !e.read && !e.automated && !e.isDemo && e.type !== 'sent',
+      (e) => !e.read && !e.automated && e.type !== 'sent',
     ).length;
     await chrome.action.setBadgeText({ text: unread ? String(unread) : '' });
     await chrome.action.setBadgeBackgroundColor({ color: '#d94020' });
