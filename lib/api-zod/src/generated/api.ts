@@ -26,14 +26,14 @@ export const prepareNativeMessageBodyTwoUrlsMax = 100;
 
 
 export const PrepareNativeMessageBody = zod.object({
-  "recipientEmail": zod.string().email().max(prepareNativeMessageBodyOneRecipientEmailMax),
+  "recipientEmail": zod.email().max(prepareNativeMessageBodyOneRecipientEmailMax),
   "recipientName": zod.string().max(prepareNativeMessageBodyOneRecipientNameMax),
   "subject": zod.string().min(1).max(prepareNativeMessageBodyOneSubjectMax),
   "body": zod.string().min(1).max(prepareNativeMessageBodyOneBodyMax),
   "trackOpens": zod.boolean(),
   "trackClicks": zod.boolean()
 }).and(zod.object({
-  "senderEmail": zod.string().email(),
+  "senderEmail": zod.email(),
   "composeKey": zod.string().min(prepareNativeMessageBodyTwoComposeKeyMin).max(prepareNativeMessageBodyTwoComposeKeyMax),
   "urls": zod.array(zod.string().max(prepareNativeMessageBodyTwoUrlsItemMax)).max(prepareNativeMessageBodyTwoUrlsMax)
 }))
@@ -50,9 +50,9 @@ export const PrepareNativeMessageResponse = zod.object({
 
 
 export const SyncNativeMessagesResponse = zod.object({
-  "confirmed": zod.number().int(),
-  "pending": zod.number().int(),
-  "repliesDetected": zod.number().int(),
+  "confirmed": zod.int(),
+  "pending": zod.int(),
+  "repliesDetected": zod.int(),
   "replyCheckPartial": zod.boolean(),
   "replyCheckError": zod.string().nullable()
 })
@@ -60,17 +60,17 @@ export const SyncNativeMessagesResponse = zod.object({
 
 export const GetOverviewResponse = zod.object({
   "isDemo": zod.boolean(),
-  "totalSent": zod.number().int(),
-  "totalOpens": zod.number().int(),
-  "totalClicks": zod.number().int(),
+  "totalSent": zod.int(),
+  "totalOpens": zod.int(),
+  "totalClicks": zod.int(),
   "openRate": zod.number(),
   "clickRate": zod.number(),
-  "unreadCount": zod.number().int(),
+  "unreadCount": zod.int(),
   "daily": zod.array(zod.object({
   "date": zod.string(),
-  "sent": zod.number().int(),
-  "opens": zod.number().int(),
-  "clicks": zod.number().int()
+  "sent": zod.int(),
+  "opens": zod.int(),
+  "clicks": zod.int()
 }))
 })
 
@@ -91,9 +91,9 @@ export const ListMessagesResponseItem = zod.object({
   "status": zod.enum(['draft', 'sending', 'sent', 'failed', 'uncertain']),
   "createdAt": zod.string(),
   "sentAt": zod.string().nullable(),
-  "opens": zod.number().int(),
-  "clicks": zod.number().int(),
-  "replies": zod.number().int(),
+  "opens": zod.int(),
+  "clicks": zod.int(),
+  "replies": zod.int(),
   "lastActivityAt": zod.string().nullable(),
   "starred": zod.boolean(),
   "isDemo": zod.boolean(),
@@ -113,7 +113,7 @@ export const createMessageBodyBodyMax = 50000;
 
 
 export const CreateMessageBody = zod.object({
-  "recipientEmail": zod.string().email().max(createMessageBodyRecipientEmailMax),
+  "recipientEmail": zod.email().max(createMessageBodyRecipientEmailMax),
   "recipientName": zod.string().max(createMessageBodyRecipientNameMax),
   "subject": zod.string().min(1).max(createMessageBodySubjectMax),
   "body": zod.string().min(1).max(createMessageBodyBodyMax),
@@ -132,9 +132,9 @@ export const CreateMessageResponse = zod.object({
   "status": zod.enum(['draft', 'sending', 'sent', 'failed', 'uncertain']),
   "createdAt": zod.string(),
   "sentAt": zod.string().nullable(),
-  "opens": zod.number().int(),
-  "clicks": zod.number().int(),
-  "replies": zod.number().int(),
+  "opens": zod.int(),
+  "clicks": zod.int(),
+  "replies": zod.int(),
   "lastActivityAt": zod.string().nullable(),
   "starred": zod.boolean(),
   "isDemo": zod.boolean(),
@@ -158,9 +158,9 @@ export const GetMessageResponse = zod.object({
   "status": zod.enum(['draft', 'sending', 'sent', 'failed', 'uncertain']),
   "createdAt": zod.string(),
   "sentAt": zod.string().nullable(),
-  "opens": zod.number().int(),
-  "clicks": zod.number().int(),
-  "replies": zod.number().int(),
+  "opens": zod.int(),
+  "clicks": zod.int(),
+  "replies": zod.int(),
   "lastActivityAt": zod.string().nullable(),
   "starred": zod.boolean(),
   "isDemo": zod.boolean(),
@@ -183,7 +183,7 @@ export const GetMessageResponse = zod.object({
   "links": zod.array(zod.object({
   "id": zod.string(),
   "url": zod.string(),
-  "clicks": zod.number().int()
+  "clicks": zod.int()
 }))
 })
 
@@ -203,7 +203,7 @@ export const updateMessageBodyBodyMax = 50000;
 
 
 export const UpdateMessageBody = zod.object({
-  "recipientEmail": zod.string().email().max(updateMessageBodyRecipientEmailMax),
+  "recipientEmail": zod.email().max(updateMessageBodyRecipientEmailMax),
   "recipientName": zod.string().max(updateMessageBodyRecipientNameMax),
   "subject": zod.string().min(1).max(updateMessageBodySubjectMax),
   "body": zod.string().min(1).max(updateMessageBodyBodyMax),
@@ -222,9 +222,9 @@ export const UpdateMessageResponse = zod.object({
   "status": zod.enum(['draft', 'sending', 'sent', 'failed', 'uncertain']),
   "createdAt": zod.string(),
   "sentAt": zod.string().nullable(),
-  "opens": zod.number().int(),
-  "clicks": zod.number().int(),
-  "replies": zod.number().int(),
+  "opens": zod.int(),
+  "clicks": zod.int(),
+  "replies": zod.int(),
   "lastActivityAt": zod.string().nullable(),
   "starred": zod.boolean(),
   "isDemo": zod.boolean(),
@@ -254,9 +254,9 @@ export const SendMessageResponse = zod.object({
   "status": zod.enum(['draft', 'sending', 'sent', 'failed', 'uncertain']),
   "createdAt": zod.string(),
   "sentAt": zod.string().nullable(),
-  "opens": zod.number().int(),
-  "clicks": zod.number().int(),
-  "replies": zod.number().int(),
+  "opens": zod.int(),
+  "clicks": zod.int(),
+  "replies": zod.int(),
   "lastActivityAt": zod.string().nullable(),
   "starred": zod.boolean(),
   "isDemo": zod.boolean(),

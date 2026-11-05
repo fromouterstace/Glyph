@@ -188,7 +188,7 @@ export interface HealthStatus {
 }
 
 export type ListMessagesParams = {
-search?: string;
-status?: string;
+  search?: string;
+  status?: string;
 };
 
