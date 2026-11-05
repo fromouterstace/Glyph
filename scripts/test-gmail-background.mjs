@@ -88,8 +88,8 @@ function fixture(options = {}) {
                   ? (options.settings ?? {})
                   : msg.action === 'prepare'
                     ? (options.prepared ?? {
-                        markerUrl: 'https://glyph.example/gmail?glyph=test',
-                        pixelUrl: 'https://glyph.example/api/glyph/t/test.gif',
+                        markerUrl: `${PUBLISHED_GLYPH_ORIGIN}/gmail?glyph=test`,
+                        pixelUrl: `${PUBLISHED_GLYPH_ORIGIN}/api/glyph/t/test.gif`,
                         links: [],
                       })
                     : {},
@@ -223,6 +223,51 @@ test('app access is registered only for the explicitly selected origin', async (
     Object.keys(f.stored).some((k) => /token|password|secret/i.test(k)),
     false,
   );
+});
+test('lookalike, custom, malformed, and unsafe origins fail before enrollment', async () => {
+  const untrusted = [
+    'https://glyph-mail.replit.app.attacker.example',
+    'https://attacker.example',
+    'https://user@glyph-mail.replit.app',
+    'https://glyph-mail.replit.app@attacker.example',
+    'http://glyph-mail.replit.app',
+    'https://glyph-mail.replit.app:8443',
+    `${PUBLISHED_GLYPH_ORIGIN}/gmail`,
+    `${PUBLISHED_GLYPH_ORIGIN}?redirect=https://attacker.example`,
+    `${PUBLISHED_GLYPH_ORIGIN}#attacker`,
+    'not a URL',
+  ];
+  const f = fixture();
+  for (const origin of untrusted) {
+    const response = await f.request('connect', { origin }, f.popup);
+    assert.equal(response.ok, false, origin);
+  }
+  assert.equal(f.permissionChecks.length, 0);
+  assert.equal(f.registered.length, 0);
+  assert.equal(f.openedTabs.length, 0);
+});
+test('update removes stale host permission and state before any bridge message', async () => {
+  const oldOrigin = 'https://glyph-mail.replit.app.attacker.example';
+  const f = fixture({
+    stored: {
+      origin: oldOrigin,
+      seenEvents: ['old-event'],
+      lastPoll: 'old-poll',
+      mailbox: 'old@example.com',
+    },
+    grantedOrigins: [`${oldOrigin}/*`, 'https://mail.google.com/*'],
+  });
+  await f.installed({ reason: 'update' });
+  assert.equal(f.stored.origin, undefined);
+  assert.equal(f.stored.seenEvents, undefined);
+  assert.ok(f.removedPermissions.includes(`${oldOrigin}/*`));
+  assert.ok(f.unregistered.includes('glyph-app-bridge'));
+  const response = await f.request(
+    'prepare',
+    { data: { recipientEmail: 'private@example.com', body: 'private body' } },
+  );
+  assert.equal(response.ok, false);
+  assert.equal(f.calls.length, 0);
 });
 test('new preview connections are rejected before bridge registration', async () => {
   const f = fixture();
