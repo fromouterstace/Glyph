@@ -59,6 +59,9 @@ deployment-hardening gaps. Preserve the existing product rules while doing so:
 
 - Require sign-in for private dashboard screens and all account data, while
   documenting and testing the minimum necessary public exceptions.
+- Associate each user's messages, activity, settings, Gmail state, and dashboard
+  data with that authenticated user's stable identity; sign-in is required before
+  any of that data is queried or displayed.
 - Serve the dashboard, connection, and new tracking URLs only over HTTPS; retain
   the public tracking paths required by recipient mail clients.
 - Gmail remains responsible for native Send.
@@ -98,33 +101,58 @@ Release verification follows all changed workstreams.
 
 - Add a route-by-route access policy for the frontend, API, Clerk proxy, health
   endpoint, and pixel/redirect routes.
-- Require sign-in before rendering private dashboard, message, activity,
-  settings, and Gmail-connection screens. Keep sign-in/sign-up reachable so
-  users can authenticate; decide explicitly whether the marketing/landing page
-  remains public.
+- Require sign-in before rendering `/app`, Emails, Activity, Settings, and Gmail
+  account screens or requesting their private account data. Unauthenticated
+  visitors must be redirected to sign-in or shown only the explicitly approved
+  marketing/landing page—not an account dashboard populated with placeholder or
+  another user's data.
+- Key each user's messages, links, events/activity, settings, notification
+  preferences, and Gmail sync state to the stable authenticated user ID. Derive
+  that ID from the validated server session, never from request parameters,
+  submitted fields, or email address alone.
+- Require authentication on private account-data read and write APIs. Prefer an
+  explicit 401/403 for unauthenticated private reads rather than presenting an
+  empty account response as though sign-in were optional. Preserve owner-scoped
+  predicates on every message, nested event/link, setting, and aggregate query.
+- Clear user-scoped client caches and extension notification/sync state when
+  identity changes; a session switch must not briefly display the previous
+  user's data.
+- Keep sign-in/sign-up reachable so users can authenticate; decide explicitly
+  whether the marketing/landing page remains public.
 - Continue enforcing authorization and owner isolation on the server. A
   frontend route guard is not a replacement for API authentication.
 - Keep only necessary public API responses: health, Clerk auth protocol, and
   opaque-token pixel/redirect paths. Anonymous account-data endpoints should
-  remain empty/read-only or be changed to 401/403 according to a documented
-  consistent policy; never return private records.
+  return 401/403; never return account-specific records or preferences.
 - Keep new tracking origins HTTPS-only and owned by the same deployment/data
   store. Verify the published edge's HTTP behavior and HSTS on every published
   host.
+- The current Gmail connector is shared by the project and authorizes mailbox
+  operations only for a signed-in user whose verified email matches that
+  connected mailbox. Do not equate per-user data ownership with support for
+  independent Gmail accounts. Before supporting multiple senders, design and
+  review per-user mailbox authorization/connector handling; retain per-user
+  record ownership either way.
 - Do not require sign-in for recipient tracking requests. If every route on the
   dashboard host must be private, scope a separate public tracking origin/service
   design before implementation.
 
 **Acceptance criteria**
 
-- An unauthenticated browser is redirected to sign-in or sees only the
-  explicitly approved public landing page; private dashboard screens and
-  signed-in account data are not rendered.
-- Anonymous requests to every private read or mutation route return only the
-  documented empty/read-only result or an explicit authorization error, never
-  another user's data.
-- Authenticated owner success and cross-owner denial continue to pass against
-  isolated PostgreSQL.
+- An unauthenticated browser cannot view `/app`, Emails, Activity, Settings, or
+  Gmail account data; it is redirected to sign-in or sees only the explicitly
+  approved public landing page.
+- Every private account-data read and mutation API rejects unauthenticated
+  requests with 401/403 before querying or changing private records.
+- Two authenticated users can each retrieve their own messages, activity,
+  settings, and aggregates; neither can retrieve the other's records, including
+  through nested links/events, filters, pagination, sync results, or client
+  cache after a user switch.
+- Record ownership comes from the authenticated server identity and is enforced
+  in PostgreSQL queries and mutations, not only in frontend visibility.
+- Gmail actions fail closed unless the user is authorized for the currently
+  connected mailbox. Independent mailbox support is not claimed until its
+  connector design and cross-user isolation tests are complete.
 - Public pixel GET still returns the expected image without a sign-in redirect;
   public link tracking still reaches its stored destination; neither response
   exposes account data.
