@@ -14,6 +14,7 @@ import {
 } from './middlewares/clerkProxyMiddleware';
 
 const app: Express = express();
+app.disable('x-powered-by');
 
 app.use(
   pinoHttp({
@@ -24,6 +25,19 @@ app.use(
     },
   }),
 );
+app.use((_req, res, next) => {
+  res.set({
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    'Content-Security-Policy':
+      "frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
+  });
+  if (process.env.NODE_ENV === 'production')
+    res.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains');
+  next();
+});
 // Tracking images and redirects are deliberately public. In particular, Clerk's
 // development-browser handshake must never replace a pixel with a sign-in redirect.
 // Keep all application routes below Clerk and their existing ownership checks.

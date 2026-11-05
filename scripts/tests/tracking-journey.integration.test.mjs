@@ -120,6 +120,39 @@ test('mailbox switch denies prior-owner sync and send before Gmail access', asyn
   ).toBe(200);
 });
 
+test('ambiguous forwarded host or protocol cannot authorize a browser write', async () => {
+  const owner = h.identity();
+  const callsBefore = edge.proxy.mock.calls.length;
+  for (const headers of [
+    { 'x-forwarded-host': 'glyph.example, attacker.invalid' },
+    { 'x-forwarded-proto': 'https,http' },
+  ]) {
+    const response = await h.request('/messages', {
+      user: owner,
+      method: 'POST',
+      body: {},
+      headers,
+    });
+    expect(response.status).toBe(403);
+  }
+  expect(edge.proxy.mock.calls).toHaveLength(callsBefore);
+});
+
+test('API responses include browser protections and hide Express fingerprints', async () => {
+  const response = await h.request('/overview', { user: h.identity() });
+  expect(response.status).toBe(200);
+  expect(response.headers.get('content-security-policy')).toContain(
+    "frame-ancestors 'none'",
+  );
+  expect(response.headers.get('referrer-policy')).toBe(
+    'strict-origin-when-cross-origin',
+  );
+  expect(response.headers.get('permissions-policy')).toContain('camera=()');
+  expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+  expect(response.headers.get('x-frame-options')).toBe('DENY');
+  expect(response.headers.get('x-powered-by')).toBeNull();
+});
+
 test('native draft pixel bursts use one durable reconciliation slot and preserve responses', async () => {
   const owner = h.identity();
   const message = await messageFixture(h.sql, {

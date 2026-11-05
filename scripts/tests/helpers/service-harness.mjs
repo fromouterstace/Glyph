@@ -79,6 +79,7 @@ export async function serviceHarness() {
           ...(user ? { 'x-test-user': user } : {}),
           origin: 'https://glyph.example',
           'x-forwarded-host': 'glyph.example',
+          'x-forwarded-proto': 'https',
           'content-type': 'application/json',
           ...headers,
         },

@@ -4,6 +4,31 @@ modules = ["nodejs-24", "python-base-3.13", "postgresql-16"]
 router = "application"
 deploymentTarget = "autoscale"
 
+[[deployment.responseHeaders]]
+path = "/*"
+name = "Content-Security-Policy"
+value = "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+
+[[deployment.responseHeaders]]
+path = "/*"
+name = "Referrer-Policy"
+value = "strict-origin-when-cross-origin"
+
+[[deployment.responseHeaders]]
+path = "/*"
+name = "Permissions-Policy"
+value = "camera=(), microphone=(), geolocation=()"
+
+[[deployment.responseHeaders]]
+path = "/*"
+name = "X-Content-Type-Options"
+value = "nosniff"
+
+[[deployment.responseHeaders]]
+path = "/*"
+name = "X-Frame-Options"
+value = "DENY"
+
 [deployment.postBuild]
 args = ["pnpm", "store", "prune"]
 env = { "CI" = "true" }

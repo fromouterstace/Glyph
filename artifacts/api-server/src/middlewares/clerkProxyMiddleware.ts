@@ -75,7 +75,7 @@ export function getTrustedRequestOrigin(
   const forwarded = req.headers['x-forwarded-proto'];
   const proto =
     forwarded === undefined
-      ? process.env.NODE_ENV === 'production' || req.socket.encrypted
+      ? process.env.NODE_ENV === 'production'
         ? 'https'
         : 'http'
       : singleHeader(forwarded)?.trim().toLowerCase();
@@ -91,39 +91,134 @@ export function isSameTrustedOrigin(
 ) {
   if (!originHeader || !requestOrigin) return false;
   try {
-    return new URL(originHeader).origin === originHeader &&
-      originHeader === requestOrigin;
+    return (
+      new URL(originHeader).origin === originHeader &&
+      originHeader === requestOrigin
+    );
   } catch {
     return false;
   }
 }
 
-export function clerkProxyMiddleware(): RequestHandler {
-  // Only run proxy in production — Clerk proxying doesn't work for dev instances
-  if (process.env.NODE_ENV !== 'production') {
-    return (_req, _res, next) => next();
+const clerkResponseBufferLimit = 1024 * 1024;
+
+function sendProxyError(
+  res: ServerResponse,
+  status: 502 | 504,
+  message: string,
+) {
+  if (res.headersSent) {
+    res.destroy();
+    return;
   }
+  const body = JSON.stringify({ error: message });
+  res.writeHead(status, {
+    'content-type': 'application/json; charset=utf-8',
+    'content-length': Buffer.byteLength(body),
+    'cache-control': 'no-store',
+  });
+  res.end(body);
+}
+
+export function relayClerkResponse(
+  proxyRes: IncomingMessage,
+  req: IncomingMessage,
+  res: ServerResponse,
+) {
+  const headers = { ...proxyRes.headers };
+  delete headers['transfer-encoding'];
+  delete headers.connection;
+  delete headers['keep-alive'];
+  delete headers['x-powered-by'];
+
+  const status = proxyRes.statusCode ?? 502;
+  if (status < 200 || status === 204) delete headers['content-length'];
+  const bodyless =
+    req.method === 'HEAD' || status < 200 || status === 204 || status === 304;
+  let settled = false;
+  const fail = (code: 502 | 504, message: string) => {
+    if (settled) return;
+    settled = true;
+    sendProxyError(res, code, message);
+  };
+
+  proxyRes.on('error', () =>
+    fail(502, 'The authentication service is unavailable. Try again.'),
+  );
+  if (bodyless) {
+    res.writeHead(status, headers);
+    res.end();
+    proxyRes.resume();
+    return;
+  }
+  if (headers['content-length'] !== undefined) {
+    res.writeHead(status, headers);
+    proxyRes.pipe(res);
+    return;
+  }
+
+  const chunks: Buffer[] = [];
+  let size = 0;
+  proxyRes.on('data', (value: Buffer | string) => {
+    if (settled) return;
+    const chunk = Buffer.isBuffer(value) ? value : Buffer.from(value);
+    size += chunk.length;
+    if (size > clerkResponseBufferLimit) {
+      fail(502, 'The authentication service response was too large.');
+      proxyRes.destroy();
+      return;
+    }
+    chunks.push(chunk);
+  });
+  proxyRes.on('end', () => {
+    if (settled) return;
+    settled = true;
+    const body = Buffer.concat(chunks);
+    headers['content-length'] = String(body.length);
+    res.writeHead(status, headers);
+    res.end(body);
+  });
+}
+
+function sendFixedError(
+  res: ServerResponse,
+  status: 400 | 503,
+  message: string,
+) {
+  const body = JSON.stringify({ error: message });
+  res.writeHead(status, {
+    'content-type': 'application/json; charset=utf-8',
+    'content-length': Buffer.byteLength(body),
+    'cache-control': 'no-store',
+  });
+  res.end(body);
+}
+
+export function clerkProxyMiddleware(): RequestHandler {
+  if (process.env.NODE_ENV !== 'production')
+    return (_req, _res, next) => next();
 
   const secretKey = process.env.CLERK_SECRET_KEY;
-  if (!secretKey) {
-    return (_req, _res, next) => next();
-  }
+  if (!secretKey)
+    return (_req, res) =>
+      sendFixedError(res, 503, 'Authentication proxy is unavailable.');
 
-  return createProxyMiddleware({
+  const proxy = createProxyMiddleware({
     target: CLERK_FAPI,
     changeOrigin: true,
-    // Take over the response so it can be re-sent with a Content-Length (see
-    // proxyRes); the deployment edge rejects chunked proxied responses.
+    proxyTimeout: 10_000,
+    timeout: 15_000,
     selfHandleResponse: true,
     pathRewrite: (path: string) =>
       path.replace(new RegExp(`^${CLERK_PROXY_PATH}`), ''),
     on: {
       proxyReq: (proxyReq, req) => {
-        const protocol = req.headers['x-forwarded-proto'] || 'https';
-        const host = getClerkProxyHost(req) || '';
-        const proxyUrl = `${protocol}://${host}${CLERK_PROXY_PATH}`;
-
-        proxyReq.setHeader('Clerk-Proxy-Url', proxyUrl);
+        const origin = getTrustedRequestOrigin(req);
+        if (!origin) {
+          proxyReq.destroy();
+          return;
+        }
+        proxyReq.setHeader('Clerk-Proxy-Url', `${origin}${CLERK_PROXY_PATH}`);
         proxyReq.setHeader('Clerk-Secret-Key', secretKey);
 
         const xff = req.headers['x-forwarded-for'];
@@ -131,62 +226,32 @@ export function clerkProxyMiddleware(): RequestHandler {
           (Array.isArray(xff) ? xff[0] : xff)?.split(',')[0]?.trim() ||
           req.socket?.remoteAddress ||
           '';
-        if (clientIp) {
-          proxyReq.setHeader('X-Forwarded-For', clientIp);
-        }
+        if (clientIp) proxyReq.setHeader('X-Forwarded-For', clientIp);
       },
-      // Clerk's dynamic Frontend API responses (/v1/environment, /v1/client,
-      // JWKS, ...) arrive without a Content-Length, so relaying them would use
-      // Transfer-Encoding: chunked — which the deployment edge (Cloud Run)
-      // rejects, turning the app's 200 into a 500. Buffer only those so they can
-      // be re-sent with a Content-Length; the body is forwarded untouched so
-      // Content-Encoding is preserved. Length-known responses (e.g. /npm/*
-      // assets) and body-less responses stream through without buffering.
-      proxyRes: (proxyRes, req, res) => {
-        const headers = { ...proxyRes.headers };
-        // Transfer-Encoding/Connection are hop-by-hop (RFC 7230 §6.1).
-        delete headers['transfer-encoding'];
-        delete headers['connection'];
-        delete headers['keep-alive'];
-
-        const status = proxyRes.statusCode ?? 502;
-        // Content-Length is forbidden on 1xx/204; HEAD/304 may keep theirs.
-        if (status < 200 || status === 204) {
-          delete headers['content-length'];
-        }
-
-        const bodyless =
-          req.method === 'HEAD' ||
-          status < 200 ||
-          status === 204 ||
-          status === 304;
-        if (headers['content-length'] !== undefined || bodyless) {
-          res.writeHead(status, headers);
-          // Headers are already sent, so abort the response if the upstream
-          // stream errors mid-pipe (e.g. ECONNRESET) rather than leaving an
-          // unhandled 'error' or a hung client.
-          proxyRes.on('error', () => res.destroy());
-          proxyRes.pipe(res);
+      proxyRes: relayClerkResponse,
+      error: (error, _req, res) => {
+        if (!('headersSent' in res)) {
+          res.destroy();
           return;
         }
-
-        const chunks: Buffer[] = [];
-        proxyRes.on('data', (chunk: Buffer) => chunks.push(chunk));
-        proxyRes.on('end', () => {
-          const body = Buffer.concat(chunks);
-          headers['content-length'] = String(body.length);
-          res.writeHead(status, headers);
-          res.end(body);
-        });
-        proxyRes.on('error', () => {
-          if (!res.headersSent) {
-            // Set a length so the empty 502 isn't sent chunked (which the
-            // deployment edge would reject just like the original response).
-            res.writeHead(502, { 'content-length': '0' });
-          }
-          res.end();
-        });
+        const code =
+          'code' in error && typeof error.code === 'string' ? error.code : '';
+        sendProxyError(
+          res,
+          code === 'ETIMEDOUT' ? 504 : 502,
+          code === 'ETIMEDOUT'
+            ? 'The authentication service timed out. Try again.'
+            : 'The authentication service is unavailable. Try again.',
+        );
       },
     },
   }) as RequestHandler;
+
+  return (req, res, next) => {
+    if (!getTrustedRequestOrigin(req)) {
+      sendFixedError(res, 400, 'Invalid forwarded request origin.');
+      return;
+    }
+    proxy(req, res, next);
+  };
 }

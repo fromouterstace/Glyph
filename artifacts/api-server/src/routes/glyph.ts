@@ -42,6 +42,10 @@ import {
   ownsMailbox,
   safeMailboxOwnership,
 } from '../lib/gmail';
+import {
+  getTrustedRequestOrigin,
+  isSameTrustedOrigin,
+} from '../middlewares/clerkProxyMiddleware';
 import { trackedEmailHtml } from '../lib/email-content';
 import { resolveTrackingOrigin } from '../lib/tracking-origin';
 import { logSafeError } from '../lib/logger';
@@ -102,17 +106,10 @@ router.use('/glyph', async (req, res, next): Promise<void> => {
     next();
     return;
   }
-  const origin = req.get('origin');
-  const hosts = [
-    req.get('host'),
-    req.get('x-forwarded-host')?.split(',')[0]?.trim(),
-  ].filter(Boolean);
-  let sameOrigin = false;
-  try {
-    sameOrigin = !!origin && hosts.includes(new URL(origin).host);
-  } catch {
-    /* invalid origin */
-  }
+  const sameOrigin = isSameTrustedOrigin(
+    req.get('origin'),
+    getTrustedRequestOrigin(req),
+  );
   if (!sameOrigin) {
     res
       .status(403)

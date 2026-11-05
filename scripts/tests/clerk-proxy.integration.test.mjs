@@ -1,0 +1,203 @@
+import { PassThrough, Writable } from 'node:stream';
+import { once } from 'node:events';
+import { readFile } from 'node:fs/promises';
+import { afterEach, expect, test, vi } from 'vitest';
+
+const proxyState = vi.hoisted(() => ({ options: undefined, calls: 0 }));
+vi.mock('http-proxy-middleware', () => ({
+  createProxyMiddleware(options) {
+    proxyState.options = options;
+    return (_req, _res, next) => {
+      proxyState.calls++;
+      next?.();
+    };
+  },
+}));
+
+import {
+  clerkProxyMiddleware,
+  getClerkProxyHost,
+  getTrustedRequestOrigin,
+  isSameTrustedOrigin,
+  relayClerkResponse,
+} from '../../artifacts/api-server/src/middlewares/clerkProxyMiddleware.ts';
+
+afterEach(() => vi.unstubAllEnvs());
+
+function makeResponse() {
+  const chunks = [];
+  let status;
+  let headers;
+  const response = new Writable({
+    write(chunk, _encoding, callback) {
+      chunks.push(Buffer.from(chunk));
+      callback();
+    },
+  });
+  response.headersSent = false;
+  response.writeHead = (code, value) => {
+    status = code;
+    headers = value;
+    response.headersSent = true;
+    return response;
+  };
+  return {
+    response,
+    chunks,
+    get status() {
+      return status;
+    },
+    get headers() {
+      return headers;
+    },
+  };
+}
+
+function upstream(statusCode = 200, headers = {}) {
+  const response = new PassThrough();
+  response.statusCode = statusCode;
+  response.headers = headers;
+  return response;
+}
+
+test('forwarded host and protocol must each be a single valid value', () => {
+  expect(
+    getTrustedRequestOrigin({
+      headers: {
+        host: 'internal:8080',
+        'x-forwarded-host': 'glyph.example',
+        'x-forwarded-proto': 'https',
+      },
+      socket: {},
+    }),
+  ).toBe('https://glyph.example');
+  expect(
+    getClerkProxyHost({
+      headers: { host: 'glyph.example', 'x-forwarded-host': 'good,evil' },
+    }),
+  ).toBeUndefined();
+  expect(
+    getTrustedRequestOrigin({
+      headers: { host: 'glyph.example', 'x-forwarded-proto': 'https,http' },
+      socket: {},
+    }),
+  ).toBeUndefined();
+  expect(
+    isSameTrustedOrigin('https://glyph.example', 'https://glyph.example'),
+  ).toBe(true);
+  expect(
+    isSameTrustedOrigin('https://glyph.example/path', 'https://glyph.example'),
+  ).toBe(false);
+});
+
+test('static deployment headers keep framing, MIME, and referrer policies explicit', async () => {
+  const config = await readFile(
+    new URL('../../.replit', import.meta.url),
+    'utf8',
+  );
+  for (const header of [
+    'Content-Security-Policy',
+    'Referrer-Policy',
+    'Permissions-Policy',
+    'X-Content-Type-Options',
+    'X-Frame-Options',
+  ])
+    expect(config).toContain(`name = "${header}"`);
+});
+
+test('chunked Clerk responses are buffered with a correct length', async () => {
+  const source = upstream(200, {
+    'content-type': 'application/json',
+    'transfer-encoding': 'chunked',
+    connection: 'keep-alive',
+  });
+  const target = makeResponse();
+  relayClerkResponse(source, { method: 'GET' }, target.response);
+  source.end('{"ok":true}');
+  await once(target.response, 'finish');
+  expect(target.status).toBe(200);
+  expect(target.headers['content-length']).toBe('11');
+  expect(target.headers.connection).toBeUndefined();
+  expect(Buffer.concat(target.chunks).toString()).toBe('{"ok":true}');
+});
+
+test('unknown-length Clerk response exceeding the buffer cap gets controlled 502', async () => {
+  const source = upstream();
+  const target = makeResponse();
+  relayClerkResponse(source, { method: 'GET' }, target.response);
+  source.write(Buffer.alloc(1024 * 1024 + 1));
+  await once(target.response, 'finish');
+  expect(target.status).toBe(502);
+  expect(target.headers['content-length']).toBeGreaterThan(0);
+  expect(Buffer.concat(target.chunks).toString()).toContain('too large');
+});
+
+test('known-length Clerk assets stream, and HEAD or empty statuses stay bodyless', async () => {
+  const asset = upstream(200, {
+    'content-length': '3',
+    'content-type': 'application/javascript',
+    'content-encoding': 'gzip',
+    'x-powered-by': 'Express',
+  });
+  const assetTarget = makeResponse();
+  relayClerkResponse(asset, { method: 'GET' }, assetTarget.response);
+  asset.end('js!');
+  await once(assetTarget.response, 'finish');
+  expect(assetTarget.status).toBe(200);
+  expect(assetTarget.headers['content-encoding']).toBe('gzip');
+  expect(assetTarget.headers['x-powered-by']).toBeUndefined();
+  expect(Buffer.concat(assetTarget.chunks).toString()).toBe('js!');
+
+  for (const [method, status] of [
+    ['HEAD', 200],
+    ['GET', 204],
+    ['GET', 304],
+  ]) {
+    const source = upstream(status, { 'content-length': '9' });
+    const target = makeResponse();
+    relayClerkResponse(source, { method }, target.response);
+    source.end('not sent');
+    await once(target.response, 'finish');
+    expect(target.status).toBe(status);
+    expect(target.chunks).toHaveLength(0);
+    if (status === 204)
+      expect(target.headers['content-length']).toBeUndefined();
+  }
+});
+
+test('aborted upstream and proxy timeout produce bounded, controlled errors', async () => {
+  const source = upstream();
+  const target = makeResponse();
+  relayClerkResponse(source, { method: 'GET' }, target.response);
+  source.destroy(new Error('private upstream detail'));
+  await once(target.response, 'finish');
+  expect(target.status).toBe(502);
+  expect(Buffer.concat(target.chunks).toString()).not.toContain(
+    'private upstream detail',
+  );
+
+  const previousNodeEnv = process.env.NODE_ENV;
+  const previousSecret = process.env.CLERK_SECRET_KEY;
+  process.env.NODE_ENV = 'production';
+  process.env.CLERK_SECRET_KEY = 'test-only-placeholder';
+  try {
+    proxyState.options = undefined;
+    proxyState.calls = 0;
+    clerkProxyMiddleware();
+    expect(proxyState.options.proxyTimeout).toBe(10_000);
+    expect(proxyState.options.timeout).toBe(15_000);
+    const timedOut = makeResponse();
+    proxyState.options.on.error(
+      Object.assign(new Error('timeout'), { code: 'ETIMEDOUT' }),
+      {},
+      timedOut.response,
+    );
+    await once(timedOut.response, 'finish');
+    expect(timedOut.status).toBe(504);
+  } finally {
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+    if (previousSecret === undefined) delete process.env.CLERK_SECRET_KEY;
+    else process.env.CLERK_SECRET_KEY = previousSecret;
+  }
+});
