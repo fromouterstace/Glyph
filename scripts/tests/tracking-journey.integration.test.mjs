@@ -5,6 +5,7 @@ import {
   json,
   mailbox,
   defaultProvider,
+  gmailConnections,
 } from './helpers/service-harness.mjs';
 import { trackedCompose } from './helpers/compose-harness.mjs';
 import { messageFixture, fixtureId } from '../lib/database-fixture.mjs';
@@ -16,6 +17,12 @@ beforeAll(async () => {
 beforeEach(() => {
   edge.now += 180_000;
   edge.proxy.mockImplementation(defaultProvider);
+  edge.connections.mockResolvedValue(gmailConnections());
+  edge.getUser.mockImplementation(async () => ({
+    emailAddresses: [
+      { emailAddress: mailbox, verification: { status: 'verified' } },
+    ],
+  }));
 });
 afterAll(async () => {
   await h?.close();
@@ -52,6 +59,66 @@ for (const source of ['web', 'gmail']) {
     expect(edge.proxy.mock.calls.length).toBe(reads);
   });
 }
+
+test('mailbox switch denies prior-owner sync and send before Gmail access', async () => {
+  const ownerA = h.identity();
+  const ownerB = h.identity();
+  const mailboxA = 'account-a@example.invalid';
+  const mailboxB = 'account-b@example.invalid';
+  let activeMailbox = mailboxA;
+  const draft = await messageFixture(h.sql, {
+    ownerId: ownerA,
+    status: 'draft',
+  });
+  edge.connections.mockResolvedValue(gmailConnections('stable-connection'));
+  edge.getUser.mockImplementation(async (userId) => ({
+    emailAddresses: [
+      {
+        emailAddress: userId === ownerA ? mailboxA : mailboxB,
+        verification: { status: 'verified' },
+      },
+    ],
+  }));
+  edge.proxy.mockImplementation((_integration, path) =>
+    path.endsWith('/profile')
+      ? json({ emailAddress: activeMailbox })
+      : path.includes('/messages?')
+        ? json({ messages: [] })
+        : defaultProvider(_integration, path),
+  );
+  expect(
+    (await h.request('/native/sync', { user: ownerA, method: 'POST' })).status,
+  ).toBe(200);
+
+  activeMailbox = mailboxB;
+  const readsBefore = edge.proxy.mock.calls.filter(([, path]) =>
+    path.includes('/messages?'),
+  ).length;
+  expect(
+    (await h.request('/native/sync', { user: ownerA, method: 'POST' })).status,
+  ).toBe(403);
+  expect(
+    (
+      await h.request(`/messages/${draft.id}/send`, {
+        user: ownerA,
+        method: 'POST',
+      })
+    ).status,
+  ).toBe(403);
+  expect(
+    edge.proxy.mock.calls.filter(([, path]) => path.includes('/messages?'))
+      .length,
+  ).toBe(readsBefore);
+  expect(
+    edge.proxy.mock.calls.some(
+      ([, path, init]) =>
+        path.includes('/messages/send') || init.method === 'POST',
+    ),
+  ).toBe(false);
+  expect(
+    (await h.request('/native/sync', { user: ownerB, method: 'POST' })).status,
+  ).toBe(200);
+});
 
 test('native draft pixel bursts use one durable reconciliation slot and preserve responses', async () => {
   const owner = h.identity();

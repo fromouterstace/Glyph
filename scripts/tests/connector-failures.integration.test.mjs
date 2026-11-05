@@ -1,10 +1,18 @@
 import { beforeEach, afterEach, expect, test, vi } from 'vitest';
-import { edge, json } from './helpers/service-harness.mjs';
+import {
+  edge,
+  gmailConnections,
+  json,
+  mailbox,
+} from './helpers/service-harness.mjs';
 
 let gmail;
 beforeEach(async () => {
   vi.resetModules();
   edge.proxy.mockReset();
+  edge.connections.mockReset();
+  edge.connections.mockResolvedValue(gmailConnections());
+  edge.getUser.mockReset();
   edge.now = Date.UTC(2026, 10, 4, 12);
   vi.spyOn(Date, 'now').mockImplementation(() => edge.now);
   gmail = await import('../../artifacts/api-server/src/lib/gmail.ts');
@@ -81,4 +89,56 @@ test('a failed provider profile is not treated as a connected mailbox', async ()
     'connection unavailable (503)',
   );
   expect(edge.proxy).toHaveBeenCalledTimes(1);
+});
+
+test('mailbox authorization refreshes identity and separates account caches', async () => {
+  const active = {
+    connectionId: 'gmail-connection-a',
+    email: 'account-a@example.invalid',
+  };
+  const accounts = new Map([
+    ['owner-a', 'account-a@example.invalid'],
+    ['owner-b', 'account-b@example.invalid'],
+  ]);
+  edge.connections.mockImplementation(async () =>
+    gmailConnections(active.connectionId),
+  );
+  edge.proxy.mockImplementation((_integration, path) =>
+    path.endsWith('/profile') ? json({ emailAddress: active.email }) : json({}),
+  );
+  edge.getUser.mockImplementation(async (userId) => ({
+    emailAddresses: [
+      {
+        emailAddress: accounts.get(userId),
+        verification: { status: 'verified' },
+      },
+    ],
+  }));
+
+  expect(await gmail.ownsMailbox('owner-a')).toBe(true);
+  active.email = 'account-b@example.invalid';
+  expect(await gmail.ownsMailbox('owner-a')).toBe(false);
+  expect(await gmail.ownsMailbox('owner-b')).toBe(true);
+  expect(
+    edge.connections.mock.calls.every(
+      ([options]) =>
+        options.connector_names === 'google-mail' &&
+        options.refresh_policy === 'force',
+    ),
+  ).toBe(true);
+});
+
+test('unknown connector identity fails closed and clears cached ownership', async () => {
+  edge.proxy.mockResolvedValue(json({ emailAddress: mailbox }));
+  edge.getUser.mockResolvedValue({
+    emailAddresses: [
+      { emailAddress: mailbox, verification: { status: 'verified' } },
+    ],
+  });
+  expect(await gmail.ownsMailbox('owner-a')).toBe(true);
+  edge.connections.mockRejectedValue(new Error('connection API unavailable'));
+  expect(await gmail.safeMailboxOwnership('owner-a')).toBe(false);
+  edge.connections.mockResolvedValue(gmailConnections());
+  await gmail.ownsMailbox('owner-a');
+  expect(edge.proxy).toHaveBeenCalledTimes(2);
 });

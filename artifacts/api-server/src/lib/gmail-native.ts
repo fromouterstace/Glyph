@@ -1,6 +1,10 @@
 import { and, eq } from 'drizzle-orm';
 import { db, glyphMessages } from '@workspace/db';
-import { gmailRequest, mailboxEmail } from './gmail';
+import {
+  gmailRequest,
+  requireMailboxOwner,
+  type MailboxContext,
+} from './gmail';
 import { matchesNativeSend, type SentCandidate } from './native-verification';
 import { confirmSentMessage } from './message-lifecycle';
 const scans = new Map<
@@ -17,24 +21,26 @@ const candidateCache = new Map<
 >();
 
 export async function syncNative(ownerId: string, freshSignal = false) {
-  const previous = scans.get(ownerId);
+  const mailbox = await requireMailboxOwner(ownerId);
+  const identityKey = `${mailbox.identity}:${ownerId}`;
+  const previous = scans.get(identityKey);
   if (previous && Date.now() - previous.at < (freshSignal ? 5_000 : 25_000))
     return previous.result;
-  const running = inFlight.get(ownerId);
+  const running = inFlight.get(identityKey);
   if (running) return running;
-  const task = scanNative(ownerId);
-  inFlight.set(ownerId, task);
+  const task = scanNative(ownerId, mailbox);
+  inFlight.set(identityKey, task);
   try {
     const result = await task;
     if (scans.size > 1000) scans.clear();
-    scans.set(ownerId, { at: Date.now(), result });
+    scans.set(identityKey, { at: Date.now(), result });
     return result;
   } finally {
-    inFlight.delete(ownerId);
+    inFlight.delete(identityKey);
   }
 }
 
-async function scanNative(ownerId: string) {
+async function scanNative(ownerId: string, mailbox: MailboxContext) {
   const pending = await db
     .select()
     .from(glyphMessages)
@@ -46,7 +52,6 @@ async function scanNative(ownerId: string) {
       ),
     );
   if (!pending.length) return { confirmed: 0, pending: 0 };
-  const mailbox = await mailboxEmail();
   const list = await gmailRequest(
     '/messages?q=in%3Asent%20newer_than%3A7d&maxResults=25',
   );
@@ -55,7 +60,8 @@ async function scanNative(ownerId: string) {
   let confirmed = 0;
   const matched = new Set<string>();
   for (const row of rows.messages ?? []) {
-    const cached = candidateCache.get(row.id);
+    const candidateKey = `${mailbox.identity}:${row.id}`;
+    const cached = candidateCache.get(candidateKey);
     let candidate: SentCandidate;
     if (cached && Date.now() - cached.at < 300_000)
       candidate = cached.candidate;
@@ -66,12 +72,12 @@ async function scanNative(ownerId: string) {
       if (!result.ok) continue;
       candidate = (await result.json()) as SentCandidate;
       if (candidateCache.size > 200) candidateCache.clear();
-      candidateCache.set(row.id, { at: Date.now(), candidate });
+      candidateCache.set(candidateKey, { at: Date.now(), candidate });
     }
     for (const message of pending) {
       if (
         matched.has(message.id) ||
-        !matchesNativeSend(candidate, message, mailbox)
+        !matchesNativeSend(candidate, message, mailbox.email)
       )
         continue;
       const millis = Number(candidate.internalDate);

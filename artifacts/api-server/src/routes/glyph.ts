@@ -40,6 +40,7 @@ import {
   mimeMessage,
   newToken,
   ownsMailbox,
+  safeMailboxOwnership,
 } from '../lib/gmail';
 import { trackedEmailHtml } from '../lib/email-content';
 import { resolveTrackingOrigin } from '../lib/tracking-origin';
@@ -118,7 +119,7 @@ router.use('/glyph', async (req, res, next): Promise<void> => {
       .json({ error: 'A same-origin browser request is required.' });
     return;
   }
-  if (!(await ownsMailbox(ownerId))) {
+  if (!(await safeMailboxOwnership(ownerId))) {
     res.status(403).json({
       error:
         'Sign in with the verified email address of the Gmail account connected to this project. This app currently supports that mailbox only.',

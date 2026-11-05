@@ -1,7 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import { db, glyphMessages, glyphEvents } from '@workspace/db';
-import { gmailRequest, mailboxEmail } from './gmail';
+import {
+  gmailRequest,
+  requireMailboxOwner,
+  type MailboxContext,
+} from './gmail';
 import { createHeaderReader, scanHeaderPage } from './reply-header-scan';
 import {
   headerValue,
@@ -33,8 +37,12 @@ const wantedHeaders = [
   'Content-Type',
 ];
 
-async function metadata(id: string): Promise<ReplyCandidate> {
-  const cached = metadataCache.get(id);
+async function metadata(
+  id: string,
+  mailboxIdentity: string,
+): Promise<ReplyCandidate> {
+  const cacheKey = `${mailboxIdentity}:${id}`;
+  const cached = metadataCache.get(cacheKey);
   if (cached && Date.now() - cached.at < 300_000) return cached.value;
   const query = new URLSearchParams({ format: 'metadata' });
   for (const name of wantedHeaders) query.append('metadataHeaders', name);
@@ -47,36 +55,44 @@ async function metadata(id: string): Promise<ReplyCandidate> {
     );
   const value = (await response.json()) as ReplyCandidate;
   if (metadataCache.size > 1000) metadataCache.clear();
-  metadataCache.set(id, { at: Date.now(), value });
+  metadataCache.set(cacheKey, { at: Date.now(), value });
   return value;
 }
 export async function syncReplies(ownerId: string): Promise<ReplySyncResult> {
-  const cached = results.get(ownerId);
+  const mailbox = await requireMailboxOwner(ownerId);
+  const identityKey = `${mailbox.identity}:${ownerId}`;
+  const cached = results.get(identityKey);
   if (cached && Date.now() - cached.at < 25_000)
     return { ...cached.value, repliesDetected: 0 };
-  const existing = flights.get(ownerId);
+  const existing = flights.get(identityKey);
   if (existing) return existing;
-  const job = scanReplies(ownerId);
-  flights.set(ownerId, job);
+  const job = scanReplies(ownerId, mailbox);
+  flights.set(identityKey, job);
   try {
     const value = await job;
     if (results.size > 1000) results.clear();
-    results.set(ownerId, { at: Date.now(), value });
+    results.set(identityKey, { at: Date.now(), value });
     return value;
   } finally {
-    flights.delete(ownerId);
+    flights.delete(identityKey);
   }
 }
-async function scanReplies(ownerId: string): Promise<ReplySyncResult> {
+async function scanReplies(
+  ownerId: string,
+  mailbox: MailboxContext,
+): Promise<ReplySyncResult> {
   const result: ReplySyncResult = {
     repliesDetected: 0,
     replyCheckPartial: false,
     replyCheckError: null,
   };
-  const readHeader = createHeaderReader(metadata, (id) => {
-    const cached = metadataCache.get(id);
-    return !!cached && Date.now() - cached.at < 300_000;
-  });
+  const readHeader = createHeaderReader(
+    (id) => metadata(id, mailbox.identity),
+    (id) => {
+      const cached = metadataCache.get(`${mailbox.identity}:${id}`);
+      return !!cached && Date.now() - cached.at < 300_000;
+    },
+  );
   try {
     const originals = await db
       .select()
@@ -88,7 +104,6 @@ async function scanReplies(ownerId: string): Promise<ReplySyncResult> {
         ),
       );
     if (!originals.length) return result;
-    const mailbox = await mailboxEmail();
     // Older native records used a temporary local ID before reply detection
     // existed. Recover the real RFC Message-ID without reading email bodies.
     const unresolved = originals.filter((m) =>
@@ -174,15 +189,15 @@ async function scanReplies(ownerId: string): Promise<ReplySyncResult> {
 async function recordReplies(
   candidates: ReplyCandidate[],
   originals: ReplyOriginal[],
-  mailbox: string,
+  mailbox: MailboxContext,
   ownerId: string,
 ) {
   let detected = 0;
   for (const candidate of candidates) {
-    const original = matchReply(candidate, originals, mailbox);
+    const original = matchReply(candidate, originals, mailbox.email);
     if (!original) continue;
     const fingerprint = createHash('sha256')
-      .update(`reply:${ownerId}:${candidate.id}`)
+      .update(`reply:${mailbox.identity}:${ownerId}:${candidate.id}`)
       .digest('hex');
     const inserted = await db
       .insert(glyphEvents)

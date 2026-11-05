@@ -4,6 +4,7 @@ import { isolatedDatabase, fixtureId } from '../../lib/database-fixture.mjs';
 
 const edge = vi.hoisted(() => ({
   proxy: vi.fn(),
+  connections: vi.fn(),
   getUser: vi.fn(),
   now: Date.UTC(2026, 10, 4, 12),
 }));
@@ -12,6 +13,9 @@ vi.mock('@replit/connectors-sdk', () => ({
   ReplitConnectors: class {
     proxy(...args) {
       return edge.proxy(...args);
+    }
+    listConnections(...args) {
+      return edge.connections(...args);
     }
   },
 }));
@@ -27,9 +31,13 @@ vi.mock('node:timers/promises', () => ({
 }));
 vi.mock('../../../artifacts/api-server/src/lib/logger', async () => ({
   logger: (await import('pino')).default({ level: 'silent' }),
+  logSafeError: vi.fn(),
 }));
 
 export const mailbox = 'sender@example.invalid';
+export const gmailConnections = (id = 'gmail-connection-fixture') => [
+  { id, connector_name: 'google-mail', status: 'connected' },
+];
 export const json = (data, status = 200, headers = {}) =>
   new Response(JSON.stringify(data), {
     status,
@@ -45,6 +53,7 @@ export function defaultProvider(_integration, path) {
 export async function serviceHarness() {
   vi.spyOn(Date, 'now').mockImplementation(() => edge.now);
   edge.proxy.mockImplementation(defaultProvider);
+  edge.connections.mockResolvedValue(gmailConnections());
   edge.getUser.mockImplementation(async () => ({
     emailAddresses: [
       { emailAddress: mailbox, verification: { status: 'verified' } },
