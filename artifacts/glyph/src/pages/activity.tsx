@@ -106,10 +106,12 @@ export default function ActivityPage() {
         }
       />
       <Caveat>
-        <strong>Source</strong> tells you who fetched the glyph or link: an
-        image proxy (Gmail, Apple MPP) may load pixels without a human, and
-        security scanners often click every link seconds after delivery. Those
-        are marked <em>auto</em>. <strong>Replies</strong> are matched by
+        <strong>Source</strong> classifies request patterns; it does not verify
+        who fetched a pixel or requested a link. Image proxies (Gmail, Apple
+        MPP) may load pixels without a human, and security scanners often
+        request links seconds after delivery. Those are marked <em>auto</em>.
+        Pixel and click signals are not attributed to an individual recipient.
+        <strong> Replies</strong> are matched by
         standard In-Reply-To/References headers, so they work whatever mail
         service the recipient uses; auto-replies, bounces and your own
         follow-ups are skipped. Gmail sync scans only your 100 most recent
@@ -132,7 +134,11 @@ export default function ActivityPage() {
                 : 'text-muted-foreground hover:bg-muted',
             )}
           >
-            {x === 'human' ? 'unflagged' : x}
+            {x === 'human'
+              ? 'unflagged'
+              : x === 'open'
+                ? 'pixel loads'
+                : x}
           </button>
         ))}
       </div>
@@ -165,7 +171,7 @@ export default function ActivityPage() {
               <thead>
                 <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                   <th className="px-4 py-2.5 font-normal">Signal</th>
-                  <th className="px-4 py-2.5 font-normal">Recipient</th>
+                  <th className="px-4 py-2.5 font-normal">Participant</th>
                   <th className="px-4 py-2.5 font-normal">Message</th>
                   <th className="px-4 py-2.5 font-normal">Source</th>
                   <th className="px-4 py-2.5 text-right font-normal">When</th>
@@ -214,7 +220,9 @@ export default function ActivityPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="font-medium">
-                        {a.recipientName || a.recipientEmail}
+                      {a.type === 'open' || a.type === 'click'
+                        ? 'Not attributed'
+                        : a.recipientName || a.recipientEmail}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {a.recipientEmail}

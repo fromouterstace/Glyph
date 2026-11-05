@@ -170,7 +170,7 @@ export function DailyBars({ daily }: { daily: DailyStat[] }) {
       </div>
       <div className="mt-3 flex items-center gap-4 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
         <Legend c="bg-foreground/80" l="Sent" />
-        <Legend c="bg-[hsl(var(--chart-2))]" l="Open signals" />
+        <Legend c="bg-[hsl(var(--chart-2))]" l="Pixel loads" />
         <Legend c="bg-primary" l="Click signals" />
       </div>
     </div>

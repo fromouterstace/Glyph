@@ -195,7 +195,7 @@ function ComposeSession({
                 checked={form.trackOpens}
                 onCheckedChange={(v) => set('trackOpens', v)}
               />{' '}
-              Open pixel
+              Track pixel loads
             </label>
             <label className="flex items-center gap-2">
               <Switch
@@ -265,7 +265,7 @@ function ComposeSession({
                   <span data-testid="text-confirm-subject">{form.subject}</span>
                   <span className="text-muted-foreground">GLYPH</span>
                   <span>
-                    {form.trackOpens ? 'open pixel' : 'no pixel'} ·{' '}
+                    {form.trackOpens ? 'pixel tracking' : 'no pixel'} ·{' '}
                     {form.trackClicks ? 'links tracked' : 'links untouched'}
                   </span>
                 </div>

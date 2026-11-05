@@ -176,7 +176,7 @@ async function poll() {
         iconUrl: chrome.runtime.getURL('icon128.png'),
         title:
           event.type === 'open'
-            ? 'Glyph: open signal'
+            ? 'Glyph: pixel-load signal'
             : event.type === 'reply'
               ? 'Glyph: reply received'
               : 'Glyph: link clicked',

@@ -86,7 +86,7 @@ export default function SettingsPage() {
             <Head title="Tracking defaults" />
             <Toggle
               id="default-opens"
-              label="Embed open glyph"
+              label="Track pixel loads by default"
               desc="Adds the 1x1 pixel when you click Add glyph in Gmail or compose here."
               checked={form.defaultTrackOpens}
               disabled={locked}
@@ -135,7 +135,7 @@ export default function SettingsPage() {
             <Head title="Alerts" />
             <Toggle
               id="notify-opens"
-              label="Alert on open signals"
+              label="Alert on pixel loads"
               desc="In-app toast when a new pixel load arrives."
               checked={form.notifyOpens}
               disabled={locked}

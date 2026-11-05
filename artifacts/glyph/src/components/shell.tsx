@@ -50,7 +50,7 @@ function AlertWatcher() {
       sent: false,
     };
     const labels = {
-      open: 'Open signal',
+      open: 'Pixel-load signal',
       click: 'Click signal',
       reply: 'Reply received',
       sent: 'Sent',

@@ -358,7 +358,7 @@
       toolbar.append(label);
       return input;
     };
-    const opens = check('Opens'),
+    const opens = check('Pixel loads'),
       clicks = check('Links');
     const button = document.createElement('button');
     button.type = 'button';

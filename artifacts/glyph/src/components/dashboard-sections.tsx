@@ -161,20 +161,26 @@ export function ActivityPreview({
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm">
-                    <span className="font-medium">
-                      {activity.recipientName || activity.recipientEmail}
-                    </span>{' '}
-                    <span className="text-muted-foreground">
-                      {activity.type === 'sent'
-                        ? 'was sent'
-                        : activity.type === 'open'
-                          ? 'loaded the glyph'
-                          : activity.type === 'reply'
-                            ? 'replied'
-                            : activity.type === 'click'
-                              ? 'clicked a link'
+                    {activity.type === 'open' || activity.type === 'click' ? (
+                      <span className="font-medium">
+                        {activity.type === 'open'
+                          ? 'Pixel load recorded'
+                          : 'Tracked link requested'}
+                      </span>
+                    ) : (
+                      <>
+                        <span className="font-medium">
+                          {activity.recipientName || activity.recipientEmail}
+                        </span>{' '}
+                        <span className="text-muted-foreground">
+                          {activity.type === 'sent'
+                            ? 'was sent'
+                            : activity.type === 'reply'
+                              ? 'replied'
                               : 'signal'}
-                    </span>
+                        </span>
+                      </>
+                    )}
                   </div>
                   <div className="truncate text-xs text-muted-foreground">
                     {activity.subject}
