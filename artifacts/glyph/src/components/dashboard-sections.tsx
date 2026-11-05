@@ -99,7 +99,7 @@ export function OverviewStats({ query }: { query: QueryView<Overview> }) {
 export function ActivityPreview({
   query: act,
 }: {
-  query: QueryView<Activity[]>;
+  query: QueryView<{ items: Activity[] }>;
 }) {
   return (
     <section className="border border-border bg-card">
@@ -126,11 +126,11 @@ export function ActivityPreview({
             onRetry={() => act.refetch()}
           />
         </div>
-      ) : !act.data?.length ? (
+      ) : !act.data?.items.length ? (
         <p className="p-5 text-sm text-muted-foreground">No signals yet.</p>
       ) : (
         <ul className="divide-y divide-border">
-          {act.data.slice(0, 7).map((activity) => (
+          {act.data.items.slice(0, 7).map((activity) => (
             <li key={activity.id}>
               <Link
                 href={`/emails/${activity.messageId}`}

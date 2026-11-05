@@ -30,13 +30,18 @@ import { ago, errorText, usePoll, useSession } from '@/lib/glyph';
 export default function Dashboard() {
   const { isSignedIn } = useSession();
   const poll = usePoll();
+  const activityParams = { limit: 5, offset: 0 };
+  const messageParams = { limit: 5, offset: 0 };
   const ov = useGetOverview({
     query: { refetchInterval: poll, queryKey: getGetOverviewQueryKey() },
   });
-  const act = useListActivity({
-    query: { refetchInterval: poll, queryKey: getListActivityQueryKey() },
+  const act = useListActivity(activityParams, {
+    query: {
+      refetchInterval: poll,
+      queryKey: getListActivityQueryKey(activityParams),
+    },
   });
-  const msgs = useListMessages();
+  const msgs = useListMessages(messageParams);
   const conn = useGetConnection();
   const o = ov.data;
   const readOnly = o?.readOnly ?? !isSignedIn;
@@ -45,7 +50,7 @@ export default function Dashboard() {
     !o.readOnly &&
     o.totalSent === 0 &&
     msgs.isSuccess &&
-    msgs.data.length === 0;
+    msgs.data.items.length === 0;
 
   return (
     <div className="space-y-8">
@@ -214,7 +219,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <ul className="divide-y divide-border">
-              {(msgs.data ?? []).slice(0, 5).map((m) => (
+              {msgs.data.items.map((m) => (
                 <li key={m.id}>
                   <Link
                     href={`/emails/${m.id}`}

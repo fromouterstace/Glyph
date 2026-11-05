@@ -6,10 +6,12 @@ import { MessageEngagement } from '@/components/engagement';
 import {
   useListMessages,
   useGetMessage,
+  useListMessageEvents,
   useDeleteMessage,
   useSendMessage,
   getListMessagesQueryKey,
   getGetMessageQueryKey,
+  getListMessageEventsQueryKey,
   type Message,
 } from '@workspace/api-client-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -53,6 +55,7 @@ const STATUSES = [
   'uncertain',
   'failed',
 ] as const;
+const PAGE_SIZE = 50;
 
 function messageFilters(search: string, status: (typeof STATUSES)[number]) {
   return {
@@ -69,12 +72,18 @@ export default function Emails() {
   const [q, setQ] = useState('');
   const [debounced, setDebounced] = useState('');
   const [status, setStatus] = useState<(typeof STATUSES)[number]>('all');
+  const [offset, setOffset] = useState(0);
   const [compose, setCompose] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setDebounced(q.trim()), 250);
     return () => clearTimeout(t);
   }, [q]);
-  const p = messageFilters(debounced, status);
+  useEffect(() => setOffset(0), [debounced, status]);
+  const p = {
+    ...messageFilters(debounced, status),
+    limit: PAGE_SIZE,
+    offset,
+  };
   const list = useListMessages(p, {
     query: { refetchInterval: poll, queryKey: getListMessagesQueryKey(p) },
   });
@@ -155,7 +164,7 @@ export default function Emails() {
                 onRetry={() => list.refetch()}
               />
             </div>
-          ) : !list.data?.length ? (
+          ) : !list.data?.items.length ? (
             <EmptyState
               title={
                 debounced || status !== 'all'
@@ -181,7 +190,7 @@ export default function Emails() {
             />
           ) : (
             <ul className="max-h-[70dvh] divide-y divide-border overflow-y-auto">
-              {list.data.map((m) => (
+              {list.data.items.map((m) => (
                 <li key={m.id}>
                   <Link
                     href={`/emails/${m.id}`}
@@ -227,6 +236,35 @@ export default function Emails() {
               ))}
             </ul>
           )}
+          {list.data?.pagination && (
+            <div className="flex items-center justify-between gap-2 border-t border-border px-3 py-2 text-xs">
+              <span className="font-mono text-muted-foreground">
+                {list.data.pagination.total === 0
+                  ? '0 messages'
+                  : `${offset + 1}–${Math.min(offset + list.data.items.length, list.data.pagination.total)} of ${list.data.pagination.total}`}
+              </span>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  data-testid="button-previous-messages"
+                  disabled={offset === 0}
+                  onClick={() => setOffset((current) => Math.max(0, current - PAGE_SIZE))}
+                  className="rounded-sm border border-border px-2 py-1 disabled:opacity-40"
+                >
+                  Newer
+                </button>
+                <button
+                  type="button"
+                  data-testid="button-next-messages"
+                  disabled={!list.data.pagination.hasMore}
+                  onClick={() => setOffset((current) => current + PAGE_SIZE)}
+                  className="rounded-sm border border-border px-2 py-1 disabled:opacity-40"
+                >
+                  Older
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         <div className={cn(!selected && 'hidden lg:block')}>
           {selected ? (
@@ -249,8 +287,15 @@ function Detail({ id }: { id: string }) {
   const { isSignedIn } = useSession();
   const { toast } = useToast();
   const invalidate = useInvalidateAll();
+  const [eventOffset, setEventOffset] = useState(0);
   const q = useGetMessage(id, {
     query: { refetchInterval: poll, queryKey: getGetMessageQueryKey(id) },
+  });
+  const eventPage = useListMessageEvents(id, eventOffset, {
+    query: {
+      refetchInterval: poll,
+      queryKey: getListMessageEventsQueryKey(id, eventOffset),
+    },
   });
   const del = useDeleteMessage();
   const send = useSendMessage();
@@ -272,7 +317,7 @@ function Detail({ id }: { id: string }) {
         <ErrorState error={errorText(q.error)} onRetry={() => q.refetch()} />
       </div>
     );
-  const { message: m, events, links } = q.data;
+  const { message: m, links } = q.data;
   const canMutate = isSignedIn;
   const native = m.deliverySource === 'gmail';
   const awaiting = native && m.status !== 'sent';
@@ -439,7 +484,51 @@ function Detail({ id }: { id: string }) {
             </div>
           )}
         </div>
-        <SignalTrail events={events} message={m} />
+        <div>
+          {eventPage.isError ? (
+            <div className="p-5">
+              <ErrorState
+                error={errorText(eventPage.error)}
+                onRetry={() => eventPage.refetch()}
+              />
+            </div>
+          ) : (
+            <SignalTrail events={eventPage.data?.items ?? []} message={m} />
+          )}
+          {eventPage.data?.pagination && (
+            <div className="flex items-center justify-between gap-2 border-t border-border px-5 py-3 text-xs">
+              <span className="font-mono text-muted-foreground">
+                {eventPage.data.pagination.total === 0
+                  ? '0 signals'
+                  : `${eventOffset + 1}–${Math.min(eventOffset + eventPage.data.items.length, eventPage.data.pagination.total)} of ${eventPage.data.pagination.total}`}
+              </span>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  data-testid="button-previous-signals"
+                  disabled={eventOffset === 0}
+                  onClick={() =>
+                    setEventOffset((current) =>
+                      Math.max(0, current - PAGE_SIZE),
+                    )
+                  }
+                  className="rounded-sm border border-border px-2 py-1 disabled:opacity-40"
+                >
+                  Newer
+                </button>
+                <button
+                  type="button"
+                  data-testid="button-next-signals"
+                  disabled={!eventPage.data.pagination.hasMore}
+                  onClick={() => setEventOffset((current) => current + PAGE_SIZE)}
+                  className="rounded-sm border border-border px-2 py-1 disabled:opacity-40"
+                >
+                  Older
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <ComposeDialog open={edit} onOpenChange={setEdit} message={m} />

@@ -1,8 +1,38 @@
 import type { GlyphMessage, GlyphEvent } from '@workspace/db';
 import { recipientGroups } from './native-verification';
 
-export function publicMessage(message: GlyphMessage, events: GlyphEvent[]) {
-  const signals = events.filter((e) => e.messageId === message.id);
+export type MessageSignalSummary = {
+  opens: number;
+  clicks: number;
+  replies: number;
+  lastActivityAt: Date | null;
+};
+
+export function publicMessage(
+  message: GlyphMessage,
+  eventsOrSummary: GlyphEvent[] | MessageSignalSummary,
+) {
+  const summary = Array.isArray(eventsOrSummary)
+    ? eventsOrSummary
+        .filter((event) => event.messageId === message.id)
+        .reduce<MessageSignalSummary>(
+          (result, event) => {
+            if (!event.automated) {
+              if (event.type === 'open') result.opens++;
+              if (event.type === 'click') result.clicks++;
+              if (event.type === 'reply') result.replies++;
+            }
+            if (
+              !result.lastActivityAt ||
+              event.occurredAt > result.lastActivityAt
+            ) {
+              result.lastActivityAt = event.occurredAt;
+            }
+            return result;
+          },
+          { opens: 0, clicks: 0, replies: 0, lastActivityAt: null },
+        )
+    : eventsOrSummary;
   const groups = recipientGroups(message);
   const count = new Set(Object.values(groups).flat()).size;
   return {
@@ -23,10 +53,10 @@ export function publicMessage(message: GlyphMessage, events: GlyphEvent[]) {
       'draft' | 'sent' | 'sending' | 'failed' | 'uncertain',
     createdAt: message.createdAt.toISOString(),
     sentAt: message.sentAt?.toISOString() ?? null,
-    opens: signals.filter((e) => e.type === 'open' && !e.automated).length,
-    clicks: signals.filter((e) => e.type === 'click' && !e.automated).length,
-    replies: signals.filter((e) => e.type === 'reply' && !e.automated).length,
-    lastActivityAt: signals[0]?.occurredAt.toISOString() ?? null,
+    opens: summary.opens,
+    clicks: summary.clicks,
+    replies: summary.replies,
+    lastActivityAt: summary.lastActivityAt?.toISOString() ?? null,
     deliverySource: message.deliverySource as 'web' | 'gmail',
   };
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'wouter';
 import {
   Eye,
@@ -47,27 +47,23 @@ export default function ActivityPage() {
   const { isSignedIn } = useSession();
   const { toast } = useToast();
   const invalidate = useInvalidateAll();
-  const q = useListActivity({
-    query: { refetchInterval: poll, queryKey: getListActivityQueryKey() },
+  const [f, setF] = useState<(typeof FILTERS)[number]>('all');
+  const [offset, setOffset] = useState(0);
+  const params = {
+    limit: 50,
+    offset,
+    ...(f === 'all' ? {} : { type: f }),
+  };
+  const q = useListActivity(params, {
+    query: {
+      refetchInterval: poll,
+      queryKey: getListActivityQueryKey(params),
+    },
   });
   const mark = useMarkActivityRead();
-  const [f, setF] = useState<(typeof FILTERS)[number]>('all');
-  const data = q.data ?? [];
+  const data = q.data?.items ?? [];
   const readOnly = !isSignedIn;
-  const unread = data.filter((a) => !a.read).length;
-  const rows = useMemo(
-    () =>
-      (q.data ?? []).filter((a) =>
-        f === 'all'
-          ? true
-          : f === 'human'
-            ? !a.automated
-            : f === 'automated'
-              ? a.automated
-              : a.type === f,
-      ),
-    [q.data, f],
-  );
+  const rows = data;
 
   return (
     <div className="space-y-6">
@@ -81,7 +77,7 @@ export default function ActivityPage() {
         right={
           <button
             data-testid="button-mark-read"
-            disabled={!isSignedIn || unread === 0 || mark.isPending}
+            disabled={!isSignedIn || mark.isPending}
             onClick={() =>
               mark.mutate(undefined, {
                 onSuccess: () => {
@@ -98,10 +94,7 @@ export default function ActivityPage() {
             }
             className="inline-flex items-center gap-2 rounded-sm border border-border bg-card px-3 py-2 text-sm font-medium hover:border-foreground/40 disabled:opacity-40"
           >
-            <CheckCheck className="size-4" /> Mark all read{' '}
-            {unread > 0 && (
-              <span className="font-mono text-xs text-primary">{unread}</span>
-            )}
+            <CheckCheck className="size-4" /> Mark all read
           </button>
         }
       />
@@ -126,7 +119,10 @@ export default function ActivityPage() {
           <button
             key={x}
             data-testid={`filter-${x}`}
-            onClick={() => setF(x)}
+            onClick={() => {
+              setF(x);
+              setOffset(0);
+            }}
             className={cn(
               'rounded-sm px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider',
               f === x
@@ -160,10 +156,12 @@ export default function ActivityPage() {
           </div>
         ) : !rows.length ? (
           <EmptyState
-            title={data.length ? 'Nothing in this filter' : 'No signals yet'}
+            title={
+              q.data?.pagination.total ? 'No signals on this page' : 'No signals yet'
+            }
             body={
-              data.length
-                ? 'Try another filter.'
+              q.data?.pagination.total
+                ? 'Try a newer or older page.'
                 : 'When Glyph receives an eligible pixel or tracked-link request, it appears here within about ten seconds.'
             }
           />
@@ -264,6 +262,35 @@ export default function ActivityPage() {
           </div>
         )}
       </div>
+      {q.data?.pagination && (
+        <div className="flex items-center justify-between gap-2 border border-border bg-card px-4 py-3 text-xs">
+          <span className="font-mono text-muted-foreground">
+            {q.data.pagination.total === 0
+              ? '0 signals'
+              : `${offset + 1}–${Math.min(offset + data.length, q.data.pagination.total)} of ${q.data.pagination.total}`}
+          </span>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              data-testid="button-previous-activity"
+              disabled={offset === 0}
+              onClick={() => setOffset((current) => Math.max(0, current - 50))}
+              className="rounded-sm border border-border px-2 py-1 disabled:opacity-40"
+            >
+              Newer
+            </button>
+            <button
+              type="button"
+              data-testid="button-next-activity"
+              disabled={!q.data.pagination.hasMore}
+              onClick={() => setOffset((current) => current + 50)}
+              className="rounded-sm border border-border px-2 py-1 disabled:opacity-40"
+            >
+              Older
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

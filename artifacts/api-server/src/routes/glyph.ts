@@ -1,6 +1,6 @@
 import { Router, type Request } from 'express';
 import { getAuth } from '@clerk/express';
-import { and, eq, inArray, desc } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import {
   db,
@@ -15,9 +15,12 @@ import {
   UpdateSettingsBody,
   ListMessagesQueryParams,
   ListMessagesResponse,
+  ListActivityQueryParams,
   GetMessageResponse,
   GetOverviewResponse,
   ListActivityResponse,
+  ListMessageEventsParams,
+  ListMessageEventsResponse,
   CreateMessageResponse,
   UpdateMessageResponse,
   SendMessageResponse,
@@ -25,13 +28,16 @@ import {
   UpdateSettingsResponse,
   GetConnectionResponse,
 } from '@workspace/api-zod';
+import { defaultSettings } from '../lib/glyph-data';
+import { publicMessage } from '../lib/message-presentation';
 import {
-  defaultSettings,
-  ownerData,
-  overview,
-  publicEvent,
-  publicMessage,
-} from '../lib/glyph-data';
+  getOwnerOverview,
+  listMessageEvents,
+  listOwnerActivity,
+  listOwnerMessages,
+  messageLinkClickCounts,
+  messageSignalSummary,
+} from '../lib/glyph-queries';
 import {
   extractUrls,
   findSentMessage,
@@ -49,7 +55,6 @@ import {
 import { trackedEmailHtml } from '../lib/email-content';
 import { resolveTrackingOrigin } from '../lib/tracking-origin';
 import { logSafeError } from '../lib/logger';
-import { presentOwnerData } from '../lib/message-presentation';
 import {
   claimDraftForSend,
   confirmSentMessage,
@@ -57,12 +62,6 @@ import {
 
 const router = Router();
 const userId = (req: Request) => getAuth(req).userId;
-async function dataFor(req: Request) {
-  const ownerId = userId(req);
-  if (!ownerId) return { messages: [], events: [] };
-  const data = await ownerData(ownerId);
-  return presentOwnerData(data.messages, data.events);
-}
 async function settingsFor(ownerId: string | null) {
   if (!ownerId) return { ...defaultSettings, readOnly: true };
   const [row] = await db
@@ -81,12 +80,7 @@ const ownMessage = async (ownerId: string, id: string) => {
 const responseMessage = async (id: string, ownerId: string) => {
   const m = await ownMessage(ownerId, id);
   if (!m) throw new Error('Message not found');
-  const events = await db
-    .select()
-    .from(glyphEvents)
-    .where(eq(glyphEvents.messageId, id))
-    .orderBy(desc(glyphEvents.occurredAt));
-  return publicMessage(m, events);
+  return publicMessage(m, await messageSignalSummary(id));
 };
 
 router.use('/glyph', async (req, res, next): Promise<void> => {
@@ -127,12 +121,7 @@ router.use('/glyph', async (req, res, next): Promise<void> => {
 });
 
 router.get('/glyph/overview', async (req, res): Promise<void> => {
-  const data = await dataFor(req);
-  res.json(
-    GetOverviewResponse.parse(
-      overview(data.messages, data.events, !userId(req)),
-    ),
-  );
+  res.json(GetOverviewResponse.parse(await getOwnerOverview(userId(req)!)));
 });
 router.get('/glyph/messages', async (req, res): Promise<void> => {
   const parsed = ListMessagesQueryParams.safeParse(req.query);
@@ -140,23 +129,11 @@ router.get('/glyph/messages', async (req, res): Promise<void> => {
     res.status(400).json({ error: 'Invalid filters' });
     return;
   }
-  const { messages } = await dataFor(req);
-  const { search, status } = parsed.data;
-  const results = messages.filter((m) => {
-    const searchable =
-      `${m.subject} ${m.recipientName} ${m.recipientEmail}`.toLowerCase();
-    const matchesStatus =
-      !status ||
-      status === 'all' ||
-      m.status === status ||
-      (status === 'opened' && m.opens > 0) ||
-      (status === 'clicked' && m.clicks > 0) ||
-      (status === 'unopened' && m.status === 'sent' && !m.opens);
-    return (
-      matchesStatus && (!search || searchable.includes(search.toLowerCase()))
-    );
-  });
-  res.json(ListMessagesResponse.parse(results));
+  res.json(
+    ListMessagesResponse.parse(
+      await listOwnerMessages(userId(req)!, parsed.data),
+    ),
+  );
 });
 router.get('/glyph/messages/:id', async (req, res): Promise<void> => {
   const id = String(req.params.id);
@@ -166,23 +143,14 @@ router.get('/glyph/messages/:id', async (req, res): Promise<void> => {
     res.status(404).json({ error: 'Email not found' });
     return;
   }
-  const [events, links] = await Promise.all([
-    db
-      .select()
-      .from(glyphEvents)
-      .where(eq(glyphEvents.messageId, id))
-      .orderBy(desc(glyphEvents.occurredAt)),
+  const [summary, links, clicksByUrl] = await Promise.all([
+    messageSignalSummary(id),
     db.select().from(glyphLinks).where(eq(glyphLinks.messageId, id)),
+    messageLinkClickCounts(id),
   ]);
-  const clicksByUrl = new Map<string, number>();
-  for (const event of events) {
-    if (event.type === 'click' && !event.automated && event.url)
-      clicksByUrl.set(event.url, (clicksByUrl.get(event.url) ?? 0) + 1);
-  }
   res.json(
     GetMessageResponse.parse({
-      message: publicMessage(message, events),
-      events: events.map((event) => publicEvent(event, message)),
+      message: publicMessage(message, summary),
       links: links.map((l) => ({
         id: l.id,
         url: l.url,
@@ -191,6 +159,26 @@ router.get('/glyph/messages/:id', async (req, res): Promise<void> => {
     }),
   );
 });
+router.get(
+  '/glyph/messages/:id/events/:offset',
+  async (req, res): Promise<void> => {
+    const parsed = ListMessageEventsParams.safeParse(req.params);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid signal-history page' });
+      return;
+    }
+    const page = await listMessageEvents(
+      userId(req)!,
+      parsed.data.id,
+      parsed.data.offset,
+    );
+    if (!page) {
+      res.status(404).json({ error: 'Email not found' });
+      return;
+    }
+    res.json(ListMessageEventsResponse.parse(page));
+  },
+);
 router.post('/glyph/messages', async (req, res): Promise<void> => {
   const parsed = CreateMessageBody.safeParse(req.body);
   if (!parsed.success || /[\r\n]/.test(parsed.data?.recipientEmail ?? '')) {
@@ -403,24 +391,30 @@ router.post('/glyph/messages/:id/send', async (req, res): Promise<void> => {
 });
 
 router.get('/glyph/activity', async (req, res): Promise<void> => {
-  const { events } = await dataFor(req);
-  res.json(ListActivityResponse.parse(events.slice(0, 200)));
+  const parsed = ListActivityQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid activity filters' });
+    return;
+  }
+  res.json(
+    ListActivityResponse.parse(
+      await listOwnerActivity(userId(req)!, parsed.data),
+    ),
+  );
 });
 router.post('/glyph/activity/read', async (req, res): Promise<void> => {
-  const rows = await db
-    .select({ id: glyphMessages.id })
-    .from(glyphMessages)
-    .where(eq(glyphMessages.ownerId, userId(req)!));
-  if (rows.length)
-    await db
-      .update(glyphEvents)
-      .set({ read: true })
-      .where(
-        inArray(
-          glyphEvents.messageId,
-          rows.map((m) => m.id),
-        ),
-      );
+  await db
+    .update(glyphEvents)
+    .set({ read: true })
+    .where(
+      inArray(
+        glyphEvents.messageId,
+        db
+          .select({ id: glyphMessages.id })
+          .from(glyphMessages)
+          .where(eq(glyphMessages.ownerId, userId(req)!)),
+      ),
+    );
   res.json({ ok: true });
 });
 router.get('/glyph/settings', async (req, res): Promise<void> => {

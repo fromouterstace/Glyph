@@ -27,20 +27,24 @@ import { PUBLISHED_GLYPH_ORIGIN } from '@/lib/tracking-origin';
 
 function AlertWatcher() {
   const poll = usePoll();
-  const { data: activity } = useListActivity({
-    query: { refetchInterval: poll, queryKey: getListActivityQueryKey() },
+  const activityParams = { limit: 100, offset: 0 };
+  const { data: activity } = useListActivity(activityParams, {
+    query: {
+      refetchInterval: poll,
+      queryKey: getListActivityQueryKey(activityParams),
+    },
   });
   const { data: settings } = useGetSettings();
   const { toast } = useToast();
   const seen = useRef<Set<string> | null>(null);
 
   useEffect(() => {
-    if (!activity) return;
+    if (!activity?.items) return;
     if (seen.current === null) {
-      seen.current = new Set(activity.map((a) => a.id));
+      seen.current = new Set(activity.items.map((a) => a.id));
       return;
     }
-    const fresh = activity.filter((a) => !seen.current!.has(a.id));
+    const fresh = activity.items.filter((a) => !seen.current!.has(a.id));
     fresh.forEach((a) => seen.current!.add(a.id));
     if (!settings || settings.readOnly) return;
     const enabled = {
