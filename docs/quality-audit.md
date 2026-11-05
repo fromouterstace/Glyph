@@ -147,10 +147,37 @@ in PostgreSQL and are returned by the authenticated API.
 - Code-quality checks and valid GIF responses do not prove a successful real Gmail
   image-proxy fetch. Pixel counts are measured accepted endpoint requests, not
   unique human reads; Gmail may cache or proxy images.
-- Tracking-origin syntax is validated; a custom origin is not yet verified to
-  share the same backend/message store. The existing reply-scan limit of 100
-  recent received messages within 30 days is unchanged.
+- Tracking preparation and web sends now reject preview origins and any configured
+  tracking origin different from their same-origin connection. The extension
+  rejects new and previously saved preview connections and cross-origin URLs in
+  preparation responses. Setup opened in preview directs users to the verified
+  published origin instead of copying the preview host. The existing reply-scan
+  limit of 100 recent received messages within 30 days is unchanged.
 - The scaffold's Recharts 2 dependency emits a deprecation warning. A major
   chart-library upgrade was deliberately not folded into this behavior-preserving
   audit. Dependency vulnerability results are separate from deprecation notices.
 - Changes apply to the workspace until the user publishes them.
+
+## Production connection repair
+
+The publishing service confirms `https://glyph-mail.replit.app` is the public
+production app. An inspected Gmail Sent message embedded a development-host
+pixel whose token existed only in development PostgreSQL. The recipient-side
+Google image-proxy request supplied by the user returned HTTP 404; this does not
+prove Google's specific reason for rejecting that image.
+
+Extension v0.3.0 and the server reject preview-based preparation. After publishing:
+
+1. Download the updated ZIP from the Gmail setup page, replace the unpacked
+   extension's files, and reload it in Chrome/Edge.
+2. Connect the popup to `https://glyph-mail.replit.app`, approve that host, and
+   sign in on its `/gmail` connection tab.
+3. Reload Gmail, start a fresh compose, and add a new glyph. Do not reuse a draft
+   containing an older development pixel.
+4. View signals in the published dashboard, not development.
+
+Previously sent messages cannot be rewritten, and changing their pixel host
+would not move the token to the production database. Keep old development
+records intact; do not manufacture opens. Direct HTTP/GIF checks and origin
+regressions cannot establish that a fresh recipient Gmail proxy has loaded a
+real production pixel; that requires observing a genuine new recipient request.

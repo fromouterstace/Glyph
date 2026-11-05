@@ -11,6 +11,7 @@ import {
 import { mailboxEmail, newToken } from '../lib/gmail';
 import { syncNative } from '../lib/gmail-native';
 import { syncReplies } from '../lib/gmail-replies';
+import { resolveTrackingOrigin } from '../lib/tracking-origin';
 
 // Mounted after glyphRouter: its shared cookie auth, verified mailbox ownership,
 // same-origin write protection and no-store headers apply to every native route.
@@ -45,9 +46,11 @@ router.post('/glyph/native/prepare', async (req, res): Promise<void> => {
     .select()
     .from(glyphSettings)
     .where(eq(glyphSettings.ownerId, ownerId));
-  const base = new URL(settings?.trackingBaseUrl || req.get('origin')!).origin;
-  if (!base.startsWith('https://')) {
-    res.status(400).json({ error: 'Use an HTTPS Glyph connection.' });
+  let base: string;
+  try {
+    base = resolveTrackingOrigin(req.get('origin'), settings?.trackingBaseUrl);
+  } catch (error) {
+    res.status(409).json({ error: (error as Error).message });
     return;
   }
   const urls: string[] = [];

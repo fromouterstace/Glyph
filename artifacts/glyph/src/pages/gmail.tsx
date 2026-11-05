@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Caveat, SectionHead } from '@/components/bits';
 import { GMAIL_URL, SyncGmailButton } from '@/components/gmail-sync';
 import { useSession } from '@/lib/glyph';
+import { extensionConnectionOrigin } from '@/lib/tracking-origin';
 
 const zipUrl = `${import.meta.env.BASE_URL}glyph-extension.zip`;
 
@@ -24,7 +25,8 @@ export default function GmailPage() {
   const c = useGetConnection({
     query: { enabled: isSignedIn, queryKey: getGetConnectionQueryKey() },
   });
-  const origin = window.location.origin;
+  const origin = extensionConnectionOrigin(window.location.origin);
+  const preview = origin !== window.location.origin;
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
@@ -67,10 +69,11 @@ export default function GmailPage() {
       ),
     },
     {
-      t: 'Connect to this Glyph',
+      t: 'Connect to published Glyph',
       d: (
         <>
-          Open the extension popup, paste the origin below, then click Connect.
+          Open the extension popup, paste the production origin below, then
+          click Connect. Do not use this development preview address.
           <span className="mt-2 flex items-center gap-2 rounded-sm border border-border bg-background px-3 py-2">
             <code
               className="min-w-0 flex-1 truncate font-mono text-xs"
@@ -154,7 +157,23 @@ export default function GmailPage() {
         reporting and connection companion.
       </p>
 
-      {isSignedIn && (
+      {preview && (
+        <Caveat>
+          <strong>Production connection required.</strong> This preview cannot
+          prepare tracked sends. Connect the extension to{' '}
+          <a
+            href={`${origin}/gmail`}
+            className="font-semibold text-primary underline"
+          >
+            {origin}/gmail
+          </a>
+          , sign in there, and start a fresh Gmail compose. View its signals on
+          the published dashboard. Previously sent preview pixels cannot be
+          moved to production.
+        </Caveat>
+      )}
+
+      {isSignedIn && !preview && (
         <section
           className="border border-border bg-card p-5"
           data-testid="section-linked-mailbox"
@@ -218,10 +237,10 @@ export default function GmailPage() {
         data-testid="section-update-extension"
       >
         <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
-          Already installed? Update to v0.2.0
+          Already installed? Update to v0.3.0
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
-          Required for correctly labeled reply notifications.
+          Required to block preview connections and mismatched tracking URLs.
         </p>
         <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm">
           <li>Download the new ZIP above and extract it.</li>
@@ -236,7 +255,14 @@ export default function GmailPage() {
             <code className="break-all font-mono">edge://extensions</code> and
             click Reload on Glyph.
           </li>
-          <li>Reload any open Gmail tabs.</li>
+          <li>
+            Reconnect to the published origin above and sign in on its
+            connection tab.
+          </li>
+          <li>
+            Reload Gmail and use a fresh compose; old tracked drafts retain old
+            pixels.
+          </li>
         </ol>
       </section>
       <section className="grid gap-px border border-border bg-border text-sm md:grid-cols-2">
@@ -287,8 +313,8 @@ export default function GmailPage() {
       <Caveat>
         <strong>Developer build, not a store listing.</strong> This is a local
         unpacked extension, not published on the Chrome Web Store. Long-term it
-        needs a stable published origin; a preview URL works temporarily with a
-        preview session and will break when it changes.{' '}
+        requires a stable published origin. Preview connections are blocked
+        because they can leave pixel tokens in a different database.{' '}
         {!isSignedIn && (
           <Link
             href="/sign-in"

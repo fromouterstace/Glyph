@@ -57,7 +57,13 @@ function fixture(options = {}) {
                 ? (options.events ?? [])
                 : msg.action === 'settings'
                   ? (options.settings ?? {})
-                  : {},
+                  : msg.action === 'prepare'
+                    ? (options.prepared ?? {
+                        markerUrl: 'https://glyph.example/gmail?glyph=test',
+                        pixelUrl: 'https://glyph.example/api/glyph/t/test.gif',
+                        links: [],
+                      })
+                    : {},
         };
       },
     },
@@ -159,6 +165,47 @@ test('app access is registered only for the explicitly selected origin', async (
     Object.keys(f.stored).some((k) => /token|password|secret/i.test(k)),
     false,
   );
+});
+test('new preview connections are rejected before bridge registration', async () => {
+  const f = fixture();
+  const response = await f.request(
+    'connect',
+    { origin: 'https://workspace.replit.dev' },
+    f.popup,
+  );
+  assert.equal(response.ok, false);
+  assert.match(response.error, /published/);
+  assert.equal(f.registered.length, 0);
+});
+test('existing preview connections cannot prepare pixels or read context', async () => {
+  const f = fixture({ stored: { origin: 'https://workspace.replit.dev' } });
+  for (const action of ['context', 'prepare']) {
+    const response = await f.request(action, { data: { trackOpens: true } });
+    assert.equal(response.ok, false);
+    assert.match(response.error, /Preview connections/);
+  }
+  assert.equal(f.calls.length, 0);
+});
+test('a production connection rejects cross-environment pixel, marker and link URLs', async () => {
+  const valid = {
+    markerUrl: 'https://glyph.example/gmail?glyph=test',
+    pixelUrl: 'https://glyph.example/api/glyph/t/test.gif',
+    links: [],
+  };
+  for (const prepared of [
+    { ...valid, pixelUrl: 'https://preview.replit.dev/api/glyph/t/test.gif' },
+    { ...valid, markerUrl: 'https://other.example/gmail?glyph=test' },
+    { ...valid, pixelUrl: null },
+    {
+      ...valid,
+      links: [{ trackingUrl: 'https://other.example/api/glyph/l/test' }],
+    },
+  ]) {
+    const f = fixture({ prepared });
+    const response = await f.request('prepare', { data: { trackOpens: true } });
+    assert.equal(response.ok, false);
+    assert.match(response.error, /different environment/);
+  }
 });
 test('reply notifications are labeled as replies, not clicks, and respect reply preference', async () => {
   for (const notifyReplies of [true, false]) {

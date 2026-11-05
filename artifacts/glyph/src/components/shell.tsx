@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { basePath, usePoll, useSession } from '@/lib/glyph';
 import { GlyphMark } from '@/components/bits';
 import { useToast } from '@/hooks/use-toast';
+import { PUBLISHED_GLYPH_ORIGIN } from '@/lib/tracking-origin';
 
 function AlertWatcher() {
   const poll = usePoll();
@@ -200,7 +201,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <strong>This is the development app.</strong>
               <a
-                href="https://glyph-mail.replit.app/gmail"
+                href={`${PUBLISHED_GLYPH_ORIGIN}/gmail`}
                 target="_blank"
                 rel="noreferrer"
                 className="font-semibold text-primary underline underline-offset-4"

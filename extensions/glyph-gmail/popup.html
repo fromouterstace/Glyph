@@ -5,10 +5,10 @@
   <main>
     <h1>Tracking, inside Gmail.</h1>
     <p>Add a glyph to your Gmail compose, then use Gmail’s own Send.</p>
-    <label for="origin">Your Glyph app address</label>
-    <input id="origin" type="url" placeholder="https://your-glyph-app.example" autocomplete="off" spellcheck="false">
+    <label for="origin">Published Glyph app address</label>
+    <input id="origin" type="url" value="https://glyph-mail.replit.app" placeholder="https://glyph-mail.replit.app" autocomplete="off" spellcheck="false">
     <button id="connect">Connect Glyph</button>
-    <p class="hint">Approve access only to your Glyph app. Sign in on the connection tab and keep it open in the background.</p>
+    <p class="hint">Use the published address, never a replit.dev preview. Approve access, sign in on the production connection tab, and keep it open.</p>
     <section id="connection" aria-live="polite"><span id="state">Not connected</span><div id="account"></div></section>
     <div class="actions"><button id="refresh" class="secondary">Check connection</button><button id="disconnect" class="secondary">Disconnect</button></div>
     <p id="error" role="alert"></p>

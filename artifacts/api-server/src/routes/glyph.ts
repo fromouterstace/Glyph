@@ -42,6 +42,7 @@ import {
   ownsMailbox,
 } from '../lib/gmail';
 import { trackedEmailHtml } from '../lib/email-content';
+import { resolveTrackingOrigin } from '../lib/tracking-origin';
 
 const router = Router();
 const userId = (req: Request) => getAuth(req).userId;
@@ -315,14 +316,13 @@ router.post('/glyph/messages/:id/send', async (req, res): Promise<void> => {
   const from = await mailboxEmail();
   const settings = await settingsFor(ownerId);
   const requestOrigin = req.get('origin');
-  const baseUrl = settings.trackingBaseUrl || requestOrigin;
-  if (!baseUrl || !/^https:\/\//i.test(baseUrl)) {
-    res.status(400).json({
-      error: 'Configure an HTTPS tracking origin in Settings before sending.',
-    });
+  let base: string;
+  try {
+    base = resolveTrackingOrigin(requestOrigin, settings.trackingBaseUrl);
+  } catch (error) {
+    res.status(409).json({ error: (error as Error).message });
     return;
   }
-  const base = new URL(baseUrl).origin;
   const urls = extractUrls(message.body);
   const links = message.trackClicks
     ? urls.map((url) => ({
@@ -447,21 +447,10 @@ router.patch('/glyph/settings', async (req, res): Promise<void> => {
   let origin = parsed.data.trackingBaseUrl.trim();
   if (origin) {
     try {
-      const url = new URL(origin);
-      if (
-        url.protocol !== 'https:' ||
-        url.username ||
-        url.password ||
-        url.pathname !== '/' ||
-        url.search ||
-        url.hash
-      )
-        throw new Error('Invalid origin');
-      origin = url.origin;
-    } catch {
+      origin = resolveTrackingOrigin(req.get('origin'), origin);
+    } catch (error) {
       res.status(400).json({
-        error:
-          'Tracking URL must be an HTTPS origin, for example https://glyph.example.com, without a path.',
+        error: (error as Error).message,
       });
       return;
     }

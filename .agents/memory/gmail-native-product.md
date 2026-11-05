@@ -14,3 +14,9 @@ For real-send testing after publishing, connect the Gmail extension to the publi
 **Why:** Tracking requests must reach the environment that owns the corresponding message record. Publishing does not reconnect an installed extension or rewrite URLs embedded in already-sent emails.
 
 **How to apply:** Keep message preparation, the connection tab, tracking URL, and reporting in the same environment. Distinguish old development test messages from new production sends when diagnosing missing events.
+
+Real-send preparation must reject preview origins and tracking hosts different from the connection tab; setup opened in preview must direct users to the verified published app instead of copying its own host.
+
+**Why:** The installation instructions previously copied the preview origin, creating real sent emails whose pixel tokens existed only in the development database. Changing the pixel hostname alone cannot repair those emails.
+
+**How to apply:** Enforce this boundary in both extension and server paths, including web sends and previously installed extensions. Keep production URLs as explicit deployment configuration, not activity data. Do not claim Google proxy loads are fixed until a fresh recipient-side request is actually observed.

@@ -12,7 +12,11 @@ async function refresh() {
   $('error').textContent = '';
   try {
     const status = await send('status');
-    if (status.origin) $('origin').value = status.origin;
+    if (
+      status.origin &&
+      !new URL(status.origin).hostname.endsWith('.replit.dev')
+    )
+      $('origin').value = status.origin;
     $('state').textContent = status.connected
       ? 'Connected to Gmail'
       : 'Connection needs attention';
@@ -38,6 +42,8 @@ $('connect').addEventListener('click', async () => {
       throw new Error(
         'Paste the HTTPS app origin only, without /app or /gmail.',
       );
+    if (url.hostname.endsWith('.replit.dev'))
+      throw new Error('Use the published Glyph address, not a preview URL.');
     // Permission request stays inside this explicit user gesture.
     const granted = await chrome.permissions.request({
       origins: [`${url.origin}/*`],

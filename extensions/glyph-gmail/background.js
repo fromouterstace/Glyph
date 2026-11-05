@@ -14,12 +14,22 @@ function appOrigin(value) {
     throw new Error('Enter only the HTTPS Glyph app origin, without a path.');
   if (url.hostname === 'mail.google.com')
     throw new Error('Enter your Glyph app address, not Gmail.');
+  if (
+    url.hostname.endsWith('.replit.dev') ||
+    url.hostname === 'localhost' ||
+    url.hostname.endsWith('.localhost') ||
+    url.hostname === '127.0.0.1'
+  )
+    throw new Error(
+      'Preview connections cannot track real emails. Connect to the published Glyph HTTPS address, sign in there, and start a fresh compose.',
+    );
   return url.origin;
 }
 async function bridge(action, data) {
   const { origin } = await chrome.storage.local.get('origin');
   if (!origin)
     throw new Error('Click the Glyph extension and connect your app first.');
+  appOrigin(origin);
   const tabs = await chrome.tabs.query({ url: `${origin}/*` });
   if (!tabs.length)
     throw new Error(
@@ -159,9 +169,22 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     switch (message.action) {
       case 'context':
         return context();
-      case 'prepare':
+      case 'prepare': {
         if (!gmail) throw new Error('Prepare tracking from Gmail compose.');
-        return bridge('prepare', message.data);
+        const result = await bridge('prepare', message.data);
+        const { origin } = await chrome.storage.local.get('origin');
+        const expected = appOrigin(origin);
+        const urls = [
+          result.markerUrl,
+          ...(message.data.trackOpens ? [result.pixelUrl] : []),
+          ...(result.links ?? []).map((link) => link.trackingUrl),
+        ];
+        if (urls.some((value) => !value || new URL(value).origin !== expected))
+          throw new Error(
+            'Glyph returned a tracking URL for a different environment. Nothing was added. Reconnect to the published app and start a fresh compose.',
+          );
+        return result;
+      }
       case 'status': {
         const saved = await chrome.storage.local.get(['origin', 'lastPoll']);
         try {

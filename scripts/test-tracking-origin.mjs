@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validTrackingOrigin } from '../artifacts/glyph/src/lib/tracking-origin.ts';
+import { readFile } from 'node:fs/promises';
+import {
+  extensionConnectionOrigin,
+  PUBLISHED_GLYPH_ORIGIN,
+  validTrackingOrigin,
+} from '../artifacts/glyph/src/lib/tracking-origin.ts';
+import { resolveTrackingOrigin } from '../artifacts/api-server/src/lib/tracking-origin.ts';
 
 for (const [value, valid] of [
   ['', true],
@@ -17,7 +23,67 @@ for (const [value, valid] of [
   ['https://glyph.example/#hash', false],
   ['not a URL', false],
   ['https://', false],
+  ['https://workspace.replit.dev', false],
+  ['https://localhost', false],
+  ['https://127.0.0.1', false],
 ]) {
   test(`tracking origin policy: ${JSON.stringify(value)}`, () =>
     assert.equal(validTrackingOrigin(value), valid));
 }
+
+test('preview setup always copies the verified published origin, not its own host', () => {
+  for (const origin of [
+    'https://workspace.replit.dev',
+    'http://localhost:3000',
+  ])
+    assert.equal(extensionConnectionOrigin(origin), PUBLISHED_GLYPH_ORIGIN);
+  assert.equal(
+    extensionConnectionOrigin('https://glyph.example'),
+    'https://glyph.example',
+  );
+});
+
+test('the downloadable extension defaults to the same verified production host as setup', async () => {
+  const popup = await readFile(
+    new URL('../extensions/glyph-gmail/popup.html', import.meta.url),
+    'utf8',
+  );
+  assert.ok(popup.includes(`value="${PUBLISHED_GLYPH_ORIGIN}"`));
+});
+
+test('server uses only the public origin of the connection that owns the database', () => {
+  assert.equal(
+    resolveTrackingOrigin('https://glyph.example'),
+    'https://glyph.example',
+  );
+  assert.equal(
+    resolveTrackingOrigin('https://glyph.example', 'https://glyph.example/'),
+    'https://glyph.example',
+  );
+  assert.equal(
+    validTrackingOrigin('https://glyph.example/', 'https://glyph.example'),
+    true,
+  );
+  assert.equal(
+    validTrackingOrigin('https://other.example', 'https://glyph.example'),
+    false,
+  );
+});
+
+test('server blocks preview and cross-database tracking even for older extensions', () => {
+  for (const [origin, configured] of [
+    [undefined, ''],
+    ['https://preview.replit.dev', ''],
+    ['https://preview.replit.dev', PUBLISHED_GLYPH_ORIGIN],
+    [PUBLISHED_GLYPH_ORIGIN, 'https://preview.replit.dev'],
+    ['https://glyph.example', 'https://other.example'],
+    ['https://localhost', ''],
+    ['http://glyph.example', ''],
+    ['https://glyph.example/path', ''],
+    ['https://glyph.example', 'https://user:pass@glyph.example'],
+  ])
+    assert.throws(
+      () => resolveTrackingOrigin(origin, configured),
+      /published Glyph/,
+    );
+});

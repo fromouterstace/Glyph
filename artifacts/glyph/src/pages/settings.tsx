@@ -32,7 +32,7 @@ export default function SettingsPage() {
   const readOnly = s.data?.readOnly ?? !isSignedIn;
   const locked = !isSignedIn || readOnly;
   const url = form?.trackingBaseUrl.trim() ?? '';
-  const urlBad = !validTrackingOrigin(url);
+  const urlBad = !validTrackingOrigin(url, window.location.origin);
   const dirty = settingsChanged(form, saved);
 
   const save = () => {
@@ -115,16 +115,17 @@ export default function SettingsPage() {
               />
               {urlBad && (
                 <p className="mt-1 text-xs text-destructive">
-                  Must be an HTTPS origin, e.g. https://glyph.yourco.app
+                  Must match this published app&apos;s HTTPS origin. Preview
+                  hosts and different tracking hosts are blocked.
                 </p>
               )}
               <div className="mt-3">
                 <Caveat>
-                  Blank uses the current origin. For real sends, open the
-                  published app and reconnect the Gmail extension there. Only
-                  use a custom tracking origin that routes to the same backend
-                  and message store; changing this URL alone does not move
-                  development messages into production.
+                  Leave blank to use this published app&apos;s origin. Tracking
+                  must stay on the same host as message preparation. Open the
+                  published app and reconnect the Gmail extension there; preview
+                  sends are blocked. Changing a URL does not move an existing
+                  message or its pixel token to production.
                 </Caveat>
               </div>
             </div>
