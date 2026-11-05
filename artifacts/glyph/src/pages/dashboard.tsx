@@ -13,6 +13,7 @@ import {
   useGetConnection,
   getGetOverviewQueryKey,
   getListActivityQueryKey,
+  type Message,
 } from '@workspace/api-client-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -219,40 +220,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <ul className="divide-y divide-border">
-              {msgs.data?.items.map((m) => (
-                <li key={m.id}>
-                  <Link
-                    href={`/emails/${m.id}`}
-                    data-testid={`row-recent-${m.id}`}
-                    className="flex min-w-0 flex-col gap-2 px-4 py-3 hover:bg-muted/50 sm:px-5 lg:flex-row lg:items-center lg:gap-4"
-                  >
-                    <div className="flex min-w-0 flex-1 items-center gap-3">
-                      <Avatar name={m.recipientName} email={m.recipientEmail} />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-medium">
-                          {m.subject}
-                        </div>
-                        <div className="truncate text-xs text-muted-foreground">
-                          {m.recipientName || m.recipientEmail}
-                        </div>
-                      </div>
-                      <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
-                        {ago(m.lastActivityAt ?? m.sentAt ?? m.createdAt)}
-                      </span>
-                    </div>
-                    <div className="flex min-w-0 flex-wrap items-center gap-2 pl-11 lg:pl-0">
-                      {m.deliverySource !== 'gmail' && m.status !== 'sent' && (
-                        <StatusPill status={m.status} />
-                      )}
-                      <MessageEngagement m={m} />
-                    </div>
-                  </Link>
-                </li>
-              )) ?? (
-                <li className="px-4 py-3 text-xs text-muted-foreground">
-                  No message data was returned.
-                </li>
-              )}
+              <RecentMessageRows items={msgs.data?.items} />
             </ul>
           )}
         </section>
@@ -270,5 +238,56 @@ export default function Dashboard() {
         0 does not mean unread. Bounces aren't tracked.
       </Caveat>
     </div>
+  );
+}
+
+function RecentMessageRows({ items }: { items?: Message[] }) {
+  if (!items) {
+    return (
+      <li className="px-4 py-3 text-xs text-muted-foreground">
+        No message data was returned.
+      </li>
+    );
+  }
+
+  return (
+    <>
+      {items.map((message) => (
+        <li key={message.id}>
+          <Link
+            href={`/emails/${message.id}`}
+            data-testid={`row-recent-${message.id}`}
+            className="flex min-w-0 flex-col gap-2 px-4 py-3 hover:bg-muted/50 sm:px-5 lg:flex-row lg:items-center lg:gap-4"
+          >
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <Avatar
+                name={message.recipientName}
+                email={message.recipientEmail}
+              />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">
+                  {message.subject}
+                </div>
+                <div className="truncate text-xs text-muted-foreground">
+                  {message.recipientName || message.recipientEmail}
+                </div>
+              </div>
+              <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                {ago(
+                  message.lastActivityAt ?? message.sentAt ?? message.createdAt,
+                )}
+              </span>
+            </div>
+            <div className="flex min-w-0 flex-wrap items-center gap-2 pl-11 lg:pl-0">
+              {message.deliverySource !== 'gmail' &&
+                message.status !== 'sent' && (
+                  <StatusPill status={message.status} />
+                )}
+              <MessageEngagement m={message} />
+            </div>
+          </Link>
+        </li>
+      ))}
+    </>
   );
 }
