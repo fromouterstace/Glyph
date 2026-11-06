@@ -10,11 +10,27 @@ import * as zod from 'zod';
 
 export const prepareNativeMessageBodyOneRecipientEmailMax = 254;
 
+export const prepareNativeMessageBodyOneToEmailsItemMax = 254;
+
+export const prepareNativeMessageBodyOneToEmailsMax = 100;
+
+export const prepareNativeMessageBodyOneCcEmailsItemMax = 254;
+
+export const prepareNativeMessageBodyOneCcEmailsMax = 100;
+
+export const prepareNativeMessageBodyOneBccEmailsItemMax = 254;
+
+export const prepareNativeMessageBodyOneBccEmailsMax = 100;
+
 export const prepareNativeMessageBodyOneRecipientNameMax = 120;
 
 export const prepareNativeMessageBodyOneSubjectMax = 200;
 
 export const prepareNativeMessageBodyOneBodyMax = 50000;
+
+export const prepareNativeMessageBodyOneBodyHtmlMax = 50000;
+
+export const prepareNativeMessageBodyOneAttachmentIdsMax = 10;
 
 export const prepareNativeMessageBodyTwoToEmailsItemMax = 254;
 
@@ -39,9 +55,14 @@ export const prepareNativeMessageBodyTwoUrlsMax = 100;
 
 export const PrepareNativeMessageBody = zod.object({
   "recipientEmail": zod.email().max(prepareNativeMessageBodyOneRecipientEmailMax),
+  "toEmails": zod.array(zod.email().max(prepareNativeMessageBodyOneToEmailsItemMax)).max(prepareNativeMessageBodyOneToEmailsMax).optional(),
+  "ccEmails": zod.array(zod.email().max(prepareNativeMessageBodyOneCcEmailsItemMax)).max(prepareNativeMessageBodyOneCcEmailsMax).optional(),
+  "bccEmails": zod.array(zod.email().max(prepareNativeMessageBodyOneBccEmailsItemMax)).max(prepareNativeMessageBodyOneBccEmailsMax).optional(),
   "recipientName": zod.string().max(prepareNativeMessageBodyOneRecipientNameMax),
   "subject": zod.string().min(1).max(prepareNativeMessageBodyOneSubjectMax),
   "body": zod.string().min(1).max(prepareNativeMessageBodyOneBodyMax),
+  "bodyHtml": zod.string().max(prepareNativeMessageBodyOneBodyHtmlMax).nullish(),
+  "attachmentIds": zod.array(zod.uuid()).max(prepareNativeMessageBodyOneAttachmentIdsMax).optional(),
   "trackOpens": zod.boolean(),
   "trackClicks": zod.boolean()
 }).and(zod.object({
@@ -127,6 +148,13 @@ export const ListMessagesResponse = zod.object({
   "bccEmails": zod.array(zod.string()).optional(),
   "subject": zod.string(),
   "body": zod.string(),
+  "bodyHtml": zod.string().nullish(),
+  "attachments": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "size": zod.int(),
+  "contentType": zod.string()
+})).optional(),
   "trackOpens": zod.boolean(),
   "trackClicks": zod.boolean(),
   "status": zod.enum(['draft', 'sending', 'sent', 'failed', 'uncertain']),
@@ -149,19 +177,40 @@ export const ListMessagesResponse = zod.object({
 
 export const createMessageBodyRecipientEmailMax = 254;
 
+export const createMessageBodyToEmailsItemMax = 254;
+
+export const createMessageBodyToEmailsMax = 100;
+
+export const createMessageBodyCcEmailsItemMax = 254;
+
+export const createMessageBodyCcEmailsMax = 100;
+
+export const createMessageBodyBccEmailsItemMax = 254;
+
+export const createMessageBodyBccEmailsMax = 100;
+
 export const createMessageBodyRecipientNameMax = 120;
 
 export const createMessageBodySubjectMax = 200;
 
 export const createMessageBodyBodyMax = 50000;
 
+export const createMessageBodyBodyHtmlMax = 50000;
+
+export const createMessageBodyAttachmentIdsMax = 10;
+
 
 
 export const CreateMessageBody = zod.object({
   "recipientEmail": zod.email().max(createMessageBodyRecipientEmailMax),
+  "toEmails": zod.array(zod.email().max(createMessageBodyToEmailsItemMax)).max(createMessageBodyToEmailsMax).optional(),
+  "ccEmails": zod.array(zod.email().max(createMessageBodyCcEmailsItemMax)).max(createMessageBodyCcEmailsMax).optional(),
+  "bccEmails": zod.array(zod.email().max(createMessageBodyBccEmailsItemMax)).max(createMessageBodyBccEmailsMax).optional(),
   "recipientName": zod.string().max(createMessageBodyRecipientNameMax),
   "subject": zod.string().min(1).max(createMessageBodySubjectMax),
   "body": zod.string().min(1).max(createMessageBodyBodyMax),
+  "bodyHtml": zod.string().max(createMessageBodyBodyHtmlMax).nullish(),
+  "attachmentIds": zod.array(zod.uuid()).max(createMessageBodyAttachmentIdsMax).optional(),
   "trackOpens": zod.boolean(),
   "trackClicks": zod.boolean()
 })
@@ -175,6 +224,13 @@ export const CreateMessageResponse = zod.object({
   "bccEmails": zod.array(zod.string()).optional(),
   "subject": zod.string(),
   "body": zod.string(),
+  "bodyHtml": zod.string().nullish(),
+  "attachments": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "size": zod.int(),
+  "contentType": zod.string()
+})).optional(),
   "trackOpens": zod.boolean(),
   "trackClicks": zod.boolean(),
   "status": zod.enum(['draft', 'sending', 'sent', 'failed', 'uncertain']),
@@ -202,6 +258,13 @@ export const GetMessageResponse = zod.object({
   "bccEmails": zod.array(zod.string()).optional(),
   "subject": zod.string(),
   "body": zod.string(),
+  "bodyHtml": zod.string().nullish(),
+  "attachments": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "size": zod.int(),
+  "contentType": zod.string()
+})).optional(),
   "trackOpens": zod.boolean(),
   "trackClicks": zod.boolean(),
   "status": zod.enum(['draft', 'sending', 'sent', 'failed', 'uncertain']),
@@ -227,19 +290,40 @@ export const UpdateMessageParams = zod.object({
 
 export const updateMessageBodyRecipientEmailMax = 254;
 
+export const updateMessageBodyToEmailsItemMax = 254;
+
+export const updateMessageBodyToEmailsMax = 100;
+
+export const updateMessageBodyCcEmailsItemMax = 254;
+
+export const updateMessageBodyCcEmailsMax = 100;
+
+export const updateMessageBodyBccEmailsItemMax = 254;
+
+export const updateMessageBodyBccEmailsMax = 100;
+
 export const updateMessageBodyRecipientNameMax = 120;
 
 export const updateMessageBodySubjectMax = 200;
 
 export const updateMessageBodyBodyMax = 50000;
 
+export const updateMessageBodyBodyHtmlMax = 50000;
+
+export const updateMessageBodyAttachmentIdsMax = 10;
+
 
 
 export const UpdateMessageBody = zod.object({
   "recipientEmail": zod.email().max(updateMessageBodyRecipientEmailMax),
+  "toEmails": zod.array(zod.email().max(updateMessageBodyToEmailsItemMax)).max(updateMessageBodyToEmailsMax).optional(),
+  "ccEmails": zod.array(zod.email().max(updateMessageBodyCcEmailsItemMax)).max(updateMessageBodyCcEmailsMax).optional(),
+  "bccEmails": zod.array(zod.email().max(updateMessageBodyBccEmailsItemMax)).max(updateMessageBodyBccEmailsMax).optional(),
   "recipientName": zod.string().max(updateMessageBodyRecipientNameMax),
   "subject": zod.string().min(1).max(updateMessageBodySubjectMax),
   "body": zod.string().min(1).max(updateMessageBodyBodyMax),
+  "bodyHtml": zod.string().max(updateMessageBodyBodyHtmlMax).nullish(),
+  "attachmentIds": zod.array(zod.uuid()).max(updateMessageBodyAttachmentIdsMax).optional(),
   "trackOpens": zod.boolean(),
   "trackClicks": zod.boolean()
 })
@@ -253,6 +337,13 @@ export const UpdateMessageResponse = zod.object({
   "bccEmails": zod.array(zod.string()).optional(),
   "subject": zod.string(),
   "body": zod.string(),
+  "bodyHtml": zod.string().nullish(),
+  "attachments": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "size": zod.int(),
+  "contentType": zod.string()
+})).optional(),
   "trackOpens": zod.boolean(),
   "trackClicks": zod.boolean(),
   "status": zod.enum(['draft', 'sending', 'sent', 'failed', 'uncertain']),
@@ -328,6 +419,13 @@ export const SendMessageResponse = zod.object({
   "bccEmails": zod.array(zod.string()).optional(),
   "subject": zod.string(),
   "body": zod.string(),
+  "bodyHtml": zod.string().nullish(),
+  "attachments": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "size": zod.int(),
+  "contentType": zod.string()
+})).optional(),
   "trackOpens": zod.boolean(),
   "trackClicks": zod.boolean(),
   "status": zod.enum(['draft', 'sending', 'sent', 'failed', 'uncertain']),
@@ -465,5 +563,59 @@ export const HealthCheckResponse = zod.object({
 export const ReadinessCheckResponse = zod.object({
   "status": zod.enum(['ready', 'not_ready'])
 })
+
+
+/**
+ * @summary Create an owned private attachment upload
+ */
+export const requestAttachmentUploadBodyNameMax = 180;
+
+export const requestAttachmentUploadBodySizeMax = 10485760;
+
+export const requestAttachmentUploadBodyContentTypeMax = 150;
+
+
+
+export const RequestAttachmentUploadBody = zod.object({
+  "name": zod.string().min(1).max(requestAttachmentUploadBodyNameMax),
+  "size": zod.int().min(1).max(requestAttachmentUploadBodySizeMax),
+  "contentType": zod.string().min(1).max(requestAttachmentUploadBodyContentTypeMax)
+})
+
+export const RequestAttachmentUploadResponse = zod.object({
+  "attachment": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "size": zod.int(),
+  "contentType": zod.string()
+}),
+  "uploadUrl": zod.string()
+})
+
+
+export const CompleteAttachmentUploadParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const CompleteAttachmentUploadResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "size": zod.int(),
+  "contentType": zod.string()
+})
+
+
+export const DownloadAttachmentParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DownloadAttachmentResponse = zod.unknown()
+
+
+export const DeleteAttachmentParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteAttachmentResponse = zod.void()
 
 

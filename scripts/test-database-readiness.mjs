@@ -15,6 +15,10 @@ test('database readiness checks critical schema, coalesces callers and briefly c
           assert.match(text, /glyph_messages/);
           assert.match(text, /glyph_events/);
           assert.match(text, /glyph_links/);
+          assert.match(text, /glyph_attachments/);
+          assert.match(text, /m.body_html/);
+          assert.match(text, /m.attachments/);
+          assert.match(text, /a.generation/);
           assert.match(text, /LIMIT 0/);
         },
         release: () => {

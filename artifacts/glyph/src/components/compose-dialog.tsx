@@ -8,6 +8,7 @@ import {
   useGetSettings,
   type Message,
   type MessageInput,
+  type Attachment,
 } from '@workspace/api-client-react';
 import {
   Dialog,
@@ -27,13 +28,23 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { ComposerBody, messageTooLong } from '@/components/composer-body';
+import { composerAttachments, initialComposerForm } from '@/lib/composer-form';
+import {
+  initialRecipients,
+  recipientInput,
+  recipientError,
+  type RecipientText,
+} from '@/lib/composer-recipients';
+import { ComposerRecipients, RecipientReview } from './composer-recipients';
+import {
+  EmailAttachments,
+  releaseUnusedAttachment,
+} from '@/components/email-attachments';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { errorText, useInvalidateAll } from '@/lib/glyph';
 import { Caveat } from '@/components/bits';
-
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type ComposeDialogProps = {
   open: boolean;
@@ -75,17 +86,36 @@ function ComposeSession({
   const create = useCreateMessage();
   const update = useUpdateMessage();
   const send = useSendMessage();
-  const [form, setForm] = useState<MessageInput>(() => ({
-    recipientEmail: message?.recipientEmail ?? '',
-    recipientName: message?.recipientName ?? '',
-    subject: message?.subject ?? '',
-    body: message?.body ?? '',
-    trackOpens: message?.trackOpens ?? settings?.defaultTrackOpens ?? true,
-    trackClicks: message?.trackClicks ?? settings?.defaultTrackClicks ?? true,
-  }));
+  const [form, setForm] = useState<MessageInput>(() =>
+    initialComposerForm(message, settings),
+  );
   const [draftId, setDraftId] = useState<string | null>(message?.id ?? null);
+  const [recipients, setRecipients] = useState(() =>
+    initialRecipients(message),
+  );
   const [confirm, setConfirm] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [files, setFiles] = useState<Attachment[]>(() =>
+    composerAttachments(message),
+  );
+  const [uploading, setUploading] = useState(false);
+  const [removedFiles, setRemovedFiles] = useState<string[]>([]);
+  const changeFiles = (next: Attachment[]) => {
+    setRemovedFiles((ids) => [
+      ...new Set([
+        ...ids,
+        ...files
+          .filter((f) => !next.some((n) => n.id === f.id))
+          .map((f) => f.id),
+      ]),
+    ]);
+    setFiles(next);
+    set(
+      'attachmentIds',
+      next.map((f) => f.id),
+    );
+    setConfirm(false);
+  };
 
   const set = <K extends keyof MessageInput>(k: K, v: MessageInput[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -98,17 +128,24 @@ function ComposeSession({
           ? f.recipientName
           : '',
     }));
+  const changeRecipients = (value: RecipientText) => {
+    setRecipients(value);
+    setRecipient(recipientInput(value).recipientEmail);
+    setConfirm(false);
+  };
   const valid =
-    EMAIL.test(form.recipientEmail.trim()) &&
+    !recipientError(recipients) &&
     form.subject.trim() &&
-    form.body.trim();
-  const busy = create.isPending || update.isPending || send.isPending;
+    form.body.trim() &&
+    !messageTooLong(form);
+  const mutating = [create, update, send].some((m) => m.isPending);
+  const busy = mutating || uploading;
 
   async function save(): Promise<Message | null> {
     setErr(null);
     const data = {
       ...form,
-      recipientEmail: form.recipientEmail.trim(),
+      ...recipientInput(recipients),
       recipientName: form.recipientName.trim(),
     };
     try {
@@ -116,6 +153,15 @@ function ComposeSession({
         ? await update.mutateAsync({ id: draftId, data })
         : await create.mutateAsync({ data });
       setDraftId(m.id);
+      for (const id of removedFiles) {
+        if (!(await releaseUnusedAttachment(id)))
+          toast({
+            title: 'Draft saved; unused file cleanup could not finish',
+            description:
+              'The file remains private. It is not attached to this draft.',
+          });
+      }
+      setRemovedFiles([]);
       invalidate();
       onSaved?.(m);
       return m;
@@ -160,30 +206,28 @@ function ComposeSession({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl gap-0 overflow-hidden rounded-md border-border bg-card p-0">
+      <Dialog
+        open={open}
+        onOpenChange={(value) => {
+          if (!mutating) onOpenChange(value);
+        }}
+      >
+        <DialogContent className="max-h-[90dvh] max-w-2xl gap-0 overflow-y-auto rounded-md border-border bg-card p-0">
           <DialogHeader className="border-b border-border bg-background/60 px-5 py-4 text-left">
             <DialogTitle className="font-display text-xl font-bold">
               {draftId ? 'Edit draft' : 'New tracked email'}
             </DialogTitle>
             <DialogDescription className="text-xs">
-              This web composer supports one To recipient. For multiple To, Cc,
-              or Bcc recipients, use the Gmail extension. Signals are not proof
-              of reading. Plain text; links are tracked automatically.
+              Send one shared message to multiple To, Cc and Bcc recipients.
+              Separate addresses with commas or semicolons. Shared pixel loads
+              and clicks cannot identify which recipient engaged.
             </DialogDescription>
           </DialogHeader>
           <div className="divide-y divide-border">
-            <Row label="To">
-              <Input
-                data-testid="input-recipient-email"
-                type="email"
-                value={form.recipientEmail}
-                onChange={(e) => setRecipient(e.target.value)}
-                placeholder="Recipient email address"
-                className="border-0 bg-transparent shadow-none focus-visible:ring-0"
-                maxLength={254}
-              />
-            </Row>
+            <ComposerRecipients
+              value={recipients}
+              onChange={changeRecipients}
+            />
             <Row label="Sender">
               <Input
                 data-testid="input-sender-name"
@@ -208,15 +252,22 @@ function ComposeSession({
                 maxLength={200}
               />
             </Row>
-            <Textarea
-              data-testid="input-body"
-              value={form.body}
-              onChange={(e) => set('body', e.target.value)}
-              placeholder="Write your message"
-              className="min-h-[220px] resize-y rounded-none border-0 bg-transparent px-5 py-4 font-[inherit] text-sm leading-relaxed shadow-none focus-visible:ring-0"
-              maxLength={50000}
+            <ComposerBody
+              form={form}
+              onChange={(html, text) => {
+                setForm((f) => ({ ...f, body: text, bodyHtml: html }));
+                setConfirm(false);
+              }}
+              disabled={mutating}
             />
           </div>
+          <EmailAttachments
+            files={files}
+            onChange={changeFiles}
+            onBusy={setUploading}
+            onError={setErr}
+            disabled={mutating}
+          />
           <div className="flex flex-wrap items-center gap-5 border-t border-border bg-background/60 px-5 py-3 text-xs">
             <label className="flex items-center gap-2">
               <Switch
@@ -281,17 +332,15 @@ function ComposeSession({
             <AlertDialogDescription asChild>
               <div className="space-y-3 text-sm">
                 <div className="grid grid-cols-[70px_1fr] gap-y-1.5 border border-border bg-background p-3 font-mono text-xs text-foreground">
-                  <span className="text-muted-foreground">TO</span>
-                  <span
-                    data-testid="text-confirm-recipient"
-                    className="break-all"
-                  >
-                    {form.recipientName
-                      ? `${form.recipientName} <${form.recipientEmail}>`
-                      : form.recipientEmail}
-                  </span>
+                  <RecipientReview value={recipients} />
                   <span className="text-muted-foreground">SUBJECT</span>
                   <span data-testid="text-confirm-subject">{form.subject}</span>
+                  <span className="text-muted-foreground">FILES</span>
+                  <span>
+                    {files.length
+                      ? files.map((file) => file.name).join(', ')
+                      : 'None'}
+                  </span>
                   <span className="text-muted-foreground">GLYPH</span>
                   <span>
                     {form.trackOpens ? 'pixel tracking' : 'no pixel'} ·{' '}

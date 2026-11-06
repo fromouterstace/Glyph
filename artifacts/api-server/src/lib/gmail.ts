@@ -149,46 +149,7 @@ export async function requireMailboxOwner(
 export const newToken = () => randomBytes(24).toString('hex');
 export { escapeHtml, extractUrls } from './email-content';
 
-export function mimeMessage(input: {
-  from: string;
-  to: string;
-  subject: string;
-  body: string;
-  html: string;
-  rfcMessageId: string;
-}): string {
-  const boundary = `glyph_${newToken()}`;
-  const encodedSubject = `=?UTF-8?B?${Buffer.from(input.subject).toString('base64')}?=`;
-  const lines = [
-    `From: ${input.from}`,
-    `To: ${input.to}`,
-    `Subject: ${encodedSubject}`,
-    `Message-ID: <${input.rfcMessageId}>`,
-    `Date: ${new Date().toUTCString()}`,
-    'MIME-Version: 1.0',
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    '',
-    `--${boundary}`,
-    'Content-Type: text/plain; charset="UTF-8"',
-    'Content-Transfer-Encoding: base64',
-    '',
-    Buffer.from(input.body)
-      .toString('base64')
-      .match(/.{1,76}/g)
-      ?.join('\r\n') ?? '',
-    `--${boundary}`,
-    'Content-Type: text/html; charset="UTF-8"',
-    'Content-Transfer-Encoding: base64',
-    '',
-    Buffer.from(input.html)
-      .toString('base64')
-      .match(/.{1,76}/g)
-      ?.join('\r\n') ?? '',
-    `--${boundary}--`,
-    '',
-  ];
-  return Buffer.from(lines.join('\r\n')).toString('base64url');
-}
+export { mimeMessage } from './mime-message';
 
 export async function findSentMessage(
   rfcMessageId: string,

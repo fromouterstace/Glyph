@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import {
   db,
@@ -26,9 +26,14 @@ export async function claimDraftForSend(
           eq(glyphMessages.deliverySource, 'web'),
           eq(glyphMessages.status, 'draft'),
           eq(glyphMessages.recipientEmail, snapshot.recipientEmail),
+          eq(glyphMessages.toEmails, snapshot.toEmails),
+          eq(glyphMessages.ccEmails, snapshot.ccEmails),
+          eq(glyphMessages.bccEmails, snapshot.bccEmails),
           eq(glyphMessages.recipientName, snapshot.recipientName),
           eq(glyphMessages.subject, snapshot.subject),
           eq(glyphMessages.body, snapshot.body),
+          sql`${glyphMessages.bodyHtml} is not distinct from ${snapshot.bodyHtml}`,
+          eq(glyphMessages.attachments, snapshot.attachments),
           eq(glyphMessages.trackOpens, snapshot.trackOpens),
           eq(glyphMessages.trackClicks, snapshot.trackClicks),
         ),

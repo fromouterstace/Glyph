@@ -1,3 +1,4 @@
+import { sanitizeEmailHtml } from './email-html';
 export const escapeHtml = (value: string) =>
   value.replace(
     /[&<>"']/g,
@@ -31,6 +32,7 @@ export function extractUrls(text: string): string[] {
 
 type TrackedContent = {
   body: string;
+  bodyHtml?: string | null;
   trackClicks: boolean;
   trackOpens: boolean;
   pixelToken: string;
@@ -45,7 +47,7 @@ export function trackedEmailHtml(
 ): string {
   const urls = extractUrls(message.body);
   let htmlBody = escapeHtml(message.body);
-  if (urls.length) {
+  if (urls.length && !message.bodyHtml) {
     const destinations = new Map(
       links.map((link) => [
         escapeHtml(link.url),
@@ -61,6 +63,15 @@ export function trackedEmailHtml(
       new RegExp(alternatives.join('|'), 'g'),
       (url) => `<a href="${destinations.get(url) ?? url}">${url}</a>`,
     );
+  }
+  if (message.bodyHtml) {
+    const destinations = new Map(
+      (message.trackClicks ? links : []).map((link) => [
+        link.url,
+        `${base}/api/glyph/l/${link.token}`,
+      ]),
+    );
+    htmlBody = sanitizeEmailHtml(message.bodyHtml, destinations);
   }
   const footer =
     message.trackClicks || message.trackOpens

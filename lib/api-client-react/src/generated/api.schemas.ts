@@ -20,6 +20,21 @@ export interface ReadinessStatus {
 export interface MessageInput {
   /** @maxLength 254 */
   recipientEmail: string;
+  /**
+     * @maxItems 100
+     * @items.maxLength 254
+     */
+  toEmails?: string[];
+  /**
+     * @maxItems 100
+     * @items.maxLength 254
+     */
+  ccEmails?: string[];
+  /**
+     * @maxItems 100
+     * @items.maxLength 254
+     */
+  bccEmails?: string[];
   /** @maxLength 120 */
   recipientName: string;
   /**
@@ -32,6 +47,13 @@ export interface MessageInput {
      * @maxLength 50000
      */
   body: string;
+  /**
+     * @maxLength 50000
+     * @nullable
+     */
+  bodyHtml?: string | null;
+  /** @maxItems 10 */
+  attachmentIds?: string[];
   trackOpens: boolean;
   trackClicks: boolean;
 }
@@ -110,6 +132,13 @@ export const MessageDeliverySource = {
   gmail: 'gmail',
 } as const;
 
+export interface Attachment {
+  id: string;
+  name: string;
+  size: number;
+  contentType: string;
+}
+
 export interface Message {
   id: string;
   recipientEmail: string;
@@ -119,6 +148,9 @@ export interface Message {
   bccEmails?: string[];
   subject: string;
   body: string;
+  /** @nullable */
+  bodyHtml?: string | null;
+  attachments?: Attachment[];
   trackOpens: boolean;
   trackClicks: boolean;
   status: MessageStatus;
@@ -131,6 +163,29 @@ export interface Message {
   /** @nullable */
   lastActivityAt: string | null;
   deliverySource?: MessageDeliverySource;
+}
+
+export interface AttachmentInput {
+  /**
+     * @minLength 1
+     * @maxLength 180
+     */
+  name: string;
+  /**
+     * @minimum 1
+     * @maximum 10485760
+     */
+  size: number;
+  /**
+     * @minLength 1
+     * @maxLength 150
+     */
+  contentType: string;
+}
+
+export interface AttachmentUpload {
+  attachment: Attachment;
+  uploadUrl: string;
 }
 
 export interface TrackedLink {

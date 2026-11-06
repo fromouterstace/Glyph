@@ -11,9 +11,9 @@ The user clarified: "It should be native to gmail in the browser."
 
 ## Multiple recipients
 
-The user requires multiple To, Cc and Bcc recipients in the same Gmail thread. Do not restore the historical one-recipient/no-Cc/no-Bcc limitation.
+The user requires multiple To, Cc and Bcc recipients in both Gmail and the web composer. Do not restore the historical one-recipient/no-Cc/no-Bcc limitation or require the extension for group messages.
 
-**Why:** The user explicitly asked to remove that restriction. Shared pixels cannot identify individual recipients, but that limitation should be disclosed rather than blocking Gmail group messages.
+**Why:** The user explicitly asked to remove that restriction and repeated the request when Cc/Bcc were missing from the web composer. Shared pixels cannot identify individual recipients, but that limitation should be disclosed rather than blocking group messages.
 
 **How to apply:** Preserve Gmail's one-send/thread workflow, track aggregate message signals, retain recipient roles privately, and match provider-independent replies from all original participants.
 

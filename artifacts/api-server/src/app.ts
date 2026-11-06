@@ -5,6 +5,7 @@ import healthRouter from './routes/health';
 import glyphTrackingRouter from './routes/glyph-tracking';
 import { logger, logSafeError } from './lib/logger';
 import { GmailRateLimitError } from './lib/gmail-rate-limit';
+import { ComposerError } from './lib/composer-policy';
 import { serializeRequestLog, serializeResponseLog } from './lib/request-log';
 import { clerkMiddleware } from '@clerk/express';
 import { publishableKeyFromHost } from '@clerk/shared/keys';
@@ -43,7 +44,8 @@ app.use((_req, res, next) => {
 app.use('/api', healthRouter);
 app.use('/api', glyphTrackingRouter);
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
-app.use(express.json({ limit: '100kb' }));
+// Rich HTML and its plain-text alternative can each contain 50,000 Unicode characters.
+app.use(express.json({ limit: '512kb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(
   clerkMiddleware((req) => ({
@@ -62,6 +64,10 @@ app.use(
     res: express.Response,
     _next: express.NextFunction,
   ) => {
+    if (err instanceof ComposerError && !res.headersSent) {
+      res.status(err.status).json({ error: err.message });
+      return;
+    }
     const bodyFailure =
       err && typeof err === 'object' && 'type' in err ? err.type : null;
     if (

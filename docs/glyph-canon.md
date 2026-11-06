@@ -12,6 +12,9 @@ behavior, resolve the discrepancy, and update this canon, the relevant contract,
 and tests together. Dated audit reports are historical evidence, not current
 product policy.
 
+The optional rich web composer, private attachments, delivery limits and its
+regression checks are specified in [web-composer.md](web-composer.md).
+
 ## 1. Product intent and supported workflow
 
 - The product is Glyph. A _glyph_ is the tracking pixel, not a contact identifier.
@@ -23,9 +26,11 @@ product policy.
   Bcc in one rich-text compose; duplicates and unsupported layouts fail safely.
   That shared message has one pixel and shared tracked links, so its signals are
   aggregate and cannot identify which recipient acted.
-- The secondary web composer supports one To address per message; it has no Cc
-  or Bcc fields. A single intended recipient still does not make a pixel or click
-  a verified human action. Plain-text Gmail mode cannot carry a tracking pixel.
+- The secondary web composer also supports up to 100 unique To, Cc and Bcc
+  recipients, with explicit role lists in drafts and send confirmation. Shared
+  tracking remains aggregate; Bcc must never be promoted into To or Cc headers.
+  A single intended recipient still does not make a pixel or click a verified
+  human action. Plain-text Gmail mode cannot carry a tracking pixel.
 - The sender mailbox is the one Gmail mailbox connected to this deployment. A
   different mailbox requires its own appropriately connected deployment. Gmail
   send-as aliases are not supported. A recipient can use any email service.

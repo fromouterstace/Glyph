@@ -27,6 +27,9 @@ import type {
 import type {
   ActionResult,
   ActivityPage,
+  Attachment,
+  AttachmentInput,
+  AttachmentUpload,
   Connection,
   HealthStatus,
   ListActivityParams,
@@ -1563,4 +1566,323 @@ export function useReadinessCheck<TData = Awaited<ReturnType<typeof readinessChe
 
 
 
+
+export const getRequestAttachmentUploadUrl = () => {
+
+
+
+
+  return `/api/glyph/attachments`
+}
+
+/**
+ * @summary Create an owned private attachment upload
+ */
+export const requestAttachmentUpload = async (attachmentInput: AttachmentInput, options?: Parameters<typeof customFetch>[1]): Promise<AttachmentUpload> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AttachmentUpload>(getRequestAttachmentUploadUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(attachmentInput)
+  }
+);}
+
+
+
+
+
+export const getRequestAttachmentUploadMutationKey = () => ['requestAttachmentUpload'] as const;
+
+export const getRequestAttachmentUploadMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAttachmentUpload>>, TError,RequestAttachmentUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestAttachmentUpload>>, TError,RequestAttachmentUploadMutationVariables, TContext> => {
+
+const mutationKey = getRequestAttachmentUploadMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestAttachmentUpload>>, RequestAttachmentUploadMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestAttachmentUpload(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestAttachmentUploadMutationResult = NonNullable<Awaited<ReturnType<typeof requestAttachmentUpload>>>
+    export type RequestAttachmentUploadMutationBody = BodyType<AttachmentInput>
+    export type RequestAttachmentUploadMutationError = ErrorType<UnauthorizedResponse>
+    export type RequestAttachmentUploadMutationVariables = {data: BodyType<AttachmentInput>}
+
+    /**
+ * @summary Create an owned private attachment upload
+ */
+export const useRequestAttachmentUpload = <TError = ErrorType<UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAttachmentUpload>>, TError,RequestAttachmentUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof requestAttachmentUpload>>,
+        TError,
+        RequestAttachmentUploadMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRequestAttachmentUploadMutationOptions(options), queryClient);
+    }
+
+export const getCompleteAttachmentUploadUrl = (id: string,) => {
+
+
+
+
+  return `/api/glyph/attachments/${id}/complete`
+}
+
+export const completeAttachmentUpload = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<Attachment> => {
+
+  return customFetch<Attachment>(getCompleteAttachmentUploadUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCompleteAttachmentUploadMutationKey = () => ['completeAttachmentUpload'] as const;
+
+export const getCompleteAttachmentUploadMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeAttachmentUpload>>, TError,CompleteAttachmentUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeAttachmentUpload>>, TError,CompleteAttachmentUploadMutationVariables, TContext> => {
+
+const mutationKey = getCompleteAttachmentUploadMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeAttachmentUpload>>, CompleteAttachmentUploadMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  completeAttachmentUpload(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteAttachmentUploadMutationResult = NonNullable<Awaited<ReturnType<typeof completeAttachmentUpload>>>
+
+    export type CompleteAttachmentUploadMutationError = ErrorType<UnauthorizedResponse>
+    export type CompleteAttachmentUploadMutationVariables = {id: string}
+
+    export const useCompleteAttachmentUpload = <TError = ErrorType<UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeAttachmentUpload>>, TError,CompleteAttachmentUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof completeAttachmentUpload>>,
+        TError,
+        CompleteAttachmentUploadMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCompleteAttachmentUploadMutationOptions(options), queryClient);
+    }
+
+export const getDownloadAttachmentUrl = (id: string,) => {
+
+
+
+
+  return `/api/glyph/attachments/${id}`
+}
+
+export const downloadAttachment = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getDownloadAttachmentUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadAttachmentQueryKey = (id: string,) => {
+    return [
+    `/api/glyph/attachments/${id}`
+    ] as const;
+    }
+
+
+export const getDownloadAttachmentQueryOptions = <TData = Awaited<ReturnType<typeof downloadAttachment>>, TError = ErrorType<UnauthorizedResponse>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadAttachment>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadAttachmentQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadAttachment>>> = ({ signal }) => downloadAttachment(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadAttachment>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type DownloadAttachmentQueryResult = NonNullable<Awaited<ReturnType<typeof downloadAttachment>>>
+export type DownloadAttachmentQueryError = ErrorType<UnauthorizedResponse>
+
+
+export function useDownloadAttachment<TData = Awaited<ReturnType<typeof downloadAttachment>>, TError = ErrorType<UnauthorizedResponse>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadAttachment>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadAttachment>>,
+          TError,
+          Awaited<ReturnType<typeof downloadAttachment>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDownloadAttachment<TData = Awaited<ReturnType<typeof downloadAttachment>>, TError = ErrorType<UnauthorizedResponse>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadAttachment>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadAttachment>>,
+          TError,
+          Awaited<ReturnType<typeof downloadAttachment>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDownloadAttachment<TData = Awaited<ReturnType<typeof downloadAttachment>>, TError = ErrorType<UnauthorizedResponse>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadAttachment>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useDownloadAttachment<TData = Awaited<ReturnType<typeof downloadAttachment>>, TError = ErrorType<UnauthorizedResponse>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadAttachment>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getDownloadAttachmentQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDeleteAttachmentUrl = (id: string,) => {
+
+
+
+
+  return `/api/glyph/attachments/${id}`
+}
+
+export const deleteAttachment = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteAttachmentUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteAttachmentMutationKey = () => ['deleteAttachment'] as const;
+
+export const getDeleteAttachmentMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAttachment>>, TError,DeleteAttachmentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAttachment>>, TError,DeleteAttachmentMutationVariables, TContext> => {
+
+const mutationKey = getDeleteAttachmentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAttachment>>, DeleteAttachmentMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteAttachment(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAttachmentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAttachment>>>
+
+    export type DeleteAttachmentMutationError = ErrorType<UnauthorizedResponse>
+    export type DeleteAttachmentMutationVariables = {id: string}
+
+    export const useDeleteAttachment = <TError = ErrorType<UnauthorizedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAttachment>>, TError,DeleteAttachmentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAttachment>>,
+        TError,
+        DeleteAttachmentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteAttachmentMutationOptions(options), queryClient);
+    }
 

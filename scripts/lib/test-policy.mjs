@@ -8,6 +8,12 @@ export const criticalModules = [
   'request-log',
   'message-presentation',
   'database-readiness',
+  'composer-policy',
+  'email-html',
+  'mime-message',
+  'email-content',
+  'html-links',
+  'web-recipients',
 ];
 
 export function unitFiles(names) {

@@ -53,6 +53,14 @@ import {
   isSameTrustedOrigin,
 } from '../middlewares/clerkProxyMiddleware';
 import { trackedEmailHtml } from '../lib/email-content';
+import { webRecipients } from '../lib/web-recipients';
+import { messageHtml, richLinkUrls } from '../lib/email-html';
+import {
+  attachmentMetadata,
+  readAttachment,
+  withComposerLock,
+} from '../lib/attachments';
+import glyphAttachmentsRouter from './glyph-attachments';
 import { resolveTrackingOrigin } from '../lib/tracking-origin';
 import { logSafeError } from '../lib/logger';
 import {
@@ -123,6 +131,7 @@ router.use('/glyph', async (req, res, next): Promise<void> => {
 router.get('/glyph/overview', async (req, res): Promise<void> => {
   res.json(GetOverviewResponse.parse(await getOwnerOverview(userId(req)!)));
 });
+router.use(glyphAttachmentsRouter);
 router.get('/glyph/messages', async (req, res): Promise<void> => {
   const parsed = ListMessagesQueryParams.safeParse(req.query);
   if (!parsed.success) {
@@ -189,13 +198,25 @@ router.post('/glyph/messages', async (req, res): Promise<void> => {
   }
   const ownerId = userId(req)!;
   const id = randomUUID();
-  await db.insert(glyphMessages).values({
-    ...parsed.data,
-    recipientEmail: parsed.data.recipientEmail.toLowerCase().trim(),
-    id,
-    ownerId,
-    pixelToken: newToken(),
-    rfcMessageId: `${id}@glyph.mail`,
+  const { attachmentIds, bodyHtml, ...fields } = parsed.data;
+  const recipients = webRecipients(fields);
+  await withComposerLock(ownerId, async (tx) => {
+    const attachments = await attachmentMetadata(
+      tx,
+      ownerId,
+      attachmentIds ?? [],
+    );
+    await tx.insert(glyphMessages).values({
+      ...fields,
+      ...recipients,
+      bodyHtml: messageHtml(bodyHtml),
+      attachments,
+      recipientEmail: fields.recipientEmail.toLowerCase().trim(),
+      id,
+      ownerId,
+      pixelToken: newToken(),
+      rfcMessageId: `${id}@glyph.mail`,
+    });
   });
   res
     .status(201)
@@ -226,17 +247,32 @@ router.patch('/glyph/messages/:id', async (req, res): Promise<void> => {
     res.status(409).json({ error: 'Only unsent drafts can be edited.' });
     return;
   }
-  const updated = await db
-    .update(glyphMessages)
-    .set({ ...parsed.data, status: 'draft' })
-    .where(
-      and(
-        eq(glyphMessages.id, id),
-        eq(glyphMessages.ownerId, ownerId),
-        inArray(glyphMessages.status, ['draft', 'failed']),
-      ),
-    )
-    .returning();
+  const { attachmentIds, bodyHtml, ...fields } = parsed.data;
+  const recipients = webRecipients(fields, row);
+  const updated = await withComposerLock(ownerId, async (tx) => {
+    const attachments =
+      attachmentIds === undefined
+        ? undefined
+        : await attachmentMetadata(tx, ownerId, attachmentIds);
+    return tx
+      .update(glyphMessages)
+      .set({
+        ...fields,
+        ...recipients,
+        recipientEmail: fields.recipientEmail.toLowerCase().trim(),
+        bodyHtml: messageHtml(bodyHtml),
+        ...(attachments === undefined ? {} : { attachments }),
+        status: 'draft',
+      })
+      .where(
+        and(
+          eq(glyphMessages.id, id),
+          eq(glyphMessages.ownerId, ownerId),
+          inArray(glyphMessages.status, ['draft', 'failed']),
+        ),
+      )
+      .returning();
+  });
   if (!updated.length) {
     res.status(409).json({ error: 'This draft is already sending.' });
     return;
@@ -317,7 +353,12 @@ router.post('/glyph/messages/:id/send', async (req, res): Promise<void> => {
     res.status(409).json({ error: (error as Error).message });
     return;
   }
-  const urls = extractUrls(message.body);
+  const urls = [
+    ...new Set([
+      ...extractUrls(message.body),
+      ...richLinkUrls(message.bodyHtml),
+    ]),
+  ].slice(0, 100);
   const links = message.trackClicks
     ? urls.map((url) => ({
         id: randomUUID(),
@@ -327,12 +368,19 @@ router.post('/glyph/messages/:id/send', async (req, res): Promise<void> => {
       }))
     : [];
   const html = trackedEmailHtml(message, base, links);
+  const attachments = [];
+  for (const file of message.attachments)
+    attachments.push(await readAttachment(ownerId, file.id));
   const raw = mimeMessage({
     from,
     to: message.recipientEmail,
+    toEmails: message.toEmails,
+    ccEmails: message.ccEmails,
+    bccEmails: message.bccEmails,
     subject: message.subject,
     body: message.body,
     html,
+    attachments,
     rfcMessageId: message.rfcMessageId,
   });
   const claimed = await claimDraftForSend(message, links);

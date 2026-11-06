@@ -29,6 +29,7 @@ import {
   SignInNudge,
 } from '@/components/bits';
 import { ComposeDialog } from '@/components/compose-dialog';
+import { EmailBody } from '@/components/email-body';
 import { SyncGmailButton } from '@/components/gmail-sync';
 import {
   EmailListPanel,
@@ -230,12 +231,7 @@ function Detail({ id }: { id: string }) {
           <div className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
             Body
           </div>
-          <pre
-            className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed"
-            data-testid="text-body"
-          >
-            {m.body}
-          </pre>
+          <EmailBody message={m} />
           {links.length > 0 && (
             <div className="mt-6">
               <div className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">

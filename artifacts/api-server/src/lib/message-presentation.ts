@@ -54,6 +54,8 @@ export function publicMessage(
     bccEmails: groups.bcc,
     subject: message.subject,
     body: message.body,
+    bodyHtml: message.bodyHtml ?? null,
+    attachments: message.attachments ?? [],
     trackOpens: message.trackOpens,
     trackClicks: message.trackClicks,
     status: message.status as

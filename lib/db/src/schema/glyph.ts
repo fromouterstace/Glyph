@@ -8,6 +8,7 @@ import {
   uniqueIndex,
   primaryKey,
   check,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 import { createInsertSchema } from 'drizzle-zod';
 import { sql } from 'drizzle-orm';
@@ -24,6 +25,13 @@ export const glyphMessages = pgTable(
     bccEmails: text('bcc_emails').array().notNull().default([]),
     subject: text('subject').notNull(),
     body: text('body').notNull(),
+    bodyHtml: text('body_html'),
+    attachments: jsonb('attachments')
+      .$type<
+        Array<{ id: string; name: string; size: number; contentType: string }>
+      >()
+      .notNull()
+      .default([]),
     trackOpens: boolean('track_opens').notNull().default(true),
     trackClicks: boolean('track_clicks').notNull().default(true),
     status: text('status').notNull().default('draft'),
@@ -39,6 +47,7 @@ export const glyphMessages = pgTable(
   },
   (t) => [
     index('glyph_messages_owner_idx').on(t.ownerId, t.createdAt, t.id),
+    index('glyph_messages_attachments_idx').using('gin', t.attachments),
     uniqueIndex('glyph_native_compose_idx').on(t.ownerId, t.nativeComposeKey),
   ],
 );
@@ -119,3 +128,4 @@ export const insertGlyphEventSchema = createInsertSchema(glyphEvents);
 export const insertGlyphSettingsSchema = createInsertSchema(glyphSettings);
 export type GlyphMessage = typeof glyphMessages.$inferSelect;
 export type GlyphEvent = typeof glyphEvents.$inferSelect;
+export * from './glyph-attachments';

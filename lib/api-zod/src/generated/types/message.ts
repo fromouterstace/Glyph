@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { Attachment } from './attachment';
 import type { MessageDeliverySource } from './messageDeliverySource';
 import type { MessageStatus } from './messageStatus';
 
@@ -17,6 +18,9 @@ export interface Message {
   bccEmails?: string[];
   subject: string;
   body: string;
+  /** @nullable */
+  bodyHtml?: string | null;
+  attachments?: Attachment[];
   trackOpens: boolean;
   trackClicks: boolean;
   status: MessageStatus;

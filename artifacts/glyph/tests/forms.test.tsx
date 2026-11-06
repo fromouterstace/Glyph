@@ -43,6 +43,27 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@clerk/react', () => ({
   useUser: () => ({ user: mocks.user, isLoaded: mocks.userLoaded }),
 }));
+// Lifecycle tests isolate editing events; rich-editor.test.tsx exercises the real editor.
+vi.mock('@/components/rich-email-editor', () => ({
+  RichEmailEditor: ({
+    plainText,
+    value,
+    onChange,
+  }: {
+    plainText: string;
+    value: string;
+    onChange: (html: string, text: string) => void;
+  }) => (
+    <textarea
+      data-testid="input-body"
+      data-html={value}
+      value={plainText}
+      onChange={(event) =>
+        onChange(`<p>${event.target.value}</p>`, event.target.value)
+      }
+    />
+  ),
+}));
 vi.mock('@workspace/api-client-react', () => ({
   useGetSettings: () => ({ data: mocks.settings, isError: false }),
   useCreateMessage: () => ({ mutateAsync: mocks.create, isPending: false }),
@@ -87,6 +108,66 @@ const message = {
   lastActivityAt: null,
 };
 const field = (id: string) => screen.getByTestId(id) as HTMLInputElement;
+it('saves multiple To, Cc and Bcc, preserves roles on reopen and clears removed Bcc', async () => {
+  mocks.update.mockResolvedValue(message);
+  const grouped = {
+    ...message,
+    toEmails: ['recipient@example.org', 'second@example.org'],
+    ccEmails: ['copy@example.org'],
+    bccEmails: ['hidden@example.org'],
+  };
+  render(<ComposeDialog open onOpenChange={vi.fn()} message={grouped} />);
+  expect(field('input-recipient-email').value).toBe(
+    grouped.toEmails.join(', '),
+  );
+  expect(field('input-cc-emails').value).toBe('copy@example.org');
+  expect(field('input-bcc-emails').value).toBe('hidden@example.org');
+  fireEvent.change(field('input-bcc-emails'), { target: { value: '' } });
+  fireEvent.click(screen.getByTestId('button-save-draft'));
+  await waitFor(() =>
+    expect(mocks.update).toHaveBeenCalledWith({
+      id: message.id,
+      data: expect.objectContaining({
+        toEmails: grouped.toEmails,
+        ccEmails: grouped.ccEmails,
+        bccEmails: [],
+      }),
+    }),
+  );
+  expect(mocks.send).not.toHaveBeenCalled();
+});
+
+it('keeps formatted HTML and owned attachment IDs when saving an existing draft', async () => {
+  const attachment = {
+    id: 'retained-file',
+    name: 'report.pdf',
+    size: 10,
+    contentType: 'application/pdf',
+  };
+  const rich = {
+    ...message,
+    bodyHtml: '<p><strong>Original body</strong></p>',
+    attachments: [attachment],
+  };
+  mocks.update.mockResolvedValue(rich);
+  render(<ComposeDialog open onOpenChange={vi.fn()} message={rich} />);
+  expect(field('input-body').getAttribute('data-html')).toBe(rich.bodyHtml);
+  expect(screen.getByText(/report.pdf/)).toBeTruthy();
+  fireEvent.change(field('input-subject'), {
+    target: { value: 'Updated subject' },
+  });
+  fireEvent.click(screen.getByTestId('button-save-draft'));
+  await waitFor(() =>
+    expect(mocks.update).toHaveBeenCalledWith({
+      id: message.id,
+      data: expect.objectContaining({
+        bodyHtml: rich.bodyHtml,
+        body: message.body,
+        attachmentIds: [attachment.id],
+      }),
+    }),
+  );
+});
 
 beforeEach(() => {
   vi.clearAllMocks();

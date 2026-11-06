@@ -9,6 +9,21 @@
 export interface MessageInput {
   /** @maxLength 254 */
   recipientEmail: string;
+  /**
+     * @maxItems 100
+     * @items.maxLength 254
+     */
+  toEmails?: string[];
+  /**
+     * @maxItems 100
+     * @items.maxLength 254
+     */
+  ccEmails?: string[];
+  /**
+     * @maxItems 100
+     * @items.maxLength 254
+     */
+  bccEmails?: string[];
   /** @maxLength 120 */
   recipientName: string;
   /**
@@ -21,6 +36,13 @@ export interface MessageInput {
      * @maxLength 50000
      */
   body: string;
+  /**
+     * @maxLength 50000
+     * @nullable
+     */
+  bodyHtml?: string | null;
+  /** @maxItems 10 */
+  attachmentIds?: string[];
   trackOpens: boolean;
   trackClicks: boolean;
 }

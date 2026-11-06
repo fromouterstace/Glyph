@@ -32,7 +32,7 @@ test('oversized JSON returns an explicit payload limit error', async () => {
   const response = await request(`${base}/api/glyph/messages`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ body: 'x'.repeat(110_000) }),
+    body: JSON.stringify({ body: 'x'.repeat(600_000) }),
   });
   assert.equal(response.status, 413);
   assert.deepEqual(await response.json(), {

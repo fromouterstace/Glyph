@@ -44,6 +44,21 @@ for (const [field, value] of [
   ['recipient_name', 'Other'],
   ['track_opens', false],
   ['track_clicks', false],
+  ['to_emails', ['changed@example.invalid']],
+  ['cc_emails', ['copy@example.invalid']],
+  ['bcc_emails', ['blind@example.invalid']],
+  ['body_html', '<p><strong>Concurrent formatting change</strong></p>'],
+  [
+    'attachments',
+    JSON.stringify([
+      {
+        id: 'changed-file',
+        name: 'changed.txt',
+        size: 1,
+        contentType: 'text/plain',
+      },
+    ]),
+  ],
 ]) {
   test(`a concurrent ${field} edit cannot send a stale rendered draft`, async () => {
     const f = await draftScenario();
