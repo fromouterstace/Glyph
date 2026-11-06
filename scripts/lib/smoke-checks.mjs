@@ -19,6 +19,8 @@ const protectedReads = [
   '/activity',
   '/settings',
   '/connection',
+  '/messages/00000000-0000-4000-8000-000000000000',
+  '/attachments/00000000-0000-4000-8000-000000000000',
 ];
 
 export async function runSmoke({ base, fetchImpl = fetch, report = () => {} }) {

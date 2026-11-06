@@ -49,10 +49,23 @@ test('smoke checks pages, assets, download and anonymous APIs using only safe re
   });
   assert.ok(calls.includes('/gmail'));
   assert.ok(calls.includes('/assets/app.css'));
-  assert.equal(reports.length, 21);
+  assert.equal(reports.length, 23);
   assert.equal(calls.filter((path) => path.includes('/t/')).length, 1);
   assert.ok(calls.includes('/api/glyph/t/smoke-invalid-token.gif'));
 });
+
+for (const resource of ['messages', 'attachments']) {
+  test(`anonymous ${resource} detail access cannot pass composer smoke`, async () => {
+    const path = `/api/glyph/${resource}/00000000-0000-4000-8000-000000000000`;
+    const overrides = new Map([
+      [path, () => Response.json({ secret: 'synthetic' })],
+    ]);
+    await assert.rejects(
+      runSmoke({ base: 'http://localhost', fetchImpl: fixture(overrides) }),
+      /unexpected HTTP status/,
+    );
+  });
+}
 
 test('an SPA fallback returned for a missing JavaScript bundle fails smoke', async () => {
   const overrides = new Map([

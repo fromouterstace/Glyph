@@ -220,3 +220,42 @@ test('the UI test entrypoint overrides inherited production mode', async (t) => 
   assert.equal(result.status, 0);
   assert.equal(result.stdout, 'test');
 });
+
+test('the composer discovery CLI fails when a configured runner omits its suites', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'glyph-composer-gate-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const executable = join(directory, 'pnpm');
+  await writeFile(executable, '#!/bin/sh\nprintf "[]"\n');
+  await chmod(executable, 0o755);
+  const result = spawnSync(
+    process.execPath,
+    [new URL('./check-composer-tests.mjs', import.meta.url).pathname],
+    {
+      env: { ...process.env, PATH: `${directory}:${process.env.PATH}` },
+      encoding: 'utf8',
+      timeout: 5_000,
+    },
+  );
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Required composer ui suites missing/);
+});
+
+test('the fast gate propagates a composer inventory failure before running tests', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'glyph-composer-preflight-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const executable = join(directory, 'pnpm');
+  await writeFile(
+    executable,
+    '#!/bin/sh\ncase "$*" in check:composer) exit 23;; *) exit 0;; esac\n',
+  );
+  await chmod(executable, 0o755);
+  const { scripts } = JSON.parse(
+    await readFile(new URL('../package.json', import.meta.url), 'utf8'),
+  );
+  const result = spawnSync('sh', ['-c', scripts.check], {
+    env: { ...process.env, PATH: `${directory}:${process.env.PATH}` },
+    encoding: 'utf8',
+    timeout: 5_000,
+  });
+  assert.equal(result.status, 23);
+});

@@ -17,6 +17,9 @@ const mocks = vi.hoisted(() => ({
   settingsUpdate: vi.fn(),
   toast: vi.fn(),
   invalidate: vi.fn(),
+  settingsError: false,
+  settingsRefetch: vi.fn(),
+  sending: false,
   settings: {
     defaultTrackOpens: true,
     defaultTrackClicks: false,
@@ -67,12 +70,12 @@ vi.mock('@/components/rich-email-editor', () => ({
 vi.mock('@workspace/api-client-react', () => ({
   useGetSettings: () => ({
     data: mocks.settings,
-    isError: false,
-    refetch: vi.fn(),
+    isError: mocks.settingsError,
+    refetch: mocks.settingsRefetch,
   }),
   useCreateMessage: () => ({ mutateAsync: mocks.create, isPending: false }),
   useUpdateMessage: () => ({ mutateAsync: mocks.update, isPending: false }),
-  useSendMessage: () => ({ mutateAsync: mocks.send, isPending: false }),
+  useSendMessage: () => ({ mutateAsync: mocks.send, isPending: mocks.sending }),
   useUpdateSettings: () => ({ mutate: mocks.settingsUpdate, isPending: false }),
 }));
 vi.mock('@/lib/glyph', () => ({
@@ -204,6 +207,8 @@ it('keeps formatted HTML and owned attachment IDs when saving an existing draft'
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.settingsError = false;
+  mocks.sending = false;
   mocks.settings.trackingBaseUrl = '';
   mocks.settings.defaultTrackOpens = true;
   mocks.settings.readOnly = false;
@@ -222,6 +227,97 @@ beforeEach(() => {
       disconnect() {}
     },
   );
+});
+
+it('failed draft persistence never opens send confirmation or submits to Gmail', async () => {
+  mocks.update.mockRejectedValueOnce(new Error('Draft unavailable'));
+  render(<ComposeDialog open onOpenChange={vi.fn()} message={message} />);
+  fireEvent.click(screen.getByTestId('button-review-send'));
+  await screen.findByText('Draft unavailable');
+  expect(screen.queryByTestId('button-confirm-send')).toBeNull();
+  expect(mocks.send).not.toHaveBeenCalled();
+});
+
+it('cancelling confirmation leaves the saved draft unsent and editable', async () => {
+  mocks.update.mockResolvedValueOnce(message);
+  render(<ComposeDialog open onOpenChange={vi.fn()} message={message} />);
+  fireEvent.click(screen.getByTestId('button-review-send'));
+  await screen.findByTestId('button-confirm-send');
+  fireEvent.click(screen.getByTestId('button-cancel-send'));
+  expect(screen.queryByTestId('button-confirm-send')).toBeNull();
+  expect(mocks.send).not.toHaveBeenCalled();
+  expect(field('input-body').value).toBe(message.body);
+});
+
+it('a failed send retains edits and attachments without automatically retrying', async () => {
+  const attached = {
+    ...message,
+    attachments: [
+      { id: 'owned', name: 'report.txt', size: 3, contentType: 'text/plain' },
+    ],
+  };
+  mocks.update.mockResolvedValueOnce(attached);
+  mocks.send.mockRejectedValueOnce(new Error('Delivery uncertain'));
+  const close = vi.fn();
+  render(<ComposeDialog open onOpenChange={close} message={attached} />);
+  fireEvent.change(field('input-subject'), {
+    target: { value: 'Keep this subject' },
+  });
+  fireEvent.click(screen.getByTestId('button-review-send'));
+  fireEvent.click(await screen.findByTestId('button-confirm-send'));
+  await screen.findByText('Delivery uncertain');
+  expect(mocks.send).toHaveBeenCalledTimes(1);
+  expect(close).not.toHaveBeenCalled();
+  expect(field('input-subject').value).toBe('Keep this subject');
+  expect(screen.getByText(/report.txt/)).toBeTruthy();
+  expect(mocks.invalidate).toHaveBeenCalled();
+});
+
+it('settings becoming unavailable revokes an already-open send confirmation', async () => {
+  mocks.update.mockResolvedValueOnce(message);
+  const props = { open: true, onOpenChange: vi.fn(), message };
+  const view = render(<ComposeDialog {...props} />);
+  fireEvent.click(screen.getByTestId('button-review-send'));
+  await screen.findByTestId('button-confirm-send');
+  mocks.settingsError = true;
+  view.rerender(<ComposeDialog {...props} />);
+  const confirm = screen.getByTestId(
+    'button-confirm-send',
+  ) as HTMLButtonElement;
+  expect(confirm.disabled).toBe(true);
+  fireEvent.click(confirm);
+  expect(mocks.send).not.toHaveBeenCalled();
+});
+
+it('pending delivery blocks duplicate confirmation clicks', async () => {
+  mocks.update.mockResolvedValueOnce(message);
+  const props = { open: true, onOpenChange: vi.fn(), message };
+  const view = render(<ComposeDialog {...props} />);
+  fireEvent.click(screen.getByTestId('button-review-send'));
+  await screen.findByTestId('button-confirm-send');
+  mocks.sending = true;
+  view.rerender(<ComposeDialog {...props} />);
+  fireEvent.click(screen.getByTestId('button-confirm-send'));
+  fireEvent.click(screen.getByTestId('button-confirm-send'));
+  expect(mocks.send).not.toHaveBeenCalled();
+});
+
+it.each([
+  ['duplicate roles', 'recipient@example.org', 'RECIPIENT@example.org'],
+  ['invalid address', 'not-an-email', ''],
+  ['no recipient', '', ''],
+])('blocks saving and sending for %s', (_reason, to, cc) => {
+  render(<ComposeDialog open onOpenChange={vi.fn()} message={message} />);
+  fireEvent.change(field('input-recipient-email'), { target: { value: to } });
+  fireEvent.change(field('input-cc-emails'), { target: { value: cc } });
+  expect(
+    (screen.getByTestId('button-save-draft') as HTMLButtonElement).disabled,
+  ).toBe(true);
+  expect(
+    (screen.getByTestId('button-review-send') as HTMLButtonElement).disabled,
+  ).toBe(true);
+  expect(mocks.update).not.toHaveBeenCalled();
+  expect(mocks.send).not.toHaveBeenCalled();
 });
 afterEach(() => {
   cleanup();

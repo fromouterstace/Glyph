@@ -27,6 +27,12 @@ Selected-module Node coverage does not establish that every intended source was 
 
 **How to apply:** Preserve critical-source coverage when separating test layers. Require an independent expected-source inventory before claiming complete critical-module coverage; otherwise explicitly state the selected, loaded-source limitation.
 
+Protect critical test-suite discovery separately from source coverage.
+
+**Why:** A deleted or excluded composer suite can leave a broad test glob green even though a whole business boundary is no longer exercised.
+
+**How to apply:** Require the actual configured runners to discover the critical suites, with negative controls for omission and gate propagation. Keep this inventory distinct from executing the suites; passing discovery alone is not behavioral evidence.
+
 When sharing Vitest hoisted mocks from a helper, declare the hoisted binding first and export it separately.
 
 **Why:** Vitest 5 rejected an inline exported `vi.hoisted` variable before discovering any tests. A separate declaration and named export preserves mock hoisting across helper imports.

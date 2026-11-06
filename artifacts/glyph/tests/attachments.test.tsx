@@ -114,3 +114,29 @@ it('does not send file bytes to an untrusted upload destination', async () => {
   expect(fetch).not.toHaveBeenCalled();
   expect(screen.queryByTestId('attachment-row')).toBeNull();
 });
+
+it('a rejected byte upload never finalizes or replaces a saved attachment', async () => {
+  vi.mocked(fetch).mockResolvedValue({ ok: false } as Response);
+  render(<Picker initial={[file]} />);
+  select([new File(['hello'], 'another.txt')]);
+  await waitFor(() =>
+    expect(api.error).toHaveBeenCalledWith(
+      'The file upload failed. Please try again.',
+    ),
+  );
+  expect(api.complete).not.toHaveBeenCalled();
+  expect(screen.getAllByTestId('attachment-row')).toHaveLength(1);
+  expect(api.busy).toHaveBeenLastCalledWith(false);
+});
+
+it('failed server verification never adds an unverified attachment', async () => {
+  api.complete.mockRejectedValueOnce(new Error('File verification failed'));
+  render(<Picker />);
+  select([new File(['hello'], 'report.txt')]);
+  await waitFor(() =>
+    expect(api.error).toHaveBeenCalledWith('File verification failed'),
+  );
+  expect(screen.queryByTestId('attachment-row')).toBeNull();
+  expect(api.remove).toHaveBeenCalledWith(file.id);
+  expect(api.busy).toHaveBeenLastCalledWith(false);
+});

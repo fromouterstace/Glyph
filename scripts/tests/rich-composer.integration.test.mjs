@@ -311,3 +311,41 @@ test('Unicode plain text and formatted HTML can exceed 100 KiB within their char
   expect(response.status).toBe(201);
   expect((await response.json()).bodyHtml).toBe(input.bodyHtml);
 });
+
+test('retrying a confirmed web send returns the persisted message without another provider submission', async () => {
+  const user = h.identity();
+  const message = await (
+    await h.request('/messages', {
+      user,
+      method: 'POST',
+      body: draft(),
+    })
+  ).json();
+  const submissions = [];
+  edge.proxy.mockImplementation((integration, path, options) => {
+    if (path.endsWith('/messages/send')) {
+      submissions.push(JSON.parse(options.body).raw);
+      return json({ id: 'synthetic-idempotent-send' });
+    }
+    return defaultProvider(integration, path);
+  });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await h.request(`/messages/${message.id}/send`, {
+      user,
+      method: 'POST',
+    });
+    expect(response.status).toBe(200);
+    expect((await response.json()).status).toBe('sent');
+  }
+  expect(submissions).toHaveLength(1);
+  const reopened = await (
+    await h.request(`/messages/${message.id}`, { user })
+  ).json();
+  expect(reopened.message.status).toBe('sent');
+  expect(reopened.message.bodyHtml).toContain('<strong>Hello</strong>');
+  const { rows } = await h.sql(
+    "SELECT count(*)::int AS count FROM glyph_events WHERE message_id=$1 AND type='sent'",
+    [message.id],
+  );
+  expect(rows[0].count).toBe(1);
+});

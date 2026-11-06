@@ -77,6 +77,36 @@ Replit named validations expose the same commands without requiring GitHub.
 
 ## Risk-weighted coverage, not a promised defect percentage
 
+### Web-composer regression protection
+
+`pnpm check:composer` is a fail-closed **discovery inventory**, not a substitute
+for executing tests. It asks both real Vitest configurations which files they
+discover and requires the composer lifecycle, rich editor, private attachments,
+delivery-origin, recipient, owner-isolation, connector-failure and send lifecycle
+suites. Deleting or excluding a required suite fails the fast gate. Negative
+controls prove both the inventory CLI and its inclusion in `pnpm check` fail
+closed. The normal `pnpm test` executes the UI suites; `pnpm check:integration`
+executes the PostgreSQL/service suites. Both run in `pnpm check:all`.
+
+Focused UI cases cover failed saves preventing confirmation, explicit cancellation,
+failed sends retaining edits/files without automatic retries, pending-send
+controls, settings failure revoking confirmation, and invalid/duplicate/empty
+recipient groups. Attachment cases reject failed byte uploads and failed
+finalization without adding unverified files. The service layer confirms that
+retrying a confirmed send yields one provider submission and one persisted Sent
+event, with rich content retained after reload. Existing atomic-claim cases
+cover concurrent draft edits and concurrent sends.
+
+Smoke now checks anonymous message-detail and attachment downloads as well as
+the list/settings endpoints. These use nonexistent fixture IDs and GET only;
+they cannot send mail, upload files, or generate customer engagement. Smoke
+checks HTML/asset delivery and unauthenticated boundaries, **not** execution of
+the composer, authenticated delivery, or recipient-side Gmail behavior.
+
+All additions follow the supplied single-rule/AAA guidance and existing
+50/100/150/200-line budgets. They do not establish a <1% regression rate.
+Send-later scheduling is not implemented or implied by these checks.
+
 Node's built-in coverage fails the unit gate below **95% lines, 90% branches,
 100% functions**, aggregated over the selected native-send verification,
 provider-independent reply matching, tracking-origin policy, pixel modules,
