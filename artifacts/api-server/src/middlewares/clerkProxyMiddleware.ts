@@ -29,7 +29,10 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const CLERK_FAPI = 'https://frontend-api.clerk.dev';
 export const CLERK_PROXY_PATH = '/api/__clerk';
-const trustedProductionHosts = new Set(['glyph-mail.replit.app']);
+const trustedProductionHosts = new Set([
+  'glyph-mail.replit.app',
+  'glyph.rocks',
+]);
 
 function singleHeader(value: string | string[] | undefined) {
   if (Array.isArray(value)) return value.length === 1 ? value[0] : undefined;

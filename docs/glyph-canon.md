@@ -228,9 +228,13 @@ regression checks are specified in [web-composer.md](web-composer.md).
   values for browser writes and Clerk proxy requests. Require the browser Origin
   to exactly equal the normalized request origin; do not use the first value in
   an ambiguous header list.
-- Production browser writes and Clerk proxy requests currently allow only the
-  verified `glyph-mail.replit.app` host. A custom domain must be explicitly
-  allowlisted and have its Clerk proxy/sign-in flow verified before use.
+- Production browser writes and Clerk proxy requests allow the verified
+  `glyph-mail.replit.app` and `glyph.rocks` hosts. Any additional custom domain
+  must be explicitly allowlisted. Regression tests must cover direct and
+  forwarded origins on every allowed host, preserve that host in Clerk's proxy
+  URL, and reject HTTP, lookalike hosts, and ambiguous forwarding. After publishing,
+  verify Clerk assets and sign-in on each production domain; preview alone
+  cannot validate the production-only proxy.
 - Keep Clerk proxy responses bounded: stream responses with known lengths,
   buffer chunked responses only up to the configured cap, and return controlled
   timeout/overflow/upstream-failure responses. Preserve bodyless HEAD/204/304

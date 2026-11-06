@@ -76,28 +76,93 @@ test('forwarded host and protocol must each be a single valid value', () => {
   ).toBe(false);
 });
 
-test('production origin is restricted to the verified published hostname', () => {
+test('production origin accepts both verified published hosts directly and behind the edge', () => {
   const previousNodeEnv = process.env.NODE_ENV;
   process.env.NODE_ENV = 'production';
   try {
-    expect(
-      getTrustedRequestOrigin({
-        headers: {
-          host: 'internal',
-          'x-forwarded-host': 'glyph-mail.replit.app',
+    for (const host of ['glyph-mail.replit.app', 'glyph.rocks']) {
+      for (const headers of [
+        { host },
+        {
+          host: 'internal:8080',
+          'x-forwarded-host': host,
           'x-forwarded-proto': 'https',
         },
-      }),
-    ).toBe('https://glyph-mail.replit.app');
-    expect(
-      getTrustedRequestOrigin({
-        headers: {
-          host: 'internal',
-          'x-forwarded-host': 'attacker.invalid',
-          'x-forwarded-proto': 'https',
+      ]) {
+        const origin = getTrustedRequestOrigin({ headers });
+        expect(origin).toBe(`https://${host}`);
+        expect(isSameTrustedOrigin(`https://${host}`, origin)).toBe(true);
+        expect(isSameTrustedOrigin('https://attacker.invalid', origin)).toBe(
+          false,
+        );
+      }
+    }
+  } finally {
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+  }
+});
+
+test('production origin still rejects untrusted hosts, HTTP and ambiguous forwarding', () => {
+  const previousNodeEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'production';
+  try {
+    for (const headers of [
+      { host: 'attacker.invalid' },
+      { host: 'glyph.rocks.attacker.invalid' },
+      { host: 'glyph.rocks:8443' },
+      { host: 'glyph.rocks', 'x-forwarded-proto': 'http' },
+      { host: 'glyph.rocks', 'x-forwarded-proto': 'https,http' },
+      {
+        host: 'glyph.rocks',
+        'x-forwarded-host': 'attacker.invalid',
+      },
+      {
+        host: 'internal',
+        'x-forwarded-host': 'glyph.rocks,attacker.invalid',
+      },
+      {
+        host: 'internal',
+        'x-forwarded-host': ['glyph.rocks', 'attacker.invalid'],
+      },
+    ]) {
+      expect(getTrustedRequestOrigin({ headers })).toBeUndefined();
+    }
+  } finally {
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+  }
+});
+
+test('Clerk upstream proxy URL preserves each verified production origin', () => {
+  const previousNodeEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'production';
+  try {
+    const options = clerkProxyOptions('test-only-placeholder');
+    for (const host of ['glyph-mail.replit.app', 'glyph.rocks']) {
+      const forwarded = new Map();
+      let destroyed = false;
+      options.on.proxyReq(
+        {
+          setHeader: (name, value) => forwarded.set(name, value),
+          destroy: () => {
+            destroyed = true;
+          },
         },
-      }),
-    ).toBeUndefined();
+        {
+          headers: {
+            host: 'internal:8080',
+            'x-forwarded-host': host,
+            'x-forwarded-proto': 'https',
+          },
+        },
+      );
+      expect(destroyed).toBe(false);
+      expect(forwarded.get('Clerk-Proxy-Url')).toBe(
+        `https://${host}/api/__clerk`,
+      );
+      expect(forwarded.get('Clerk-Secret-Key')).toBe('test-only-placeholder');
+    }
   } finally {
     if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = previousNodeEnv;
