@@ -28,3 +28,15 @@ Real-send preparation must reject preview origins and tracking hosts different f
 **Why:** The installation instructions previously copied the preview origin, creating real sent emails whose pixel tokens existed only in the development database. Changing the pixel hostname alone cannot repair those emails.
 
 **How to apply:** Enforce this boundary in both extension and server paths, including web sends and previously installed extensions. Keep production URLs as explicit deployment configuration, not activity data. Do not claim Google proxy loads are fixed until a fresh recipient-side request is actually observed.
+
+Web composing does not require the browser extension. Explain production-origin
+restrictions before offering Send, not through extension-reconnection errors.
+Keep the current draft tab open when directing someone to published Glyph.
+
+**Why:** A development web draft was allowed to reach Send and then showed
+extension-specific instructions. Redirecting its tracking hostname would still
+send requests to a database that does not own that draft's tokens or files.
+
+**How to apply:** Permit saving development drafts, keep real tracked sends on
+their owning public origin, and disclose that drafts and attachments do not
+transfer automatically between environments.

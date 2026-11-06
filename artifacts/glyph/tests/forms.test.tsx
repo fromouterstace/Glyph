@@ -65,7 +65,11 @@ vi.mock('@/components/rich-email-editor', () => ({
   ),
 }));
 vi.mock('@workspace/api-client-react', () => ({
-  useGetSettings: () => ({ data: mocks.settings, isError: false }),
+  useGetSettings: () => ({
+    data: mocks.settings,
+    isError: false,
+    refetch: vi.fn(),
+  }),
   useCreateMessage: () => ({ mutateAsync: mocks.create, isPending: false }),
   useUpdateMessage: () => ({ mutateAsync: mocks.update, isPending: false }),
   useSendMessage: () => ({ mutateAsync: mocks.send, isPending: false }),
@@ -108,6 +112,35 @@ const message = {
   lastActivityAt: null,
 };
 const field = (id: string) => screen.getByTestId(id) as HTMLInputElement;
+it('blocks review for mismatched tracking settings without blocking draft saving or losing edits on recovery', () => {
+  mocks.settings.trackingBaseUrl = 'https://different.example';
+  const view = render(
+    <ComposeDialog open onOpenChange={vi.fn()} message={message} />,
+  );
+  fireEvent.change(field('input-subject'), {
+    target: { value: 'Keep my edits' },
+  });
+  expect(
+    (screen.getByTestId('button-review-send') as HTMLButtonElement).disabled,
+  ).toBe(true);
+  expect(
+    (screen.getByTestId('button-save-draft') as HTMLButtonElement).disabled,
+  ).toBe(false);
+  fireEvent.click(screen.getByTestId('button-review-send'));
+  expect(mocks.update).not.toHaveBeenCalled();
+  expect(mocks.send).not.toHaveBeenCalled();
+  expect(screen.getByTestId('notice-composer-delivery').textContent).toContain(
+    'Clear it in Settings',
+  );
+  mocks.settings.trackingBaseUrl = '';
+  view.rerender(
+    <ComposeDialog open onOpenChange={vi.fn()} message={message} />,
+  );
+  expect(field('input-subject').value).toBe('Keep my edits');
+  expect(
+    (screen.getByTestId('button-review-send') as HTMLButtonElement).disabled,
+  ).toBe(false);
+});
 it('saves multiple To, Cc and Bcc, preserves roles on reopen and clears removed Bcc', async () => {
   mocks.update.mockResolvedValue(message);
   const grouped = {

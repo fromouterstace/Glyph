@@ -348,7 +348,11 @@ router.post('/glyph/messages/:id/send', async (req, res): Promise<void> => {
   const requestOrigin = req.get('origin');
   let base: string;
   try {
-    base = resolveTrackingOrigin(requestOrigin, settings.trackingBaseUrl);
+    base = resolveTrackingOrigin(
+      requestOrigin,
+      settings.trackingBaseUrl,
+      'web',
+    );
   } catch (error) {
     res.status(409).json({ error: (error as Error).message });
     return;

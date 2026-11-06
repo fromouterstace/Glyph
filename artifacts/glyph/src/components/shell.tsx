@@ -205,7 +205,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <strong>This is the development app.</strong>
               <a
-                href={`${PUBLISHED_GLYPH_ORIGIN}/gmail`}
+                href={`${PUBLISHED_GLYPH_ORIGIN}/emails`}
                 target="_blank"
                 rel="noreferrer"
                 className="font-semibold text-primary underline underline-offset-4"
@@ -214,11 +214,10 @@ export function Shell({ children }: { children: ReactNode }) {
               </a>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              For real-send testing, sign in to published Glyph and reconnect
-              the Gmail extension there. Emails prepared here keep development
-              tracking links; publishing does not update already-sent emails.
-              Keep the connection tab and tracking links in the same
-              environment.
+              Save and edit drafts here. Send real emails from published Glyph:
+              use its web composer or connect the Gmail extension there. Drafts
+              and attachments do not transfer automatically. Publishing does not
+              update tracking links in emails already sent.
             </p>
           </div>
         )}

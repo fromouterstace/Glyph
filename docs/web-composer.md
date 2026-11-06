@@ -1,5 +1,18 @@
 # Rich web composer
 
+## Sending environment
+
+Preview supports editing and saving drafts but not real email sending. The
+composer must check this before offering review/send and link to the published
+web composer in a new tab. No browser extension is required for web composing.
+Drafts, private attachments and tracking tokens belong to their own environment
+and do not transfer when the app is published or opened at another origin.
+
+On published Glyph, a custom tracking URL must match that app's HTTPS origin.
+A stale override should show Settings and Recheck actions without discarding the
+current draft. Server checks remain authoritative, including if settings change
+after confirmation opens. A rejection must leave the draft unsent.
+
 The web composer is an optional companion to Gmail-native composition. It supports
 multiple To, Cc and Bcc recipients in one shared message, including Cc-only or
 Bcc-only messages. Separate email addresses with commas or semicolons.

@@ -5,7 +5,6 @@ import {
   useCreateMessage,
   useUpdateMessage,
   useSendMessage,
-  useGetSettings,
   type Message,
   type MessageInput,
   type Attachment,
@@ -37,6 +36,11 @@ import {
   type RecipientText,
 } from '@/lib/composer-recipients';
 import { ComposerRecipients, RecipientReview } from './composer-recipients';
+import { useComposerDelivery } from '@/hooks/use-composer-delivery';
+import {
+  ComposerDeliveryNotice,
+  ComposerDeliveryWarning,
+} from './composer-delivery';
 import {
   EmailAttachments,
   releaseUnusedAttachment,
@@ -82,7 +86,7 @@ function ComposeSession({
 }: ComposeDialogProps & { senderName: string; senderLoaded: boolean }) {
   const { toast } = useToast();
   const invalidate = useInvalidateAll();
-  const { data: settings } = useGetSettings();
+  const { settings, deliveryIssue, recheckSettings } = useComposerDelivery();
   const create = useCreateMessage();
   const update = useUpdateMessage();
   const send = useSendMessage();
@@ -180,12 +184,13 @@ function ComposeSession({
   }
 
   async function saveThenConfirm() {
+    if (deliveryIssue) return;
     const m = await save();
     if (m) setConfirm(true);
   }
 
   async function doSend() {
-    if (!draftId) return;
+    if (!draftId || deliveryIssue) return;
     try {
       const m = await send.mutateAsync({ id: draftId });
       invalidate();
@@ -223,6 +228,12 @@ function ComposeSession({
               and clicks cannot identify which recipient engaged.
             </DialogDescription>
           </DialogHeader>
+          <ComposerDeliveryNotice
+            issue={deliveryIssue}
+            recheck={() => {
+              void recheckSettings();
+            }}
+          />
           <div className="divide-y divide-border">
             <ComposerRecipients
               value={recipients}
@@ -313,7 +324,7 @@ function ComposeSession({
             </button>
             <button
               data-testid="button-review-send"
-              disabled={!valid || busy}
+              disabled={!valid || busy || !!deliveryIssue}
               onClick={saveThenConfirm}
               className="inline-flex items-center justify-center gap-2 rounded-sm bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-transform hover:bg-primary/90 active:scale-[0.98] disabled:opacity-40"
             >
@@ -331,6 +342,7 @@ function ComposeSession({
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3 text-sm">
+                <ComposerDeliveryWarning issue={deliveryIssue} />
                 <div className="grid grid-cols-[70px_1fr] gap-y-1.5 border border-border bg-background p-3 font-mono text-xs text-foreground">
                   <RecipientReview value={recipients} />
                   <span className="text-muted-foreground">SUBJECT</span>
@@ -364,7 +376,7 @@ function ComposeSession({
                 e.preventDefault();
                 doSend();
               }}
-              disabled={send.isPending}
+              disabled={send.isPending || !!deliveryIssue}
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {send.isPending ? (
