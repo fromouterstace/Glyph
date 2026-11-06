@@ -238,12 +238,13 @@ export default function GmailPage() {
         data-testid="section-update-extension"
       >
         <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
-          Already installed? Update to v0.5.0
+          Already installed? Update to v0.5.1
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
-          Restricts the extension to the verified Glyph production origin,
-          removes previously stored untrusted origins, and keeps tracking
-          responses on that same origin.
+          Refreshes open Gmail tabs after extension updates, browser startup,
+          and reconnect. Updated scripts hand over without reloading Gmail or
+          sending your draft. Older scripts may need one manual Gmail reload
+          after the draft is saved.
         </p>
         <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm">
           <li>Download the new ZIP above and extract it.</li>

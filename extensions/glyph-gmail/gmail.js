@@ -1,5 +1,27 @@
 (() => {
+  // DOM events cross extension isolated-world lifetimes; global references may
+  // not survive Chrome invalidating the previous extension context.
+  const retireEvent = 'glyph:compose-retire';
+  document.dispatchEvent(new Event(retireEvent));
   globalThis.glyphCompose?.dispose();
+  const legacyToolbars = document.querySelectorAll('.glyph-native-toolbar');
+  if (legacyToolbars.length) {
+    // Pre-handoff extensions cannot safely surrender their in-memory tracking
+    // state. Do not guess original URLs or remove the user's rich text.
+    for (const toolbar of legacyToolbars) {
+      for (const button of toolbar.querySelectorAll(
+        'button:not(.glyph-native-recovery)',
+      ))
+        button.disabled = true;
+      const status = toolbar.querySelector('.glyph-native-status');
+      if (status)
+        status.textContent =
+          'An older Glyph script is still open. Wait until Gmail saves your draft, then reload Gmail once to finish updating.';
+      const recovery = toolbar.querySelector('.glyph-native-recovery');
+      if (recovery) recovery.hidden = false;
+    }
+    return;
+  }
   let disposed = false;
   const cleanups = new Set();
   const listen = (target, event, handler, options) => {
@@ -525,17 +547,21 @@
     attributes: true,
     attributeFilter: ['email', 'data-recipient-id', 'href', 'src'],
   });
-  globalThis.glyphCompose = {
-    dispose() {
-      disposed = true;
-      observer.disconnect();
-      for (const cleanup of cleanups) cleanup();
-      for (const state of live) {
-        if (state.attached) restore(state);
-        state.toolbar.remove();
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+    observer.disconnect();
+    for (const cleanup of cleanups) cleanup();
+    for (const state of live) {
+      if (state.attached) {
+        restore(state);
+        state.body.dispatchEvent(new Event('input', { bubbles: true }));
       }
-      live.clear();
-    },
-  };
+      state.toolbar.remove();
+    }
+    live.clear();
+  }
+  listen(document, retireEvent, dispose);
+  globalThis.glyphCompose = { dispose };
   scan();
 })();

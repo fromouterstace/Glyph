@@ -4,6 +4,50 @@ const CHANNEL = 'glyph:background';
 const BRIDGE = 'glyph:bridge';
 const appOrigin = (value) => globalThis.GlyphOriginPolicy.appOrigin(value);
 
+async function recoverOpenGmailTabs() {
+  try {
+    const tabs = await chrome.tabs.query({ url: 'https://mail.google.com/*' });
+    for (const tab of tabs) {
+      if (
+        !Number.isInteger(tab.id) ||
+        !tab.url?.startsWith('https://mail.google.com/')
+      )
+        continue;
+      const target = { tabId: tab.id, frameIds: [0] };
+      try {
+        await chrome.scripting
+          .removeCSS({ target, files: ['gmail.css'] })
+          .catch(() => {});
+        await chrome.scripting.insertCSS({ target, files: ['gmail.css'] });
+        await chrome.scripting.executeScript({
+          target,
+          files: ['messaging.js', 'gmail.js'],
+        });
+      } catch {
+        // A closing/restricted tab must not prevent recovery of the others.
+        console.warn(
+          'Glyph could not refresh an open Gmail tab. Reload that Gmail tab after its draft is saved.',
+        );
+      }
+    }
+  } catch {
+    console.warn(
+      'Glyph could not enumerate Gmail tabs for extension recovery.',
+    );
+  }
+}
+
+async function recoverExtension() {
+  try {
+    await reconcileStoredConnection();
+  } catch {
+    console.warn(
+      'Glyph connection recovery failed. Reconnect through the extension popup.',
+    );
+  }
+  await recoverOpenGmailTabs();
+}
+
 async function removeUntrustedPermissions() {
   const { origins = [] } = await chrome.permissions.getAll();
   const trusted = new Set([
@@ -131,6 +175,7 @@ async function connect(value) {
     });
   else await chrome.tabs.create({ url: `${origin}/gmail`, active: true });
   await chrome.alarms.create('glyph-poll', { periodInMinutes: 0.5 });
+  await recoverOpenGmailTabs();
   return { origin };
 }
 
@@ -270,10 +315,10 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'glyph-poll') void poll();
 });
 chrome.runtime.onInstalled.addListener(async () => {
-  await reconcileStoredConnection();
+  await recoverExtension();
 });
 chrome.runtime.onStartup.addListener(async () => {
-  await reconcileStoredConnection();
+  await recoverExtension();
 });
 chrome.notifications.onClicked.addListener(async () => {
   const { origin } = await chrome.storage.local.get('origin');

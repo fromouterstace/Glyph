@@ -48,13 +48,20 @@ function makeChrome(options, stored, state, listeners) {
       },
     },
     scripting: {
-      executeScript: async (v) => state.calls.push(['inject', v]),
+      executeScript: async (v) => {
+        if (options.failedInjectionTab === v.target.tabId)
+          throw new Error('Synthetic closing tab');
+        state.calls.push(['inject', v]);
+      },
+      removeCSS: async () => {},
+      insertCSS: async (v) => state.styles.push(v),
       unregisterContentScripts: async ({ ids }) =>
         state.unregistered.push(...ids),
       registerContentScripts: async (v) => state.registered.push(...v),
     },
     tabs: {
       query: async ({ url }) => {
+        if (url === 'https://mail.google.com/*') return options.gmailTabs ?? [];
         const tabUrl = options.tabUrl ?? `${stored.origin}/gmail`;
         return options.closed || !tabUrl.startsWith(url.replace('*', ''))
           ? []
@@ -108,6 +115,7 @@ function fixture(options = {}) {
   const clock = FakeTimers.createClock(Date.UTC(2026, 10, 4, 12));
   const stored = { origin: PUBLISHED_GLYPH_ORIGIN, ...options.stored };
   const state = {
+    styles: [],
     registered: [],
     unregistered: [],
     removedPermissions: [],
@@ -427,4 +435,70 @@ test('first notification startup establishes a baseline rather than replaying ol
     0,
   );
   assert.deepEqual(Array.from(f.stored.seenEvents), ['historical-reply']);
+});
+
+test('updates and browser startup refresh only open top-level Gmail tabs in script order', async () => {
+  for (const event of ['installed', 'started']) {
+    const f = fixture({
+      gmailTabs: [
+        { id: 7, url: 'https://mail.google.com/mail/u/0/' },
+        { id: 8, url: 'https://mail.google.com/mail/u/1/' },
+        { id: 9, url: 'https://mail.google.com.attacker.example/' },
+        { id: 10, url: 'https://example.com/' },
+        { url: 'https://mail.google.com/' },
+      ],
+    });
+    await f[event]({ reason: 'update' });
+    const injections = f.calls.filter(([action]) => action === 'inject');
+    assert.equal(injections.length, 2);
+    for (const [, injection] of injections) {
+      assert.deepEqual(Array.from(injection.files), [
+        'messaging.js',
+        'gmail.js',
+      ]);
+      assert.deepEqual(Array.from(injection.target.frameIds), [0]);
+    }
+    assert.deepEqual(
+      injections.map(([, injection]) => injection.target.tabId),
+      [7, 8],
+    );
+    assert.equal(f.styles.length, 2);
+    assert.equal(
+      f.calls.some(([action]) => action === 'prepare'),
+      false,
+    );
+    assert.equal(f.openedTabs.length, 0);
+  }
+});
+
+test('a closing Gmail tab does not prevent other tabs recovering after an update', async () => {
+  const f = fixture({
+    failedInjectionTab: 7,
+    gmailTabs: [
+      { id: 7, url: 'https://mail.google.com/mail/u/0/' },
+      { id: 8, url: 'https://mail.google.com/mail/u/1/' },
+    ],
+  });
+  await f.installed({ reason: 'update' });
+  assert.deepEqual(
+    f.calls
+      .filter(([action]) => action === 'inject')
+      .map(([, injection]) => injection.target.tabId),
+    [8],
+  );
+});
+
+test('explicit reconnect also repairs Gmail tabs without discarding notification history', async () => {
+  const f = fixture({
+    stored: { seenEvents: ['existing'], mailbox: 'owner@example.com' },
+    gmailTabs: [{ id: 7, url: 'https://mail.google.com/mail/u/0/' }],
+  });
+  const response = await f.request(
+    'connect',
+    { origin: PUBLISHED_GLYPH_ORIGIN },
+    f.popup,
+  );
+  assert.equal(response.ok, true);
+  assert.equal(f.calls.filter(([action]) => action === 'inject').length, 1);
+  assert.deepEqual(f.stored.seenEvents, ['existing']);
 });

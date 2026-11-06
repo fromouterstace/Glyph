@@ -126,7 +126,7 @@ test('manifest and popup enforce the exact trusted Glyph origin', async () => {
       'utf8',
     ),
   );
-  assert.equal(manifest.version, '0.5.0');
+  assert.equal(manifest.version, '0.5.1');
   assert.deepEqual(manifest.optional_host_permissions, [
     `${PUBLISHED_GLYPH_ORIGIN}/*`,
   ]);
@@ -179,6 +179,53 @@ test('script reinjection cleans up the old toolbar and handlers', async (t) => {
   assert.equal(f.calls.length, before);
   await f.add();
   assert.equal(f.body.querySelectorAll('.glyph-native-footer').length, 1);
+});
+
+test('DOM handoff retires a previous world without its global reference and preserves edits', async (t) => {
+  const f = fixture(t);
+  await f.add();
+  const oldButton = f.button();
+  const edit = f.document.createElement('p');
+  edit.textContent = 'Unsaved user edit';
+  f.body.append(edit);
+  let saves = 0;
+  let sends = 0;
+  f.body.addEventListener('input', () => saves++);
+  f.document.getElementById('send0').addEventListener('click', () => sends++);
+  delete f.window.glyphCompose;
+  f.window.eval(messagingSource);
+  f.window.eval(source);
+  await wait();
+  assert.equal(f.document.querySelectorAll('.glyph-native-toolbar').length, 1);
+  assert.equal(f.body.innerHTML, f.original + '<p>Unsaved user edit</p>');
+  assert.equal(saves, 1);
+  assert.equal(sends, 0);
+  const before = f.calls.length;
+  oldButton.click();
+  await wait();
+  assert.equal(f.calls.length, before);
+  await f.add();
+  assert.equal(f.body.querySelectorAll('.glyph-native-footer').length, 1);
+});
+
+test('a pre-handoff orphaned toolbar fails safely without rewriting its draft', async (t) => {
+  const f = fixture(t);
+  await wait();
+  f.window.glyphCompose.dispose();
+  delete f.window.glyphCompose;
+  const toolbar = f.document.createElement('div');
+  toolbar.className = 'glyph-native-toolbar';
+  toolbar.innerHTML =
+    '<button type="button">Add glyph</button><span class="glyph-native-status">Extension context invalidated.</span>';
+  f.body.parentElement.insertBefore(toolbar, f.body);
+  const before = f.calls.length;
+  f.window.eval(source);
+  await wait();
+  assert.equal(toolbar.querySelector('button').disabled, true);
+  assert.match(toolbar.textContent, /reload Gmail once/i);
+  assert.equal(f.body.innerHTML, f.original);
+  assert.equal(f.calls.length, before);
+  assert.equal(f.document.querySelectorAll('.glyph-native-toolbar').length, 1);
 });
 function editor(index = 0) {
   return `<div class="M9" id="compose${index}"><input name="subjectbox" value="A proposal">
