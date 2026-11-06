@@ -1,5 +1,6 @@
 import express, { type Express } from 'express';
 import pinoHttp from 'pino-http';
+import { pool } from '@workspace/db';
 import router from './routes';
 import healthRouter from './routes/health';
 import glyphTrackingRouter from './routes/glyph-tracking';
@@ -17,6 +18,16 @@ import {
 
 const app: Express = express();
 app.disable('x-powered-by');
+
+// pg emits idle-client failures outside request promises. Without this listener,
+// EventEmitter treats a transient disconnected client as a process-fatal error.
+// Do not log the raw error: it may include private database connection details.
+pool.on('error', () => {
+  logger.error(
+    { outcome: 'idle_database_error' },
+    'An idle database connection failed; the pool will replace it',
+  );
+});
 
 app.use(
   pinoHttp({

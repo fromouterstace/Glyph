@@ -21,6 +21,16 @@ test('SIGINT closes an idle API and its database pool cleanly', async (t) => {
   assert.deepEqual(await worker.exit, [0, null]);
 });
 
+test('idle database error events do not crash the API or prevent a fresh readiness check', async (t) => {
+  const worker = await startProcess(schema);
+  t.after(() => worker.stop());
+  assert.equal((await worker.command('idle-error')).result, true);
+  const response = await fetch(`${worker.base}/api/readyz`);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { status: 'ready' });
+  assert.equal(worker.child.exitCode, null);
+});
+
 test('real API readiness fails on missing schema while liveness remains healthy', async (t) => {
   await database.query('ALTER TABLE glyph_links RENAME TO unavailable_links');
   t.after(() =>

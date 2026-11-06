@@ -30,7 +30,6 @@ function makeChrome(options, stored, state, listeners) {
       local: {
         get: async () => stored,
         set: async (value) => Object.assign(stored, value),
-        clear: async () => Object.keys(stored).forEach((k) => delete stored[k]),
         remove: async (keys) => {
           for (const key of keys) delete stored[key];
         },
@@ -71,6 +70,7 @@ function makeChrome(options, stored, state, listeners) {
       create: async (tab) => state.openedTabs.push(tab),
       sendMessage: async (_id, msg) => {
         if (options.unavailable) throw new Error('Synthetic API unavailable');
+        await options.beforeBridge?.(msg.action);
         state.calls.push([msg.action, msg.data]);
         return {
           ok: true,
@@ -105,7 +105,10 @@ function makeChrome(options, stored, state, listeners) {
       },
     },
     action: {
-      setBadgeText: async () => {},
+      setBadgeText: async () => {
+        if (options.badgeUnavailable)
+          throw new Error('Synthetic badge failure');
+      },
       setBadgeBackgroundColor: async () => {},
     },
   };
@@ -352,6 +355,71 @@ test('reply notifications are labeled as replies, not clicks, and respect reply 
     if (notifyReplies)
       assert.equal(notification[1].title, 'Glyph: reply received');
   }
+});
+
+test('overlapping notification polls share one sync and do not deliver duplicate alerts', async () => {
+  const entered = Promise.withResolvers();
+  const release = Promise.withResolvers();
+  const f = fixture({
+    stored: { seenEvents: [], mailbox: 'owner@example.com' },
+    settings: { notifyReplies: true },
+    events: [{ id: 'new-reply', type: 'reply', subject: 'Synthetic reply' }],
+    beforeBridge: async (action) => {
+      if (action === 'sync') {
+        entered.resolve();
+        await release.promise;
+      }
+    },
+  });
+  const first = f.request('sync');
+  await entered.promise;
+  const second = f.request('sync');
+  release.resolve();
+  await Promise.all([first, second]);
+  assert.equal(f.calls.filter(([action]) => action === 'sync').length, 1);
+  assert.equal(
+    f.calls.filter(([action]) => action === 'notification').length,
+    1,
+  );
+});
+
+test('badge API failure does not turn a recoverable poll failure into an unhandled rejection', async () => {
+  const f = fixture({ unavailable: true, badgeUnavailable: true });
+  const response = await f.request('sync');
+  assert.equal(response.ok, true);
+  assert.equal(
+    f.calls.filter(([action]) => action === 'notification').length,
+    0,
+  );
+});
+
+test('disconnecting during a poll cannot restore the old mailbox cursor or emit a stale alert', async () => {
+  const entered = Promise.withResolvers();
+  const release = Promise.withResolvers();
+  const f = fixture({
+    stored: { seenEvents: [], mailbox: 'owner@example.com' },
+    settings: { notifyReplies: true },
+    events: [{ id: 'old-reply', type: 'reply' }],
+    beforeBridge: async (action) => {
+      if (action === 'activity') {
+        entered.resolve();
+        await release.promise;
+      }
+    },
+  });
+  const polling = f.request('sync');
+  await entered.promise;
+  const disconnected = await f.request('disconnect', {}, f.popup);
+  release.resolve();
+  await polling;
+  assert.equal(disconnected.ok, true);
+  assert.equal(f.stored.origin, undefined);
+  assert.equal(f.stored.mailbox, undefined);
+  assert.equal(f.stored.seenEvents, undefined);
+  assert.equal(
+    f.calls.filter(([action]) => action === 'notification').length,
+    0,
+  );
 });
 test('future unknown event types never become false click notifications', async () => {
   const f = fixture({

@@ -29,6 +29,15 @@ server.once('listening', () =>
 );
 process.on('SIGTERM', () => process.send({ event: 'draining' }));
 process.on('message', async ({ action, id }) => {
+  if (action === 'idle-error') {
+    // Outside the command catch: without the real app listener this would be a
+    // fatal EventEmitter error, as with a disconnected idle pg client.
+    queueMicrotask(() =>
+      pool.emit('error', new Error('Synthetic idle failure')),
+    );
+    process.send({ event: 'command', result: true });
+    return;
+  }
   try {
     const message = await db.query.glyphMessages.findFirst({
       where: (messages, { eq }) => eq(messages.id, id),

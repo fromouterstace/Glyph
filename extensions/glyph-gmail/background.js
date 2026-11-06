@@ -3,6 +3,20 @@ globalThis.importScripts('trusted-origin.js');
 const CHANNEL = 'glyph:background';
 const BRIDGE = 'glyph:bridge';
 const appOrigin = (value) => globalThis.GlyphOriginPolicy.appOrigin(value);
+let connectionEpoch = 0;
+let pendingPoll;
+
+async function registerBridge(origin) {
+  await chrome.scripting.registerContentScripts([
+    {
+      id: 'glyph-app-bridge',
+      matches: [`${origin}/*`],
+      js: ['bridge.js'],
+      runAt: 'document_idle',
+      persistAcrossSessions: true,
+    },
+  ]);
+}
 
 async function recoverOpenGmailTabs() {
   try {
@@ -67,6 +81,7 @@ async function unregisterBridge() {
 }
 
 async function clearStoredConnection(origin) {
+  connectionEpoch++;
   await unregisterBridge();
   const permission = globalThis.GlyphOriginPolicy.permissionPattern(origin);
   if (permission)
@@ -99,15 +114,7 @@ async function reconcileStoredConnection() {
       throw new Error(
         'The trusted Glyph host permission is no longer granted.',
       );
-    await chrome.scripting.registerContentScripts([
-      {
-        id: 'glyph-app-bridge',
-        matches: [`${trustedOrigin}/*`],
-        js: ['bridge.js'],
-        runAt: 'document_idle',
-        persistAcrossSessions: true,
-      },
-    ]);
+    await registerBridge(trustedOrigin);
     await chrome.alarms.create('glyph-poll', { periodInMinutes: 0.5 });
   } catch {
     await clearStoredConnection(origin);
@@ -155,15 +162,8 @@ async function connect(value) {
   const previous = await chrome.storage.local.get('origin');
   await removeUntrustedPermissions();
   await unregisterBridge();
-  await chrome.scripting.registerContentScripts([
-    {
-      id: 'glyph-app-bridge',
-      matches: [`${origin}/*`],
-      js: ['bridge.js'],
-      runAt: 'document_idle',
-      persistAcrossSessions: true,
-    },
-  ]);
+  connectionEpoch++;
+  await registerBridge(origin);
   await chrome.storage.local.set({ origin });
   if (previous.origin !== origin)
     await chrome.storage.local.remove(['seenEvents', 'lastPoll', 'mailbox']);
@@ -189,12 +189,37 @@ async function context() {
   return { email: connection.email, settings };
 }
 
-async function poll() {
+function poll() {
+  // Alarms and explicit sync can overlap. Share the in-flight pass rather than
+  // read the same cursor twice and deliver the same notification twice.
+  pendingPoll ??= runPoll().finally(() => {
+    pendingPoll = undefined;
+  });
+  return pendingPoll;
+}
+
+function wantsNotification(event, settings) {
+  if (event.automated || event.read) return false;
+  switch (event.type) {
+    case 'open':
+      return settings.notifyOpens;
+    case 'click':
+      return settings.notifyClicks;
+    case 'reply':
+      return settings.notifyReplies !== false;
+    default:
+      return false;
+  }
+}
+
+async function runPoll() {
+  const epoch = connectionEpoch;
   try {
     const ctx = await context();
     const previous = await chrome.storage.local.get(['seenEvents', 'mailbox']);
     await bridge('sync');
     const events = await bridge('activity');
+    if (epoch !== connectionEpoch) return;
     const seen = new Set(
       previous.mailbox === ctx.email ? previous.seenEvents : undefined,
     );
@@ -204,18 +229,10 @@ async function poll() {
       if (
         baseline ||
         seen.has(event.id) ||
-        event.automated ||
-        !['open', 'click', 'reply'].includes(event.type) ||
-        event.read
+        !wantsNotification(event, ctx.settings)
       )
         continue;
-      const wanted =
-        event.type === 'open'
-          ? ctx.settings.notifyOpens
-          : event.type === 'reply'
-            ? ctx.settings.notifyReplies !== false
-            : ctx.settings.notifyClicks;
-      if (!wanted) continue;
+      if (epoch !== connectionEpoch) return;
       await chrome.notifications.create(`glyph-${event.id}`, {
         type: 'basic',
         iconUrl: chrome.runtime.getURL('icon128.png'),
@@ -229,6 +246,7 @@ async function poll() {
         contextMessage: 'Engagement signal, not a guaranteed read receipt.',
       });
     }
+    if (epoch !== connectionEpoch) return;
     await chrome.storage.local.set({
       seenEvents: events.map((e) => e.id),
       mailbox: ctx.email,
@@ -240,8 +258,15 @@ async function poll() {
     await chrome.action.setBadgeText({ text: unread ? String(unread) : '' });
     await chrome.action.setBadgeBackgroundColor({ color: '#d94020' });
   } catch {
-    await chrome.action.setBadgeText({ text: '!' });
-    await chrome.action.setBadgeBackgroundColor({ color: '#8a6620' });
+    if (epoch !== connectionEpoch) return;
+    try {
+      await chrome.action.setBadgeText({ text: '!' });
+      await chrome.action.setBadgeBackgroundColor({ color: '#8a6620' });
+    } catch {
+      // Browser API teardown can also invalidate the failure indicator. Do not
+      // reject the alarm handler while handling an already recoverable failure.
+      console.warn('Glyph could not update its connection status badge.');
+    }
   }
 }
 
@@ -289,15 +314,8 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
         if (!popup) throw new Error('Use the extension popup to disconnect.');
         {
           const { origin } = await chrome.storage.local.get('origin');
-          await unregisterBridge();
-          const permission =
-            globalThis.GlyphOriginPolicy.permissionPattern(origin);
-          if (permission)
-            await chrome.permissions.remove({ origins: [permission] });
+          await clearStoredConnection(origin);
         }
-        await chrome.alarms.clear('glyph-poll');
-        await chrome.storage.local.clear();
-        await chrome.action.setBadgeText({ text: '' });
         return { disconnected: true };
       case 'sync':
         await poll();

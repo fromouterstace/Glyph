@@ -238,7 +238,7 @@ export default function GmailPage() {
         data-testid="section-update-extension"
       >
         <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
-          Already installed? Update to v0.5.1
+          Already installed? Update to v0.5.2
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
           Refreshes open Gmail tabs after extension updates, browser startup,

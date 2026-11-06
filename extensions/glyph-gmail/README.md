@@ -8,7 +8,7 @@ for its historical assessment.
 
 1. Extract the downloaded archive.
 2. Open `chrome://extensions` or `edge://extensions`, enable Developer mode, select **Load unpacked**, and choose the extracted `glyph-extension` folder.
-3. Pin Glyph. The v0.5.1 popup is fixed to `https://glyph-mail.replit.app`; click Connect and approve only that origin. Preview addresses, custom hosts and lookalike domains are not supported.
+3. Pin Glyph. The v0.5.2 popup is fixed to `https://glyph-mail.replit.app`; click Connect and approve only that origin. Preview addresses, custom hosts and lookalike domains are not supported.
 4. Sign in on the Glyph connection tab with the verified email matching the project's connected Gmail mailbox. Keep that tab open (background is fine). The extension uses that tab's existing session; it never stores your Gmail password or OAuth tokens.
 5. Reload Gmail. In a rich-text compose with up to 100 To, Cc and Bcc recipients, click **Add glyph**, then send using Gmail's normal Send or Ctrl/Cmd+Enter. Glyph does not intercept Send or split your message into separate sends. Finish entering recipient chips first and remove duplicate addresses across roles.
 6. Editing the body, recipient or subject removes the glyph; add it again after your edits. Remove glyph restores original links. Attachments and existing formatting are not replaced.
@@ -41,7 +41,7 @@ Use the verified published Glyph origin for long-term tracking. A preview or cus
 
 ## Updating from an earlier extension
 
-Replace the files in the original unpacked extension folder with the v0.5.1 package, click Reload in `chrome://extensions` or `edge://extensions`, then reconnect to the published Glyph app. On update, the extension unregisters the previous dynamic bridge and removes saved untrusted host permissions and connection state. Existing tracking tokens and emails are not changed. Publishing the web app alone does not update an installed extension.
+Replace the files in the original unpacked extension folder with the v0.5.2 package, click Reload in `chrome://extensions` or `edge://extensions`, then reconnect to the published Glyph app. On update, the extension unregisters the previous dynamic bridge and removes saved untrusted host permissions and connection state. Existing tracking tokens and emails are not changed. Publishing the web app alone does not update an installed extension.
 
 Chrome invalidates old content-script runtimes when an extension is replaced,
 reloaded, disabled or removed. The extension now reinjects its current messaging,
