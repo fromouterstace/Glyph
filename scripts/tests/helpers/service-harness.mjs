@@ -6,6 +6,7 @@ const edge = vi.hoisted(() => ({
   proxy: vi.fn(),
   connections: vi.fn(),
   getUser: vi.fn(),
+  getCount: vi.fn(),
   now: Date.UTC(2026, 10, 4, 12),
 }));
 export { edge };
@@ -20,9 +21,17 @@ vi.mock('@replit/connectors-sdk', () => ({
   },
 }));
 vi.mock('@clerk/express', () => ({
-  getAuth: (req) => ({ userId: req.headers['x-test-user'] ?? null }),
+  getAuth: (req) => ({
+    userId: req.headers['x-test-user'] ?? null,
+    sessionId: req.headers['x-test-session'] ?? null,
+  }),
   clerkMiddleware: () => (_req, _res, next) => next(),
-  clerkClient: { users: { getUser: (...args) => edge.getUser(...args) } },
+  clerkClient: {
+    users: {
+      getUser: (...args) => edge.getUser(...args),
+      getCount: (...args) => edge.getCount(...args),
+    },
+  },
 }));
 vi.mock('node:timers/promises', () => ({
   setTimeout: async (ms) => {
@@ -54,11 +63,15 @@ export async function serviceHarness() {
   vi.spyOn(Date, 'now').mockImplementation(() => edge.now);
   edge.proxy.mockImplementation(defaultProvider);
   edge.connections.mockResolvedValue(gmailConnections());
-  edge.getUser.mockImplementation(async () => ({
+  edge.getUser.mockImplementation(async (id) => ({
     emailAddresses: [
-      { emailAddress: mailbox, verification: { status: 'verified' } },
+      {
+        emailAddress: id === 'system_admin' ? 'admin@example.invalid' : mailbox,
+        verification: { status: 'verified' },
+      },
     ],
   }));
+  edge.getCount.mockResolvedValue(2);
   const database = await isolatedDatabase();
   const { default: app } =
     await import('../../../artifacts/api-server/src/app.ts');
@@ -70,13 +83,21 @@ export async function serviceHarness() {
     identity: () => `user_fixture_${fixtureId()}`,
     async request(
       path,
-      { user = null, method = 'GET', body, headers = {}, ...options } = {},
+      {
+        user = null,
+        session = 'test-session',
+        method = 'GET',
+        body,
+        headers = {},
+        ...options
+      } = {},
     ) {
       return fetch(`${base}/api/glyph${path}`, {
         ...options,
         method,
         headers: {
           ...(user ? { 'x-test-user': user } : {}),
+          ...(session ? { 'x-test-session': session } : {}),
           origin: 'https://glyph.example',
           'x-forwarded-host': 'glyph.example',
           'x-forwarded-proto': 'https',

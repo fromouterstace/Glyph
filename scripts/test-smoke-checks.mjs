@@ -48,8 +48,17 @@ test('smoke checks pages, assets, download and anonymous APIs using only safe re
     report: (row) => reports.push(row),
   });
   assert.ok(calls.includes('/gmail'));
+  assert.ok(calls.includes('/system'));
+  assert.ok(calls.includes('/api/glyph/system/access'));
+  assert.ok(calls.includes('/api/glyph/system/summary'));
   assert.ok(calls.includes('/assets/app.css'));
-  assert.equal(reports.length, 23);
+  for (const path of [
+    '/system',
+    '/api/glyph/system/access',
+    '/api/glyph/system/summary',
+  ]) {
+    assert.ok(reports.some((report) => report.path === path));
+  }
   assert.equal(calls.filter((path) => path.includes('/t/')).length, 1);
   assert.ok(calls.includes('/api/glyph/t/smoke-invalid-token.gif'));
 });

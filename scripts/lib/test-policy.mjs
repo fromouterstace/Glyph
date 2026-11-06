@@ -14,6 +14,7 @@ export const criticalModules = [
   'email-content',
   'html-links',
   'web-recipients',
+  'system-admin',
 ];
 
 export function unitFiles(names) {

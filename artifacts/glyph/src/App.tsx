@@ -23,6 +23,7 @@ import Emails from '@/pages/emails';
 import ActivityPage from '@/pages/activity';
 import SettingsPage from '@/pages/settings';
 import GmailPage from '@/pages/gmail';
+import SystemPage from '@/pages/system';
 import { Shell } from '@/components/shell';
 import { GlyphMark } from '@/components/bits';
 import { AuthGate } from '@/components/auth-gate';
@@ -268,6 +269,7 @@ const EmailAliasRoute = () => <Redirect to="/emails" />;
 const ActivityRoute = wrap(ActivityPage);
 const SettingsRoute = wrap(SettingsPage);
 const GmailRoute = wrap(GmailPage);
+const SystemRoute = wrap(SystemPage);
 
 function RoutedErrorBoundary({ children }: { children: ReactNode }) {
   const [location] = useLocation();
@@ -314,6 +316,7 @@ function ClerkProviderWithRoutes() {
               <Route path="/activity" component={ActivityRoute} />
               <Route path="/settings" component={SettingsRoute} />
               <Route path="/gmail" component={GmailRoute} />
+              <Route path="/system" component={SystemRoute} />
               <Route path="/sign-in/*?" component={SignInPage} />
               <Route path="/sign-up/*?" component={SignUpPage} />
               <Route component={NotFound} />

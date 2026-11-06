@@ -75,6 +75,8 @@ for (const [method, path] of [
   ['GET', '/activity'],
   ['GET', '/settings'],
   ['GET', '/connection'],
+  ['GET', '/system/access'],
+  ['GET', '/system/summary'],
   ['POST', '/native/sync'],
 ]) {
   test(`anonymous ${method} ${path} is rejected before accessing account data`, async () => {
@@ -99,6 +101,7 @@ for (const [method, path] of [
   ['DELETE', '/messages/unowned'],
   ['POST', '/messages/unowned/send'],
   ['POST', '/activity/read'],
+  ['POST', '/system/session'],
   ['PATCH', '/settings'],
 ]) {
   test(`anonymous ${method} ${path} is rejected before any write`, async () => {

@@ -5,9 +5,11 @@ interface Connection {
 
 // Parse critical relations without scanning rows or exposing account data.
 const probeSql = `SELECT m.id, m.body_html, m.attachments, e.id, l.id,
+  s.id,
   a.id, a.owner_id, a.object_path, a.generation, a.size, a.content_type
   FROM glyph_messages m LEFT JOIN glyph_events e ON false
-  LEFT JOIN glyph_links l ON false LEFT JOIN glyph_attachments a ON false LIMIT 0`;
+  LEFT JOIN glyph_links l ON false LEFT JOIN glyph_system_events s ON false
+  LEFT JOIN glyph_attachments a ON false LIMIT 0`;
 
 export function createReadinessProbe(
   connect: () => Promise<Connection>,

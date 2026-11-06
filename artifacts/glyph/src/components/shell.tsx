@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { useClerk, useUser } from '@clerk/react';
+import { useAuth, useClerk, useUser } from '@clerk/react';
 import {
   LayoutGrid,
   Mail,
   Radio,
   Settings2,
   Puzzle,
+  ShieldCheck,
   LogOut,
   LogIn,
   Menu,
@@ -18,12 +19,37 @@ import {
   useGetOverview,
   getListActivityQueryKey,
   getGetOverviewQueryKey,
+  getGetSystemAccessQueryKey,
+  useGetSystemAccess,
+  useRecordSystemSession,
 } from '@workspace/api-client-react';
 import { cn } from '@/lib/utils';
 import { basePath, usePoll, useSession } from '@/lib/glyph';
 import { GlyphMark } from '@/components/bits';
 import { useToast } from '@/hooks/use-toast';
 import { PUBLISHED_GLYPH_ORIGIN } from '@/lib/tracking-origin';
+
+function SystemSessionRecorder() {
+  const { isLoaded, isSignedIn, sessionId } = useAuth();
+  const { mutate: recordSession } = useRecordSystemSession({
+    mutation: { retry: 1 },
+  });
+  const recordedSession = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (
+      !isLoaded ||
+      !isSignedIn ||
+      !sessionId ||
+      recordedSession.current === sessionId
+    )
+      return;
+    recordedSession.current = sessionId;
+    recordSession(undefined);
+  }, [isLoaded, isSignedIn, sessionId, recordSession]);
+
+  return null;
+}
 
 function AlertWatcher() {
   const poll = usePoll();
@@ -93,11 +119,22 @@ export function Shell({ children }: { children: ReactNode }) {
   const { isSignedIn } = useSession();
   const { signOut } = useClerk();
   const { user } = useUser();
+  const systemAccess = useGetSystemAccess({
+    query: {
+      enabled: isSignedIn,
+      retry: false,
+      staleTime: 60_000,
+      queryKey: [...getGetSystemAccessQueryKey(), user?.id ?? 'signed-out'],
+    },
+  });
   const poll = usePoll();
   const { data: ov } = useGetOverview({
     query: { refetchInterval: poll, queryKey: getGetOverviewQueryKey() },
   });
   const readOnly = ov?.readOnly ?? !isSignedIn;
+  const visibleNav = systemAccess.data?.isSystemAdmin
+    ? [...nav, { href: '/system', label: 'System', icon: ShieldCheck }]
+    : nav;
 
   const side = (
     <div className="flex h-full flex-col">
@@ -112,7 +149,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </span>
       </Link>
       <nav className="mt-2 flex flex-col gap-0.5 px-3">
-        {nav.map((n) => {
+        {visibleNav.map((n) => {
           const href = !isSignedIn && n.publicHref ? n.publicHref : n.href;
           const active =
             loc === href || (n.href !== '/app' && loc.startsWith(n.href));
@@ -190,6 +227,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
   return (
     <div className="grain min-h-[100dvh] bg-background">
+      {isSignedIn && <SystemSessionRecorder />}
       {isSignedIn && <AlertWatcher key={user?.id} />}
       <aside className="fixed inset-y-0 left-0 hidden w-60 bg-sidebar md:block">
         {side}

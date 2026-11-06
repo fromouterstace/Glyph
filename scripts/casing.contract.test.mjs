@@ -9,6 +9,7 @@ const openapi = await readFile(
 const schemaFiles = [
   '../lib/db/src/schema/glyph.ts',
   '../lib/db/src/schema/glyph-attachments.ts',
+  '../lib/db/src/schema/glyph-system.ts',
 ];
 
 const snakeCase = (value) =>

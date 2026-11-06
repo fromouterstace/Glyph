@@ -41,7 +41,7 @@ export async function isolatedDatabase() {
         '--dialect',
         'postgresql',
         '--schema',
-        './src/schema/glyph.ts',
+        './src/schema/index.ts',
       ],
       {
         cwd: fileURLToPath(new URL('../../lib/db/', import.meta.url)),

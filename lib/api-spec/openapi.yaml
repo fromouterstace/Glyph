@@ -11,6 +11,38 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /glyph/system/access:
+    get:
+      operationId: getSystemAccess
+      responses:
+        '200':
+          description: Indicates whether the authenticated user has system access
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SystemAccess' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /glyph/system/session:
+    post:
+      operationId: recordSystemSession
+      responses:
+        '200':
+          description: App-observed sign-in session recorded idempotently
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActionResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /glyph/system/summary:
+    get:
+      operationId: getSystemSummary
+      responses:
+        '200':
+          description: Aggregate system metrics restricted to configured administrators
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SystemSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
   /glyph/native/prepare:
     post:
       operationId: prepareNativeMessage
@@ -325,6 +357,15 @@ components:
             required: [error]
             properties:
               error: { type: string }
+    Forbidden:
+      description: The authenticated user is not allowed to access this resource
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error: { type: string }
   schemas:
     ReadinessStatus:
       type: object
@@ -392,6 +433,39 @@ components:
       required: [ok]
       properties:
         ok: { type: boolean }
+    SystemAccess:
+      type: object
+      required: [isSystemAdmin]
+      properties:
+        isSystemAdmin: { type: boolean }
+    SystemSummary:
+      type: object
+      required:
+        [
+          usersTotal,
+          loginSessionsTotal,
+          loginSessionsLast24Hours,
+          emailsSentTotal,
+          emailsSentLast30Days,
+          pixelLoadsTotal,
+          linkClicksTotal,
+          repliesTotal,
+          adminAccessDeniedSessions,
+          recentAdminAccessDenials,
+        ]
+      properties:
+        usersTotal: { type: integer, minimum: 0 }
+        loginSessionsTotal: { type: integer, minimum: 0 }
+        loginSessionsLast24Hours: { type: integer, minimum: 0 }
+        emailsSentTotal: { type: integer, minimum: 0 }
+        emailsSentLast30Days: { type: integer, minimum: 0 }
+        pixelLoadsTotal: { type: integer, minimum: 0 }
+        linkClicksTotal: { type: integer, minimum: 0 }
+        repliesTotal: { type: integer, minimum: 0 }
+        adminAccessDeniedSessions: { type: integer, minimum: 0 }
+        recentAdminAccessDenials:
+          type: array
+          items: { type: string, format: date-time }
     MessageInput:
       type: object
       required:

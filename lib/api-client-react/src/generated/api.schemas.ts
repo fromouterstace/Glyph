@@ -113,6 +113,32 @@ export interface ActionResult {
   ok: boolean;
 }
 
+export interface SystemAccess {
+  isSystemAdmin: boolean;
+}
+
+export interface SystemSummary {
+  /** @minimum 0 */
+  usersTotal: number;
+  /** @minimum 0 */
+  loginSessionsTotal: number;
+  /** @minimum 0 */
+  loginSessionsLast24Hours: number;
+  /** @minimum 0 */
+  emailsSentTotal: number;
+  /** @minimum 0 */
+  emailsSentLast30Days: number;
+  /** @minimum 0 */
+  pixelLoadsTotal: number;
+  /** @minimum 0 */
+  linkClicksTotal: number;
+  /** @minimum 0 */
+  repliesTotal: number;
+  /** @minimum 0 */
+  adminAccessDeniedSessions: number;
+  recentAdminAccessDenials: string[];
+}
+
 export type MessageStatus = typeof MessageStatus[keyof typeof MessageStatus];
 
 
@@ -295,6 +321,10 @@ export interface HealthStatus {
 }
 
 export type UnauthorizedResponse = {
+  error: string;
+};
+
+export type ForbiddenResponse = {
   error: string;
 };
 

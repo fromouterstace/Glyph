@@ -146,6 +146,7 @@ Never quarantine a flaky test silently.
 | Anonymous clients cannot mutate account data                                                | Local HTTP suite against the running application                     |
 | A failed check actually stops a build                                                       | Negative controls execute the real configured build commands         |
 | Database columns and public JSON fields preserve distinct casing conventions                | Drizzle/OpenAPI casing contract checks                               |
+| System metrics are server-authorized and aggregate-only; login observations are deduplicated | Clerk-mocked API tests with isolated PostgreSQL                       |
 
 ## Fixture safety and determinism
 

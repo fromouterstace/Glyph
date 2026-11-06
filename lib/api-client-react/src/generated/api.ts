@@ -31,6 +31,7 @@ import type {
   AttachmentInput,
   AttachmentUpload,
   Connection,
+  ForbiddenResponse,
   HealthStatus,
   ListActivityParams,
   ListMessagesParams,
@@ -45,6 +46,8 @@ import type {
   ReadinessStatus,
   Settings,
   SettingsInput,
+  SystemAccess,
+  SystemSummary,
   UnauthorizedResponse
 } from './api.schemas';
 
@@ -74,6 +77,264 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetSystemAccessUrl = () => {
+
+
+
+
+  return `/api/glyph/system/access`
+}
+
+export const getSystemAccess = async ( options?: Parameters<typeof customFetch>[1]): Promise<SystemAccess> => {
+
+  return customFetch<SystemAccess>(getGetSystemAccessUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSystemAccessQueryKey = () => {
+    return [
+    `/api/glyph/system/access`
+    ] as const;
+    }
+
+
+export const getGetSystemAccessQueryOptions = <TData = Awaited<ReturnType<typeof getSystemAccess>>, TError = ErrorType<UnauthorizedResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSystemAccess>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSystemAccessQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSystemAccess>>> = ({ signal }) => getSystemAccess({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSystemAccess>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSystemAccessQueryResult = NonNullable<Awaited<ReturnType<typeof getSystemAccess>>>
+export type GetSystemAccessQueryError = ErrorType<UnauthorizedResponse>
+
+
+export function useGetSystemAccess<TData = Awaited<ReturnType<typeof getSystemAccess>>, TError = ErrorType<UnauthorizedResponse>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSystemAccess>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSystemAccess>>,
+          TError,
+          Awaited<ReturnType<typeof getSystemAccess>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSystemAccess<TData = Awaited<ReturnType<typeof getSystemAccess>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSystemAccess>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSystemAccess>>,
+          TError,
+          Awaited<ReturnType<typeof getSystemAccess>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSystemAccess<TData = Awaited<ReturnType<typeof getSystemAccess>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSystemAccess>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetSystemAccess<TData = Awaited<ReturnType<typeof getSystemAccess>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSystemAccess>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSystemAccessQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRecordSystemSessionUrl = () => {
+
+
+
+
+  return `/api/glyph/system/session`
+}
+
+export const recordSystemSession = async ( options?: Parameters<typeof customFetch>[1]): Promise<ActionResult> => {
+
+  return customFetch<ActionResult>(getRecordSystemSessionUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRecordSystemSessionMutationKey = () => ['recordSystemSession'] as const;
+
+export const getRecordSystemSessionMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordSystemSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recordSystemSession>>, TError,void, TContext> => {
+
+const mutationKey = getRecordSystemSessionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recordSystemSession>>, void> = () => {
+
+
+          return  recordSystemSession(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecordSystemSessionMutationResult = NonNullable<Awaited<ReturnType<typeof recordSystemSession>>>
+
+    export type RecordSystemSessionMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse>
+
+
+    export const useRecordSystemSession = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordSystemSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof recordSystemSession>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRecordSystemSessionMutationOptions(options), queryClient);
+    }
+
+export const getGetSystemSummaryUrl = () => {
+
+
+
+
+  return `/api/glyph/system/summary`
+}
+
+export const getSystemSummary = async ( options?: Parameters<typeof customFetch>[1]): Promise<SystemSummary> => {
+
+  return customFetch<SystemSummary>(getGetSystemSummaryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSystemSummaryQueryKey = () => {
+    return [
+    `/api/glyph/system/summary`
+    ] as const;
+    }
+
+
+export const getGetSystemSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getSystemSummary>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSystemSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSystemSummaryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSystemSummary>>> = ({ signal }) => getSystemSummary({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSystemSummary>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSystemSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getSystemSummary>>>
+export type GetSystemSummaryQueryError = ErrorType<UnauthorizedResponse | ForbiddenResponse>
+
+
+export function useGetSystemSummary<TData = Awaited<ReturnType<typeof getSystemSummary>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSystemSummary>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSystemSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getSystemSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSystemSummary<TData = Awaited<ReturnType<typeof getSystemSummary>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSystemSummary>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSystemSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getSystemSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSystemSummary<TData = Awaited<ReturnType<typeof getSystemSummary>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSystemSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetSystemSummary<TData = Awaited<ReturnType<typeof getSystemSummary>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSystemSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSystemSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getPrepareNativeMessageUrl = () => {
 

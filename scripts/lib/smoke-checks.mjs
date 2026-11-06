@@ -10,6 +10,7 @@ const pages = [
   '/activity',
   '/settings',
   '/gmail',
+  '/system',
   '/sign-in',
   '/sign-up',
 ];
@@ -19,6 +20,8 @@ const protectedReads = [
   '/activity',
   '/settings',
   '/connection',
+  '/system/access',
+  '/system/summary',
   '/messages/00000000-0000-4000-8000-000000000000',
   '/attachments/00000000-0000-4000-8000-000000000000',
 ];

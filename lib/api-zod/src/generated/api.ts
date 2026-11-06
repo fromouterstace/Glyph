@@ -8,6 +8,50 @@
 import * as zod from 'zod';
 
 
+export const GetSystemAccessResponse = zod.object({
+  "isSystemAdmin": zod.boolean()
+})
+
+
+export const RecordSystemSessionResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+export const getSystemSummaryResponseUsersTotalMin = 0;
+
+export const getSystemSummaryResponseLoginSessionsTotalMin = 0;
+
+export const getSystemSummaryResponseLoginSessionsLast24HoursMin = 0;
+
+export const getSystemSummaryResponseEmailsSentTotalMin = 0;
+
+export const getSystemSummaryResponseEmailsSentLast30DaysMin = 0;
+
+export const getSystemSummaryResponsePixelLoadsTotalMin = 0;
+
+export const getSystemSummaryResponseLinkClicksTotalMin = 0;
+
+export const getSystemSummaryResponseRepliesTotalMin = 0;
+
+export const getSystemSummaryResponseAdminAccessDeniedSessionsMin = 0;
+
+
+
+export const GetSystemSummaryResponse = zod.object({
+  "usersTotal": zod.int().min(getSystemSummaryResponseUsersTotalMin),
+  "loginSessionsTotal": zod.int().min(getSystemSummaryResponseLoginSessionsTotalMin),
+  "loginSessionsLast24Hours": zod.int().min(getSystemSummaryResponseLoginSessionsLast24HoursMin),
+  "emailsSentTotal": zod.int().min(getSystemSummaryResponseEmailsSentTotalMin),
+  "emailsSentLast30Days": zod.int().min(getSystemSummaryResponseEmailsSentLast30DaysMin),
+  "pixelLoadsTotal": zod.int().min(getSystemSummaryResponsePixelLoadsTotalMin),
+  "linkClicksTotal": zod.int().min(getSystemSummaryResponseLinkClicksTotalMin),
+  "repliesTotal": zod.int().min(getSystemSummaryResponseRepliesTotalMin),
+  "adminAccessDeniedSessions": zod.int().min(getSystemSummaryResponseAdminAccessDeniedSessionsMin),
+  "recentAdminAccessDenials": zod.array(zod.coerce.date())
+})
+
+
 export const prepareNativeMessageBodyOneRecipientEmailMax = 254;
 
 export const prepareNativeMessageBodyOneToEmailsItemMax = 254;

@@ -81,6 +81,7 @@ export const glyphEvents = pgTable(
   (t) => [
     index('glyph_events_message_idx').on(t.messageId, t.occurredAt, t.id),
     index('glyph_events_time_idx').on(t.occurredAt, t.id),
+    index('glyph_events_type_time_idx').on(t.type, t.occurredAt),
   ],
 );
 

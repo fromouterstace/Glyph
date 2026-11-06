@@ -117,6 +117,16 @@ regression checks are specified in [web-composer.md](web-composer.md).
 - The health check, sign-in/sign-up, and Clerk frontend API proxy are public
   protocol or availability surfaces; keep their responses limited to their
   purpose. All other account-data reads and writes require a signed-in session.
+- The System navigation item is only a visibility hint. The server must authorize
+  every system-data request against a verified Clerk email in the server-side
+  `GLYPH_ADMIN_EMAILS` allowlist; never trust client-side email checks or accept a
+  client-supplied role. Keep system metrics aggregate-only and do not expose
+  message bodies, recipient lists, IP addresses, or full user-agent strings.
+- System login metrics count unique Clerk sessions observed by Glyph after a
+  signed-in account opens the app. They are not a complete count of Clerk sign-ins
+  and must be labeled accordingly. Persist deduplicated session observations and
+  authenticated denied-admin attempts in PostgreSQL; store only a one-way
+  session fingerprint for deduplication.
 - Do not persist raw client IP addresses or full user-agent strings. Store only
   the classification and event data needed for the signal. Keep request IDs for
   operational correlation, but do not log email addresses, body text, complete
