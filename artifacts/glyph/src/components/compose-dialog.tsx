@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useUser } from '@clerk/react';
 import { Send, Save, Loader2 } from 'lucide-react';
 import {
   useCreateMessage,
@@ -42,9 +43,22 @@ type ComposeDialogProps = {
 };
 
 export function ComposeDialog(props: ComposeDialogProps) {
+  const { user, isLoaded } = useUser();
   if (!props.open) return null;
+  const senderName =
+    isLoaded && user
+      ? user.fullName?.trim() ||
+        [user.firstName, user.lastName].filter(Boolean).join(' ').trim()
+      : '';
   // A new session resets on reopen/identity change, not on query refreshes.
-  return <ComposeSession key={props.message?.id ?? 'new'} {...props} />;
+  return (
+    <ComposeSession
+      key={`${isLoaded ? (user?.id ?? 'signed-out') : 'loading'}:${props.message?.id ?? 'new'}`}
+      {...props}
+      senderName={senderName}
+      senderLoaded={isLoaded}
+    />
+  );
 }
 
 function ComposeSession({
@@ -52,7 +66,9 @@ function ComposeSession({
   onOpenChange,
   message,
   onSaved,
-}: ComposeDialogProps) {
+  senderName,
+  senderLoaded,
+}: ComposeDialogProps & { senderName: string; senderLoaded: boolean }) {
   const { toast } = useToast();
   const invalidate = useInvalidateAll();
   const { data: settings } = useGetSettings();
@@ -73,6 +89,15 @@ function ComposeSession({
 
   const set = <K extends keyof MessageInput>(k: K, v: MessageInput[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
+  const setRecipient = (value: string) =>
+    setForm((f) => ({
+      ...f,
+      recipientEmail: value,
+      recipientName:
+        value.trim().toLowerCase() === f.recipientEmail.trim().toLowerCase()
+          ? f.recipientName
+          : '',
+    }));
   const valid =
     EMAIL.test(form.recipientEmail.trim()) &&
     form.subject.trim() &&
@@ -153,20 +178,24 @@ function ComposeSession({
                 data-testid="input-recipient-email"
                 type="email"
                 value={form.recipientEmail}
-                onChange={(e) => set('recipientEmail', e.target.value)}
-                placeholder="maya@harborline.co"
+                onChange={(e) => setRecipient(e.target.value)}
+                placeholder="Recipient email address"
                 className="border-0 bg-transparent shadow-none focus-visible:ring-0"
                 maxLength={254}
               />
             </Row>
-            <Row label="Name">
+            <Row label="Sender">
               <Input
-                data-testid="input-recipient-name"
-                value={form.recipientName}
-                onChange={(e) => set('recipientName', e.target.value)}
-                placeholder="Maya Okafor (optional)"
+                data-testid="input-sender-name"
+                aria-label="Sender name"
+                value={senderName}
+                readOnly
+                placeholder={
+                  senderLoaded
+                    ? 'No sender name in your account profile'
+                    : 'Loading your account name…'
+                }
                 className="border-0 bg-transparent shadow-none focus-visible:ring-0"
-                maxLength={120}
               />
             </Row>
             <Row label="Subject">
@@ -174,7 +203,7 @@ function ComposeSession({
                 data-testid="input-subject"
                 value={form.subject}
                 onChange={(e) => set('subject', e.target.value)}
-                placeholder="Quick question about Q3 freight volumes"
+                placeholder="Subject"
                 className="border-0 bg-transparent font-medium shadow-none focus-visible:ring-0"
                 maxLength={200}
               />
@@ -183,7 +212,7 @@ function ComposeSession({
               data-testid="input-body"
               value={form.body}
               onChange={(e) => set('body', e.target.value)}
-              placeholder={'Hi Maya,\n\nSaw the Rotterdam expansion news...'}
+              placeholder="Write your message"
               className="min-h-[220px] resize-y rounded-none border-0 bg-transparent px-5 py-4 font-[inherit] text-sm leading-relaxed shadow-none focus-visible:ring-0"
               maxLength={50000}
             />

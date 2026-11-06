@@ -26,8 +26,23 @@ const mocks = vi.hoisted(() => ({
     trackingBaseUrl: '',
     readOnly: false,
   },
+  userLoaded: true,
+  user: {
+    id: 'sender-1',
+    fullName: 'Authenticated Sender',
+    firstName: 'Authenticated',
+    lastName: 'Sender',
+  } as {
+    id: string;
+    fullName: string | null;
+    firstName: string | null;
+    lastName: string | null;
+  } | null,
 }));
 
+vi.mock('@clerk/react', () => ({
+  useUser: () => ({ user: mocks.user, isLoaded: mocks.userLoaded }),
+}));
 vi.mock('@workspace/api-client-react', () => ({
   useGetSettings: () => ({ data: mocks.settings, isError: false }),
   useCreateMessage: () => ({ mutateAsync: mocks.create, isPending: false }),
@@ -78,6 +93,13 @@ beforeEach(() => {
   mocks.settings.trackingBaseUrl = '';
   mocks.settings.defaultTrackOpens = true;
   mocks.settings.readOnly = false;
+  mocks.userLoaded = true;
+  mocks.user = {
+    id: 'sender-1',
+    fullName: 'Authenticated Sender',
+    firstName: 'Authenticated',
+    lastName: 'Sender',
+  };
   vi.stubGlobal(
     'ResizeObserver',
     class {
@@ -95,10 +117,105 @@ afterEach(() => {
 // This callback organizes focused cases; the 50-line limit applies to each test.
 // eslint-disable-next-line max-lines-per-function
 describe('composer sessions', () => {
+  it('shows the authenticated sender instead of a recipient or fictional example', () => {
+    render(<ComposeDialog open onOpenChange={vi.fn()} message={message} />);
+    expect(field('input-sender-name').value).toBe('Authenticated Sender');
+    expect(field('input-sender-name').readOnly).toBe(true);
+    expect(field('input-sender-name').getAttribute('aria-label')).toBe(
+      'Sender name',
+    );
+    expect(screen.queryByTestId('input-recipient-name')).toBeNull();
+    expect(
+      screen.queryByPlaceholderText(/Maya|harborline|Rotterdam|freight/i),
+    ).toBeNull();
+  });
+
+  it('uses explicit missing/loading states rather than inventing a sender name', () => {
+    mocks.user = {
+      id: 'sender-1',
+      fullName: null,
+      firstName: null,
+      lastName: null,
+    };
+    const view = render(
+      <ComposeDialog open onOpenChange={vi.fn()} message={message} />,
+    );
+    expect(field('input-sender-name').value).toBe('');
+    expect(field('input-sender-name').placeholder).toMatch(/No sender name/);
+    mocks.userLoaded = false;
+    view.rerender(
+      <ComposeDialog open onOpenChange={vi.fn()} message={message} />,
+    );
+    expect(field('input-sender-name').value).toBe('');
+    expect(field('input-sender-name').placeholder).toMatch(/Loading/);
+  });
+
+  it('uses real profile name parts and never retains a signed-out sender name', () => {
+    mocks.user = {
+      id: 'sender-1',
+      fullName: null,
+      firstName: 'Given',
+      lastName: 'Family',
+    };
+    const props = { open: true, onOpenChange: vi.fn() };
+    const view = render(<ComposeDialog {...props} />);
+    expect(field('input-sender-name').value).toBe('Given Family');
+    mocks.user = null;
+    view.rerender(<ComposeDialog {...props} />);
+    expect(field('input-sender-name').value).toBe('');
+  });
+
+  it('updates the profile name without losing edits and resets on account changes', () => {
+    const props = { open: true, onOpenChange: vi.fn(), message };
+    const view = render(<ComposeDialog {...props} />);
+    fireEvent.change(field('input-body'), {
+      target: { value: 'Unsaved edit' },
+    });
+    mocks.user = { ...mocks.user!, fullName: 'Updated Sender' };
+    view.rerender(<ComposeDialog {...props} />);
+    expect(field('input-sender-name').value).toBe('Updated Sender');
+    expect(field('input-body').value).toBe('Unsaved edit');
+    mocks.user = { ...mocks.user, id: 'sender-2', fullName: 'Second Sender' };
+    view.rerender(<ComposeDialog {...props} />);
+    expect(field('input-sender-name').value).toBe('Second Sender');
+    expect(field('input-body').value).toBe('Original body');
+  });
+
+  it('keeps existing recipient metadata separate from the sender on save', async () => {
+    mocks.update.mockResolvedValueOnce(message);
+    render(<ComposeDialog open onOpenChange={vi.fn()} message={message} />);
+    fireEvent.click(screen.getByTestId('button-save-draft'));
+    await waitFor(() => expect(mocks.update).toHaveBeenCalled());
+    expect(mocks.update).toHaveBeenCalledWith({
+      id: message.id,
+      data: expect.objectContaining({ recipientName: 'Recipient' }),
+    });
+    expect(mocks.update.mock.calls[0][0].data).not.toHaveProperty('senderName');
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+
+  it('clears a stale recipient name when changing the destination address', async () => {
+    mocks.update.mockResolvedValueOnce(message);
+    render(<ComposeDialog open onOpenChange={vi.fn()} message={message} />);
+    fireEvent.change(field('input-recipient-email'), {
+      target: { value: 'different@example.org' },
+    });
+    fireEvent.click(screen.getByTestId('button-save-draft'));
+    await waitFor(() => expect(mocks.update).toHaveBeenCalled());
+    expect(mocks.update).toHaveBeenCalledWith({
+      id: message.id,
+      data: expect.objectContaining({
+        recipientEmail: 'different@example.org',
+        recipientName: '',
+      }),
+    });
+  });
+
   it('creates a new draft without sending', async () => {
     mocks.create.mockResolvedValueOnce(message);
     const change = vi.fn();
     render(<ComposeDialog open onOpenChange={change} />);
+    expect(field('input-sender-name').value).toBe('Authenticated Sender');
     fireEvent.change(field('input-recipient-email'), {
       target: { value: 'recipient@example.org' },
     });
@@ -112,6 +229,7 @@ describe('composer sessions', () => {
       data: expect.objectContaining({
         subject: 'New subject',
         body: 'New body',
+        recipientName: '',
       }),
     });
     expect(mocks.send).not.toHaveBeenCalled();

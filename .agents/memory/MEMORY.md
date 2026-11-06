@@ -2,6 +2,7 @@
 - [Gmail-native product scope](gmail-native-product.md) — Gmail's browser compose is the primary workflow, not a standalone composer.
 - [Provider-independent replies](provider-independent-replies.md) — recipient email service must not limit reply detection.
 - [Editable form lifetimes](form-state-lifecycle.md) — preserve edits during polling; reset forms and confirmations when message identity changes.
+- [Composer sender identity](composer-sender-identity.md) — the composer name row must show the actual sender, never a fictional example or recipient name.
 - [Quality-tooling checks](quality-tooling.md) — audit the complete tooling dependency graph and verify formatting independently of writing it.
 - [HTTP contract runner auth](http-contract-ci-auth.md) — direct API HTTP checks need configured Clerk keys; do not bypass auth to make a bare CI server pass.
 - [Database-backed activity](database-backed-activity.md) — persist actual message and engagement data in PostgreSQL; never substitute hardcoded sample records.
