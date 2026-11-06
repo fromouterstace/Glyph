@@ -133,6 +133,15 @@ regression checks are specified in [web-composer.md](web-composer.md).
   message-retention window or a data-export contract. Do not promise either—or
   claim a compliance certification—without a reviewed product decision and an
   implemented, tested contract.
+- **Casing across boundaries:** PostgreSQL table/column identifiers use
+  `snake_case`. Drizzle's TypeScript property names, server-side TypeScript,
+  OpenAPI JSON property names, and frontend API models use `camelCase`. Drizzle
+  maps the storage spelling to the TypeScript property; do not snake-case JSON
+  payload keys or leak physical database column names into UI code. External
+  provider payloads keep the provider's own documented field names. Enum values,
+  SQL expressions, CSS/data attributes, and machine-readable identifiers are not
+  property names and may legitimately use underscores. Test schema mappings and
+  API property casing when changing these contracts.
 
 ## 4. Gmail extension, permissions, and content handling
 

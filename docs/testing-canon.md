@@ -145,6 +145,7 @@ Never quarantine a flaky test silently.
 | Polling does not overwrite edits; forms reset on record changes                             | React component tests                                                |
 | Anonymous clients cannot mutate account data                                                | Local HTTP suite against the running application                     |
 | A failed check actually stops a build                                                       | Negative controls execute the real configured build commands         |
+| Database columns and public JSON fields preserve distinct casing conventions                | Drizzle/OpenAPI casing contract checks                               |
 
 ## Fixture safety and determinism
 
