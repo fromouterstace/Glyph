@@ -126,7 +126,7 @@ test('manifest and popup enforce the exact trusted Glyph origin', async () => {
       'utf8',
     ),
   );
-  assert.equal(manifest.version, '0.5.2');
+  assert.equal(manifest.version, '0.5.3');
   assert.deepEqual(manifest.optional_host_permissions, [
     `${PUBLISHED_GLYPH_ORIGIN}/*`,
   ]);

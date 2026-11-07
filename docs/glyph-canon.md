@@ -166,7 +166,7 @@ regression checks are specified in [web-composer.md](web-composer.md).
   after the user acts. Do not crawl the mailbox or read unrelated messages through
   the compose integration.
 - The extension trusts only the exact published origin
-  `https://glyph-mail.replit.app`; its endpoint cannot enroll itself or claim a
+  `https://glyph.rocks`; its endpoint cannot enroll itself or claim a
   different trusted identity. Do not accept user-entered, preview, custom, or
   suffix-matched hosts. Never take a bridge origin from an email, message body,
   tracking destination, or untrusted API response. Changing this allowlist is a

@@ -93,8 +93,10 @@ export default function GmailPage() {
       d: (
         <>
           A Glyph connection tab opens. Sign in with the verified email that
-          matches your Gmail. Keep that tab open; it can sit in the background
-          while the extension works.
+          matches your Gmail. Then click Connect Gmail on that page and approve
+          access to the same mailbox. Signing in to Glyph alone does not connect
+          Gmail. Keep that tab open; it can sit in the background while the
+          extension works.
         </>
       ),
     },
@@ -185,9 +187,12 @@ export default function GmailPage() {
         data-testid="section-update-extension"
       >
         <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
-          Already installed? Update to v0.5.2
+          Already installed? Update to v0.5.3
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
+          Connects only to glyph.rocks, where you sign in and connect your Gmail
+          account. An older glyph-mail.replit.app extension connection is
+          cleared on update; reconnect and approve access to glyph.rocks.
           Refreshes open Gmail tabs after extension updates, browser startup,
           and reconnect. Updated scripts hand over without reloading Gmail or
           sending your draft. Older scripts may need one manual Gmail reload

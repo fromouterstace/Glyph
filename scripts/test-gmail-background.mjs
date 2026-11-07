@@ -251,6 +251,12 @@ test('app access is registered only for the explicitly selected origin', async (
 });
 test('lookalike, custom, malformed, and unsafe origins fail before enrollment', async () => {
   const untrusted = [
+    'https://glyph-mail.replit.app',
+    'https://glyph.rocks.attacker.example',
+    'https://user@glyph.rocks',
+    'https://glyph.rocks@attacker.example',
+    'http://glyph.rocks',
+    'https://glyph.rocks:8443',
     'https://glyph-mail.replit.app.attacker.example',
     'https://attacker.example',
     'https://user@glyph-mail.replit.app',
@@ -292,6 +298,27 @@ test('update removes stale host permission and state before any bridge message',
   });
   assert.equal(response.ok, false);
   assert.equal(f.calls.length, 0);
+});
+test('update clears the old deployment alias and requires explicit canonical enrollment', async () => {
+  const oldOrigin = 'https://glyph-mail.replit.app';
+  const f = fixture({
+    closed: true,
+    stored: { origin: oldOrigin, mailbox: 'old@example.com' },
+    grantedOrigins: [`${oldOrigin}/*`, 'https://mail.google.com/*'],
+  });
+  await f.installed({ reason: 'update' });
+  assert.equal(f.stored.origin, undefined);
+  assert.equal(f.stored.mailbox, undefined);
+  assert.ok(f.removedPermissions.includes(`${oldOrigin}/*`));
+  assert.equal(f.openedTabs.length, 0);
+  const result = await f.request(
+    'connect',
+    { origin: PUBLISHED_GLYPH_ORIGIN },
+    f.popup,
+  );
+  assert.equal(result.ok, true);
+  assert.equal(f.registered.at(-1).matches[0], 'https://glyph.rocks/*');
+  assert.equal(f.openedTabs.at(-1).url, 'https://glyph.rocks/gmail');
 });
 test('new preview connections are rejected before bridge registration', async () => {
   const f = fixture();

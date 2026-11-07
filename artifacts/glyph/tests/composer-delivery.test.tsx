@@ -14,9 +14,7 @@ it('opens the published web composer separately and explains that drafts do not 
   const link = screen.getByRole('link', {
     name: 'Open published Glyph web composer',
   });
-  expect(link.getAttribute('href')).toBe(
-    'https://glyph-mail.replit.app/emails',
-  );
+  expect(link.getAttribute('href')).toBe('https://glyph.rocks/emails');
   expect(link.getAttribute('target')).toBe('_blank');
   expect(screen.getByRole('note').textContent).toContain(
     'do not transfer automatically',

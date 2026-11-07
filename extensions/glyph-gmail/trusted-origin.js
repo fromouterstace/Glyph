@@ -1,5 +1,5 @@
 (() => {
-  const publishedOrigin = 'https://glyph-mail.replit.app';
+  const publishedOrigin = 'https://glyph.rocks';
 
   function appOrigin(value) {
     if (typeof value !== 'string')

@@ -37,11 +37,11 @@ Sync inspects headers of the most recent 100 received messages in the past 30 da
 
 Direct sender compose-image loads are ignored while pending. Image proxies can still prefetch/cache pixels, and a sender viewing a sent copy can cause a pixel-load signal. Very early image loads during confirmation may be missed. Link scanners and forwarded mail can distort tracked-link counts. These are not guaranteed read receipts or proof of recipient identity.
 
-Use the verified published Glyph origin for long-term tracking. A preview or custom origin is not trusted. The manifest requests Gmail access and separately grants only the fixed Glyph production origin. Supporting another origin requires a reviewed extension release that changes the trust policy, manifest permission, version and regression tests together.
+Use https://glyph.rocks for the extension connection and sign in there. Then click Connect Gmail and authorize the same mailbox; signing in to Glyph is not Gmail authorization. A preview or arbitrary custom origin is not trusted. The manifest requests Gmail access and separately grants only this fixed production origin. Supporting another origin requires a reviewed extension release that changes the trust policy, manifest permission, version and regression tests together.
 
 ## Updating from an earlier extension
 
-Replace the files in the original unpacked extension folder with the v0.5.2 package, click Reload in `chrome://extensions` or `edge://extensions`, then reconnect to the published Glyph app. On update, the extension unregisters the previous dynamic bridge and removes saved untrusted host permissions and connection state. Existing tracking tokens and emails are not changed. Publishing the web app alone does not update an installed extension.
+Replace the files in the original unpacked extension folder with the v0.5.3 package, click Reload in `chrome://extensions` or `edge://extensions`, then reconnect to https://glyph.rocks and approve host access. On update, the extension unregisters the previous dynamic bridge and removes saved untrusted host permissions and connection state, including the previous glyph-mail.replit.app connection. Existing tracking tokens and emails are not changed. Publishing the web app alone does not update an installed extension.
 
 Chrome invalidates old content-script runtimes when an extension is replaced,
 reloaded, disabled or removed. The extension now reinjects its current messaging,

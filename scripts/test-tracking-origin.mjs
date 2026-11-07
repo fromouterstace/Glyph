@@ -30,16 +30,16 @@ for (const [value, valid] of [
     assert.equal(validTrackingOrigin(value), valid));
 }
 
-test('preview setup always copies the verified published origin, not its own host', () => {
+test('setup always copies the canonical extension origin, including from the older alias', () => {
+  assert.equal(PUBLISHED_GLYPH_ORIGIN, 'https://glyph.rocks');
   for (const origin of [
     'https://workspace.replit.dev',
     'http://localhost:3000',
+    'https://glyph-mail.replit.app',
+    'https://glyph.example',
+    'https://glyph.rocks',
   ])
     assert.equal(extensionConnectionOrigin(origin), PUBLISHED_GLYPH_ORIGIN);
-  assert.equal(
-    extensionConnectionOrigin('https://glyph.example'),
-    'https://glyph.example',
-  );
 });
 
 test('server uses only the public origin of the connection that owns the database', () => {

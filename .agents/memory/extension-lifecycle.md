@@ -25,3 +25,15 @@ failure. If an older script cannot surrender its tracking state safely, retain
 the draft and require one manual saved-draft reload rather than guessing
 original URLs. Never promise self-repair while the extension is disabled or
 removed. Distinguish deterministic handoff contracts from live Chrome evidence.
+
+Treat a published-domain change as an extension authentication migration, not
+just a web-link update.
+
+**Why:** A signed-in custom-domain tab did not authorize an extension bridge
+still targeting the older deployment alias. Sharing a backend does not mean
+the two browser origins share the user's authenticated session.
+
+**How to apply:** Move setup instructions, the fixed extension origin, host
+permission and package version together. Clear obsolete bridge state and
+require explicit permission on the new origin. Keep mailbox OAuth authorization
+distinct from app sign-in; never bypass either check to repair the connection.

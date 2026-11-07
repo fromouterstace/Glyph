@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Glyph for Gmail",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Add a tracking glyph and tracked links to Gmail's own compose window.",
   "minimum_chrome_version": "120",
   "permissions": ["storage", "scripting", "alarms", "notifications"],
-  "optional_host_permissions": ["https://glyph-mail.replit.app/*"],
+  "optional_host_permissions": ["https://glyph.rocks/*"],
   "host_permissions": ["https://mail.google.com/*"],
   "background": { "service_worker": "background.js" },
   "action": {
