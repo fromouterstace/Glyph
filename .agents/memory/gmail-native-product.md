@@ -9,6 +9,18 @@ The user clarified: "It should be native to gmail in the browser."
 
 **How to apply:** Prioritize adding controls inside Gmail's compose and keeping Gmail's own sending behavior. Treat the web dashboard as the setup/reporting companion, not the required place to compose emails.
 
+## Individual sending accounts
+
+Each user must be able to connect their own Gmail account, with sending, sync,
+reply detection, and extension access tied to that user's connection.
+
+**Why:** The user explicitly approved individual Gmail connections; additional
+sending accounts are distinct from multiple To/Cc/Bcc recipients.
+
+**How to apply:** Preserve per-user authorization across mailbox operations,
+background sync, and the extension bridge. Never satisfy this requirement by
+removing ownership checks on the project-level Gmail connection.
+
 ## Multiple recipients
 
 The user requires multiple To, Cc and Bcc recipients in both Gmail and the web composer. Do not restore the historical one-recipient/no-Cc/no-Bcc limitation or require the extension for group messages.
