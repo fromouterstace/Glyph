@@ -133,8 +133,8 @@ function AuthFrame({ children }: { children: ReactNode }) {
             tells you the most.
           </h2>
           <p className="mt-5 max-w-sm text-sm text-sidebar-foreground/70">
-            Sign in with the account whose verified email matches the connected
-            Gmail to send. Any other account sees only its own empty workspace.
+            Sign in to your own workspace, then connect your Gmail. Your saved
+            messages and engagement data stay separate from other accounts.
           </p>
         </div>
         <div className="grid grid-cols-12 gap-1.5 opacity-70" aria-hidden>

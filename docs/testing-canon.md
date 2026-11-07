@@ -1,5 +1,11 @@
 # Glyph testing canon and regression gates
 
+Personal Gmail authorization invariants and release evidence are documented in
+[Personal Gmail connections](gmail-per-user-oauth.md). The release integration
+suite includes `scripts/tests/gmail-oauth.integration.test.mjs`, with isolated
+PostgreSQL and mocked Google boundaries. These tests are not evidence of a real
+Google consent grant or real delivered mail; verify that separately after publishing.
+
 The complete product, privacy, safety, release, and supplied meaningful-test
 guidance is [Glyph's engineering canon](glyph-canon.md). This file specifies
 the executable gates and the current test evidence; consult the canon when
@@ -129,24 +135,24 @@ Never quarantine a flaky test silently.
 
 ## Risk matrix
 
-| Business invariant                                                                          | Automated evidence                                                   |
-| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| One pixel GET creates one durable event; repeated loads remain distinct                     | Real router + isolated PostgreSQL                                    |
-| HEAD, disabled tracking, unconfirmed web drafts, Gmail compose loads do not fabricate opens | Real router + PostgreSQL                                             |
-| Clicks and replies do not imply pixel loads                                                 | Router/database contracts + reply unit cases                         |
-| Scanner/proxy signals are honestly labeled                                                  | Real router + persisted source fields                                |
-| Pixel insert failures are observable even when an image is returned                         | Real router + injected database failure                              |
-| Tracking outcomes and failures retain request IDs without exposing tracking tokens          | Real Pino HTTP middleware + correlated PostgreSQL route checks       |
-| No orphan events/links; deletion cascades correctly                                         | PostgreSQL foreign keys and cascade checks                           |
-| Tokens, native compose identity, reply fingerprints remain unique                           | PostgreSQL uniqueness checks                                         |
-| Recipient/service matching uses real message headers                                        | Native verification and reply matching fixtures                      |
-| Production/preview tokens cannot cross environments                                         | Origin tests, deterministic property cases, extension contract tests |
-| Extension context loss cannot corrupt or send a draft                                       | JSDOM runs of the actual extension scripts                           |
-| Polling does not overwrite edits; forms reset on record changes                             | React component tests                                                |
-| Anonymous clients cannot mutate account data                                                | Local HTTP suite against the running application                     |
-| A failed check actually stops a build                                                       | Negative controls execute the real configured build commands         |
-| Database columns and public JSON fields preserve distinct casing conventions                | Drizzle/OpenAPI casing contract checks                               |
-| System metrics are server-authorized and aggregate-only; login observations are deduplicated | Clerk-mocked API tests with isolated PostgreSQL                       |
+| Business invariant                                                                           | Automated evidence                                                   |
+| -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| One pixel GET creates one durable event; repeated loads remain distinct                      | Real router + isolated PostgreSQL                                    |
+| HEAD, disabled tracking, unconfirmed web drafts, Gmail compose loads do not fabricate opens  | Real router + PostgreSQL                                             |
+| Clicks and replies do not imply pixel loads                                                  | Router/database contracts + reply unit cases                         |
+| Scanner/proxy signals are honestly labeled                                                   | Real router + persisted source fields                                |
+| Pixel insert failures are observable even when an image is returned                          | Real router + injected database failure                              |
+| Tracking outcomes and failures retain request IDs without exposing tracking tokens           | Real Pino HTTP middleware + correlated PostgreSQL route checks       |
+| No orphan events/links; deletion cascades correctly                                          | PostgreSQL foreign keys and cascade checks                           |
+| Tokens, native compose identity, reply fingerprints remain unique                            | PostgreSQL uniqueness checks                                         |
+| Recipient/service matching uses real message headers                                         | Native verification and reply matching fixtures                      |
+| Production/preview tokens cannot cross environments                                          | Origin tests, deterministic property cases, extension contract tests |
+| Extension context loss cannot corrupt or send a draft                                        | JSDOM runs of the actual extension scripts                           |
+| Polling does not overwrite edits; forms reset on record changes                              | React component tests                                                |
+| Anonymous clients cannot mutate account data                                                 | Local HTTP suite against the running application                     |
+| A failed check actually stops a build                                                        | Negative controls execute the real configured build commands         |
+| Database columns and public JSON fields preserve distinct casing conventions                 | Drizzle/OpenAPI casing contract checks                               |
+| System metrics are server-authorized and aggregate-only; login observations are deduplicated | Clerk-mocked API tests with isolated PostgreSQL                      |
 
 ## Fixture safety and determinism
 

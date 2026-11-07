@@ -75,6 +75,8 @@ for (const [method, path] of [
   ['GET', '/activity'],
   ['GET', '/settings'],
   ['GET', '/connection'],
+  ['GET', '/gmail/authorization'],
+  ['GET', '/gmail/oauth/callback?state=invalid&code=invalid'],
   ['GET', '/system/access'],
   ['GET', '/system/summary'],
   ['POST', '/native/sync'],
@@ -102,6 +104,8 @@ for (const [method, path] of [
   ['POST', '/messages/unowned/send'],
   ['POST', '/activity/read'],
   ['POST', '/system/session'],
+  ['POST', '/gmail/authorization'],
+  ['DELETE', '/gmail/authorization'],
   ['PATCH', '/settings'],
 ]) {
   test(`anonymous ${method} ${path} is rejected before any write`, async () => {

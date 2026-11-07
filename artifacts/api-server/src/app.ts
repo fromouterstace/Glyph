@@ -2,6 +2,7 @@ import express, { type Express } from 'express';
 import pinoHttp from 'pino-http';
 import { pool } from '@workspace/db';
 import router from './routes';
+import { GmailAuthorizationError } from './lib/gmail-oauth-config';
 import healthRouter from './routes/health';
 import glyphTrackingRouter from './routes/glyph-tracking';
 import { logger, logSafeError } from './lib/logger';
@@ -75,7 +76,11 @@ app.use(
     res: express.Response,
     _next: express.NextFunction,
   ) => {
-    if (err instanceof ComposerError && !res.headersSent) {
+    if (
+      (err instanceof ComposerError ||
+        err instanceof GmailAuthorizationError) &&
+      !res.headersSent
+    ) {
       res.status(err.status).json({ error: err.message });
       return;
     }

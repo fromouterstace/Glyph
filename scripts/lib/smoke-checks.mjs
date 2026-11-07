@@ -20,6 +20,7 @@ const protectedReads = [
   '/activity',
   '/settings',
   '/connection',
+  '/gmail/authorization',
   '/system/access',
   '/system/summary',
   '/messages/00000000-0000-4000-8000-000000000000',

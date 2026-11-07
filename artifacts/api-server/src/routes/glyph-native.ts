@@ -8,7 +8,7 @@ import {
   PrepareNativeMessageResponse,
   SyncNativeMessagesResponse,
 } from '@workspace/api-zod';
-import { mailboxEmail, newToken } from '../lib/gmail';
+import { userMailboxEmail, newToken } from '../lib/gmail';
 import { syncNative } from '../lib/gmail-native';
 import { syncReplies } from '../lib/gmail-replies';
 import { resolveTrackingOrigin } from '../lib/tracking-origin';
@@ -39,7 +39,7 @@ router.post('/glyph/native/prepare', async (req, res): Promise<void> => {
     });
     return;
   }
-  if (data.senderEmail.toLowerCase() !== (await mailboxEmail())) {
+  if (data.senderEmail.toLowerCase() !== (await userMailboxEmail(ownerId))) {
     res.status(403).json({
       error: 'The Gmail compose account does not match the connected mailbox.',
     });

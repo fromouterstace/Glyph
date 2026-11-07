@@ -1,6 +1,6 @@
 - [Email tracking accuracy](email-tracking-accuracy.md) — engagement signals must not be presented as verified reading or recipient identity.
 - [Gmail-native product scope](gmail-native-product.md) — Gmail's browser compose is the primary workflow, not a standalone composer.
-- [Provider-independent replies](provider-independent-replies.md) — recipient email service must not limit reply detection.
+- [Provider-independent replies](provider-independent-replies.md) — service-neutral matching; reconnects must preserve reply deduplication.
 - [Editable form lifetimes](form-state-lifecycle.md) — preserve edits during polling; reset forms and confirmations when message identity changes.
 - [Composer sender identity](composer-sender-identity.md) — the composer name row must show the actual sender, never a fictional example or recipient name.
 - [Quality-tooling checks](quality-tooling.md) — audit the complete tooling dependency graph and verify formatting independently of writing it.

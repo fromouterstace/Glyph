@@ -583,6 +583,43 @@ export const UpdateSettingsResponse = zod.object({
 }))
 
 
+export const GetGmailAuthorizationResponse = zod.object({
+  "configured": zod.boolean(),
+  "connectOrigin": zod.string().nullable(),
+  "connected": zod.boolean(),
+  "email": zod.string().nullable(),
+  "kind": zod.enum(['personal', 'legacy', 'none'])
+})
+
+
+export const BeginGmailAuthorizationResponse = zod.object({
+  "authorizationUrl": zod.string()
+})
+
+
+export const DisconnectGmailResponse = zod.object({
+  "disconnected": zod.boolean(),
+  "revocationConfirmed": zod.boolean()
+})
+
+
+export const completeGmailAuthorizationQueryStateMax = 512;
+
+export const completeGmailAuthorizationQueryCodeMax = 4096;
+
+export const completeGmailAuthorizationQueryErrorMax = 256;
+
+
+
+export const CompleteGmailAuthorizationQueryParams = zod.object({
+  "state": zod.coerce.string().min(1).max(completeGmailAuthorizationQueryStateMax),
+  "code": zod.coerce.string().min(1).max(completeGmailAuthorizationQueryCodeMax).optional(),
+  "error": zod.coerce.string().max(completeGmailAuthorizationQueryErrorMax).optional()
+})
+
+export const CompleteGmailAuthorizationResponse = zod.void()
+
+
 export const GetConnectionResponse = zod.object({
   "connected": zod.boolean(),
   "authorized": zod.boolean(),

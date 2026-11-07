@@ -259,6 +259,69 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Settings' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /glyph/gmail/authorization:
+    get:
+      operationId: getGmailAuthorization
+      responses:
+        '200':
+          description: Owner-scoped Gmail authorization status, without credentials
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GmailAuthorization' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      operationId: beginGmailAuthorization
+      responses:
+        '200':
+          description: Single-use Google authorization URL bound to this owner and session
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [authorizationUrl]
+                properties:
+                  authorizationUrl: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: Authorization must begin on the configured production origin
+        '503':
+          description: Google OAuth is not configured
+    delete:
+      operationId: disconnectGmail
+      responses:
+        '200':
+          description: Owner credentials removed locally; Google revocation outcome reported separately
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [disconnected, revocationConfirmed]
+                properties:
+                  disconnected: { type: boolean }
+                  revocationConfirmed: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: No personal Gmail connection exists; a legacy project connection is not disconnected here
+  /glyph/gmail/oauth/callback:
+    get:
+      operationId: completeGmailAuthorization
+      parameters:
+        - in: query
+          name: state
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 512 }
+        - in: query
+          name: code
+          schema: { type: string, minLength: 1, maxLength: 4096 }
+        - in: query
+          name: error
+          schema: { type: string, maxLength: 256 }
+      responses:
+        '303':
+          description: Redirect to the configured Gmail page with a fixed outcome code
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /glyph/connection:
     get:
       operationId: getConnection
@@ -687,6 +750,15 @@ components:
           required: [readOnly]
           properties:
             readOnly: { type: boolean }
+    GmailAuthorization:
+      type: object
+      required: [configured, connectOrigin, connected, email, kind]
+      properties:
+        configured: { type: boolean }
+        connectOrigin: { type: [string, 'null'] }
+        connected: { type: boolean }
+        email: { type: [string, 'null'] }
+        kind: { type: string, enum: [personal, legacy, none] }
     Connection:
       type: object
       required: [connected, email, authorized, message]

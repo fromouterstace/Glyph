@@ -308,6 +308,25 @@ export type Settings = SettingsInput & {
   readOnly: boolean;
 };
 
+export type GmailAuthorizationKind = typeof GmailAuthorizationKind[keyof typeof GmailAuthorizationKind];
+
+
+export const GmailAuthorizationKind = {
+  personal: 'personal',
+  legacy: 'legacy',
+  none: 'none',
+} as const;
+
+export interface GmailAuthorization {
+  configured: boolean;
+  /** @nullable */
+  connectOrigin: string | null;
+  connected: boolean;
+  /** @nullable */
+  email: string | null;
+  kind: GmailAuthorizationKind;
+}
+
 export interface Connection {
   connected: boolean;
   authorized: boolean;
@@ -385,4 +404,28 @@ export const ListActivityType = {
   human: 'human',
   automated: 'automated',
 } as const;
+
+export type BeginGmailAuthorization200 = {
+  authorizationUrl: string;
+};
+
+export type DisconnectGmail200 = {
+  disconnected: boolean;
+  revocationConfirmed: boolean;
+};
+
+export type CompleteGmailAuthorizationParams = {
+  /**
+   * @minLength 1
+   * @maxLength 512
+   */
+  state: string;
+  /**
+   * @minLength 1
+   * @maxLength 4096
+   */
+  code?: string;
+  /** @maxLength 256 */
+  error?: string;
+};
 

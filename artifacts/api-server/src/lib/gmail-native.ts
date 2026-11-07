@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { db, glyphMessages } from '@workspace/db';
 import {
-  gmailRequest,
+  userGmailRequest,
   requireMailboxOwner,
   type MailboxContext,
 } from './gmail';
@@ -52,8 +52,11 @@ async function scanNative(ownerId: string, mailbox: MailboxContext) {
       ),
     );
   if (!pending.length) return { confirmed: 0, pending: 0 };
-  const list = await gmailRequest(
+  const list = await userGmailRequest(
+    ownerId,
     '/messages?q=in%3Asent%20newer_than%3A7d&maxResults=25',
+    {},
+    mailbox.identity,
   );
   if (!list.ok) throw new Error(`Gmail Sent check failed (${list.status})`);
   const rows = (await list.json()) as { messages?: { id: string }[] };
@@ -66,8 +69,11 @@ async function scanNative(ownerId: string, mailbox: MailboxContext) {
     if (cached && Date.now() - cached.at < 300_000)
       candidate = cached.candidate;
     else {
-      const result = await gmailRequest(
+      const result = await userGmailRequest(
+        ownerId,
         `/messages/${encodeURIComponent(row.id)}?format=full`,
+        {},
+        mailbox.identity,
       );
       if (!result.ok) continue;
       candidate = (await result.json()) as SentCandidate;

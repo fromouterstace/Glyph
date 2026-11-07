@@ -1,20 +1,9 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'wouter';
-import {
-  Download,
-  Copy,
-  Check,
-  ArrowUpRight,
-  CheckCircle2,
-  CircleSlash,
-} from 'lucide-react';
-import {
-  useGetConnection,
-  getGetConnectionQueryKey,
-} from '@workspace/api-client-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Download, Copy, Check, ArrowUpRight } from 'lucide-react';
 import { Caveat, SectionHead } from '@/components/bits';
-import { GMAIL_URL, SyncGmailButton } from '@/components/gmail-sync';
+import { GMAIL_URL } from '@/components/gmail-sync';
+import { GmailAuthorization } from '@/components/gmail-authorization';
 import { useSession } from '@/lib/glyph';
 import { extensionConnectionOrigin } from '@/lib/tracking-origin';
 
@@ -22,9 +11,6 @@ const zipUrl = `${import.meta.env.BASE_URL}glyph-extension.zip`;
 
 export default function GmailPage() {
   const { isSignedIn } = useSession();
-  const c = useGetConnection({
-    query: { enabled: isSignedIn, queryKey: getGetConnectionQueryKey() },
-  });
   const origin = extensionConnectionOrigin(window.location.origin);
   const preview = origin !== window.location.origin;
   const [copied, setCopied] = useState(false);
@@ -174,52 +160,13 @@ export default function GmailPage() {
         </Caveat>
       )}
 
-      {isSignedIn && !preview && (
-        <section
-          className="border border-border bg-card p-5"
-          data-testid="section-linked-mailbox"
-        >
-          {c.isLoading ? (
-            <Skeleton className="h-12" />
-          ) : (
-            c.data && (
-              <div className="flex flex-wrap items-center gap-4">
-                <span
-                  className={`flex size-10 items-center justify-center rounded-sm ${c.data.authorized ? 'bg-accent text-accent-foreground' : 'bg-secondary text-muted-foreground'}`}
-                >
-                  {c.data.authorized ? (
-                    <CheckCircle2 className="size-5" />
-                  ) : (
-                    <CircleSlash className="size-5" />
-                  )}
-                </span>
-                <div className="min-w-0 flex-1 text-sm">
-                  <div className="font-medium">
-                    {c.data.authorized
-                      ? 'Linked mailbox'
-                      : 'Mailbox does not match this account'}
-                  </div>
-                  {c.data.email && (
-                    <div className="font-mono text-xs">{c.data.email}</div>
-                  )}
-                  {!c.data.authorized && (
-                    <p className="text-xs text-muted-foreground">
-                      {c.data.message}
-                    </p>
-                  )}
-                </div>
-                <SyncGmailButton />
-              </div>
-            )
-          )}
-        </section>
-      )}
+      {isSignedIn && <GmailAuthorization />}
 
       <ol className="border-l border-t border-border bg-card">
         {steps.map((s, i) => (
           <li
             key={i}
-            className="grid grid-cols-[48px_1fr] border-b border-r border-border"
+            className="grid grid-cols-[48px_minmax(0,1fr)] border-b border-r border-border"
             data-testid={`step-${i + 1}`}
           >
             <span className="border-r border-border p-4 font-mono text-xs text-primary">
@@ -307,12 +254,11 @@ export default function GmailPage() {
       </section>
 
       <Caveat>
-        <strong>Single-mailbox deployment.</strong> This installation supports
-        only the Gmail mailbox connected to this project. The signed-in Glyph
-        account must have that exact verified email, and Gmail must be composing
-        from that account. Installing the extension does not give other users
-        access to the project's Gmail connection. Use a dedicated Glyph
-        deployment per mailbox; multi-user Gmail authorization is not supported.
+        <strong>Individual Gmail authorization.</strong> Each Glyph user
+        connects one Gmail mailbox matching a verified email on their account.
+        Gmail must compose from that linked mailbox. Installing the extension
+        does not grant access to another user's mail. Disconnecting removes
+        personal credentials, not saved messages or recipient tracking links.
       </Caveat>
       <Caveat>
         <strong>Browser permissions.</strong> Gmail access lets the extension

@@ -247,8 +247,7 @@ export function SignInNudge({ what }: { what: string }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border border-dashed border-primary/50 bg-primary/5 px-4 py-3 text-sm">
       <span>
-        Sign in with the email address of the connected Gmail account to {what}
-        and view its saved activity.
+        Sign in to your Glyph account to {what} and view your saved activity.
       </span>
       <Link
         href="/sign-in"

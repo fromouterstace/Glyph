@@ -31,9 +31,10 @@ regression checks are specified in [web-composer.md](web-composer.md).
   tracking remains aggregate; Bcc must never be promoted into To or Cc headers.
   A single intended recipient still does not make a pixel or click a verified
   human action. Plain-text Gmail mode cannot carry a tracking pixel.
-- The sender mailbox is the one Gmail mailbox connected to this deployment. A
-  different mailbox requires its own appropriately connected deployment. Gmail
-  send-as aliases are not supported. A recipient can use any email service.
+- Each Glyph user can authorize one personal Gmail mailbox matching a verified
+  email on their Glyph account. Mailbox switching and send-as aliases are not
+  supported. A recipient can use any email service. Preserve the original
+  shared connector only for its verified owner until personal OAuth migration.
 - Require Clerk sign-in for `/app`, `/email` (and `/emails`), `/activity`,
   `/settings`, and `/gmail`, with account-data APIs independently enforcing
   authentication and owner scope. After sign-in or sign-up, send users to the
@@ -95,13 +96,18 @@ regression checks are specified in [web-composer.md](web-composer.md).
 - Persist native recipient roles privately and verify them against the sender's
   Sent copy. Match replies from every original participant; never disclose Bcc
   addresses in public tracking URLs or notification/activity payloads.
-- The connected Gmail connector is a shared server-side resource, not a per-user
-  OAuth grant. Before reading mailbox messages, syncing, or sending through it,
-  verify the signed-in Clerk user's verified email against the connected mailbox;
-  verify the compose `From` mailbox too. The ownership check may retrieve the
-  provider profile address to make the comparison; never disclose a mismatched
-  mailbox or its message data. Do not let an arbitrary signed-in user send or
-  inspect the connected mailbox. Dashboard records remain owner-scoped.
+- Personal Gmail grants belong to the server-authenticated Clerk user. Store
+  refresh/access tokens only as authenticated ciphertext in PostgreSQL, never
+  in browser/extension storage or logs. Bind OAuth state to the owner, session,
+  canonical origin, expiry and PKCE verifier; make callback claiming single-use.
+  Disconnect and a newer authorization attempt must invalidate in-flight older
+  callbacks. Verify the Google profile and matching verified Clerk email before
+  saving a grant. Pin each owner's mailbox binding across reconnect/disconnect.
+- The old project Gmail connector is a shared server resource, not per-user
+  OAuth. Retain its exact verified-owner checks during migration. Once a
+  personal connection row exists, revoked or disconnected personal access must
+  never fall back to this shared connector. Verify Gmail compose `From` against
+  the signed-in owner's selected connection. Never accept client owner IDs.
 - Treat a mailbox reconnect or account switch as an authorization boundary.
   Revalidate the current Gmail connector identity and provider profile before
   sensitive mailbox work; fail closed if either is unknown or changes during
@@ -207,7 +213,7 @@ regression checks are specified in [web-composer.md](web-composer.md).
   days. Surface a partial scan or provider failure as partial/unknown; never turn
   one into a confident “no replies” result. Preserve already matched replies when
   later pages fail.
-- Mailbox-read capacity is shared through the connected Gmail account. Serialize
+- Mailbox-read capacity is shared within each connected Gmail account. Serialize
   reads, respect provider `Retry-After` and permission errors, make no uncontrolled
   retries, and keep send retries disabled. Cooldowns currently live in process
   memory; do not claim they survive an API process restart unless persistent

@@ -147,12 +147,13 @@ the Gmail instructions page (`/gmail`) as the landing destination.
 - Keep new tracking origins HTTPS-only and owned by the same deployment/data
   store. Verify the published edge's HTTP behavior and HSTS on every published
   host.
-- The current Gmail connector is shared by the project and authorizes mailbox
+- The legacy Gmail connector is shared by the project and authorizes mailbox
   operations only for a signed-in user whose verified email matches that
-  connected mailbox. Do not equate per-user data ownership with support for
-  independent Gmail accounts. Before supporting multiple senders, design and
-  review per-user mailbox authorization/connector handling; retain per-user
-  record ownership either way.
+  connected mailbox. Personal Gmail OAuth now has separate owner-scoped grants,
+  encrypted storage, and authorization-isolation regressions in the workspace;
+  see [Personal Gmail connections](gmail-per-user-oauth.md). Publishing and a
+  controlled Google consent/send/reply check are still required before claiming
+  production rollout is verified. Retain per-user record ownership either way.
 - Do not require sign-in for recipient tracking requests. If every route on the
   dashboard host must be private, scope a separate public tracking origin/service
   design before implementation.

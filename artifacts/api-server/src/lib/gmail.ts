@@ -3,6 +3,11 @@ import { clerkClient } from '@clerk/express';
 import { randomBytes } from 'node:crypto';
 import { logger, logSafeError } from './logger';
 import { createGmailReadGate } from './gmail-rate-limit';
+import {
+  personalGmailConnection,
+  personalGmailRequest,
+} from './gmail-oauth-transport';
+import { GmailAuthorizationError } from './gmail-oauth-config';
 
 const connectors = new ReplitConnectors();
 const readGate = createGmailReadGate();
@@ -16,6 +21,8 @@ export type MailboxContext = {
   connectionId: string;
   email: string;
   identity: string;
+  generation?: string;
+  replyIdentity?: string;
 };
 
 function invalidateMailboxCache() {
@@ -111,7 +118,7 @@ export async function mailboxEmail(): Promise<string> {
   return (await mailboxContext()).email;
 }
 
-async function mailboxForOwner(
+async function legacyMailboxForOwner(
   userId: string,
   forceProfile: boolean,
 ): Promise<MailboxContext | null> {
@@ -129,6 +136,54 @@ async function mailboxForOwner(
   if (userCache.size > 1000) userCache.clear();
   userCache.set(cacheKey, { authorized, until: Date.now() + 30_000 });
   return authorized ? mailbox : null;
+}
+
+async function mailboxForOwner(
+  userId: string,
+  forceProfile: boolean,
+): Promise<MailboxContext | null> {
+  const grant = await personalGmailConnection(userId);
+  if (!grant) return legacyMailboxForOwner(userId, forceProfile);
+  if (!grant.encryptedTokens) return null;
+  return {
+    connectionId: grant.id,
+    email: grant.email,
+    generation: grant.generation,
+    replyIdentity: grant.replyIdentity,
+    identity: `${grant.id}:${grant.generation}:${grant.email}`,
+  };
+}
+
+// All application mailbox operations must supply the authenticated owner.
+// The legacy adapter above is retained only for the existing connector's owner.
+export async function userGmailRequest(
+  ownerId: string,
+  path: string,
+  init: {
+    method?: string;
+    headers?: Record<string, string>;
+    body?: string;
+  } = {},
+  expectedIdentity?: string,
+) {
+  // A scan already performed a fresh ownership/profile check. Revalidate its
+  // connector/grant identity without spending a second profile read per item.
+  const mailbox = await mailboxForOwner(ownerId, !expectedIdentity);
+  if (!mailbox)
+    throw new GmailAuthorizationError(
+      'The connected Gmail account is unavailable for this user.',
+    );
+  if (expectedIdentity && mailbox.identity !== expectedIdentity)
+    throw new GmailAuthorizationError(
+      'Gmail connection changed. Retry after reconnecting.',
+    );
+  return mailbox.generation
+    ? personalGmailRequest(ownerId, mailbox.generation, path, init)
+    : gmailRequest(path, init);
+}
+
+export async function userMailboxEmail(ownerId: string) {
+  return (await requireMailboxOwner(ownerId)).email;
 }
 
 export async function ownsMailbox(userId: string): Promise<boolean> {
@@ -152,9 +207,11 @@ export { escapeHtml, extractUrls } from './email-content';
 export { mimeMessage } from './mime-message';
 
 export async function findSentMessage(
+  ownerId: string,
   rfcMessageId: string,
 ): Promise<string | null> {
-  const response = await gmailRequest(
+  const response = await userGmailRequest(
+    ownerId,
     `/messages?q=${encodeURIComponent(`in:sent rfc822msgid:${rfcMessageId}`)}&maxResults=1`,
   );
   if (!response.ok)

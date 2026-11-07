@@ -62,9 +62,8 @@ export function GmailConnection({ locked }: { locked: boolean }) {
             {message}
           </p>
           <p className="text-xs text-muted-foreground">
-            To send, sign in with a verified account whose email matches the
-            connected Gmail mailbox. Other accounts see only their own (empty)
-            data and cannot send.
+            Connect your Gmail on the Gmail page using an address verified on
+            your Glyph account. Sending and sync use only your linked mailbox.
           </p>
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <SyncGmailButton disabled={locked} />

@@ -46,7 +46,7 @@ export function errorText(err: unknown): string {
   if (e?.status === 403)
     return typeof msg === 'string'
       ? msg
-      : 'This account does not own the connected Gmail mailbox. Sign in with the matching, verified email to send.';
+      : 'Connect your own Gmail account from the Gmail page to send.';
   if (typeof msg === 'string') return msg;
   return e?.message ?? 'Something went wrong.';
 }

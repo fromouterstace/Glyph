@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import { db, glyphMessages, glyphEvents } from '@workspace/db';
 import {
-  gmailRequest,
+  userGmailRequest,
   requireMailboxOwner,
   type MailboxContext,
 } from './gmail';
@@ -38,6 +38,7 @@ const wantedHeaders = [
 ];
 
 async function metadata(
+  ownerId: string,
   id: string,
   mailboxIdentity: string,
 ): Promise<ReplyCandidate> {
@@ -46,8 +47,11 @@ async function metadata(
   if (cached && Date.now() - cached.at < 300_000) return cached.value;
   const query = new URLSearchParams({ format: 'metadata' });
   for (const name of wantedHeaders) query.append('metadataHeaders', name);
-  const response = await gmailRequest(
+  const response = await userGmailRequest(
+    ownerId,
     `/messages/${encodeURIComponent(id)}?${query}`,
+    {},
+    mailboxIdentity,
   );
   if (!response.ok)
     throw new Error(
@@ -87,7 +91,7 @@ async function scanReplies(
     replyCheckError: null,
   };
   const readHeader = createHeaderReader(
-    (id) => metadata(id, mailbox.identity),
+    (id) => metadata(ownerId, id, mailbox.identity),
     (id) => {
       const cached = metadataCache.get(`${mailbox.identity}:${id}`);
       return !!cached && Date.now() - cached.at < 300_000;
@@ -146,7 +150,12 @@ async function scanReplies(
         maxResults: '50',
       });
       if (pageToken) query.set('pageToken', pageToken);
-      const response = await gmailRequest(`/messages?${query}`);
+      const response = await userGmailRequest(
+        ownerId,
+        `/messages?${query}`,
+        {},
+        mailbox.identity,
+      );
       if (!response.ok)
         throw new Error(
           `Gmail reply search failed (${response.status}). Retry sync.`,
@@ -197,7 +206,9 @@ async function recordReplies(
     const original = matchReply(candidate, originals, mailbox.email);
     if (!original) continue;
     const fingerprint = createHash('sha256')
-      .update(`reply:${mailbox.identity}:${ownerId}:${candidate.id}`)
+      .update(
+        `reply:${mailbox.replyIdentity ?? mailbox.identity}:${ownerId}:${candidate.id}`,
+      )
       .digest('hex');
     const inserted = await db
       .insert(glyphEvents)

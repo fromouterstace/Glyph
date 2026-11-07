@@ -26,12 +26,15 @@ export function createGmailReadGate({
   let blockedUntil = 0;
   let lastStarted = -Infinity;
   let failures = 0;
+  let pending = 0;
   const check = () => {
     if (blockedUntil > now())
       throw new GmailRateLimitError(blockedUntil, now());
   };
   return {
+    isIdle: () => pending === 0 && blockedUntil <= now(),
     run<T extends ReadResponse>(request: () => Promise<T>): Promise<T> {
+      pending++;
       const job = tail.then(async () => {
         check();
         const wait = lastStarted + spacingMs - now();
@@ -64,7 +67,9 @@ export function createGmailReadGate({
         () => undefined,
         () => undefined,
       );
-      return job;
+      return job.finally(() => {
+        pending--;
+      });
     },
   };
 }

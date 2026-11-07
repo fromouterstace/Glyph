@@ -53,6 +53,21 @@ test('queued reads stop after one 429 instead of sending the rest of a burst', a
   );
 });
 
+test('idle gate eviction cannot discard a queued read or an active cooldown', async () => {
+  const f = fixture();
+  assert.equal(f.gate.isIdle(), true);
+  const latch = Promise.withResolvers();
+  const running = f.gate.run(() => latch.promise);
+  assert.equal(f.gate.isIdle(), false);
+  latch.resolve(response(200));
+  await running;
+  assert.equal(f.gate.isIdle(), true);
+  await assert.rejects(f.gate.run(async () => response(429, '60')));
+  assert.equal(f.gate.isIdle(), false);
+  f.advance(60_000);
+  assert.equal(f.gate.isIdle(), true);
+});
+
 test('numeric Retry-After prevents reads until the complete retry window expires', async () => {
   const f = fixture();
   await assert.rejects(f.gate.run(async () => response(429, '120')));

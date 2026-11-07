@@ -41,8 +41,8 @@ import {
 import {
   extractUrls,
   findSentMessage,
-  gmailRequest,
-  mailboxEmail,
+  userGmailRequest,
+  userMailboxEmail,
   mimeMessage,
   newToken,
   ownsMailbox,
@@ -121,7 +121,7 @@ router.use('/glyph', async (req, res, next): Promise<void> => {
   if (!(await safeMailboxOwnership(ownerId))) {
     res.status(403).json({
       error:
-        'Sign in with the verified email address of the Gmail account connected to this project. This app currently supports that mailbox only.',
+        'Connect your Gmail account from the Gmail page before changing mailbox data.',
     });
     return;
   }
@@ -320,7 +320,7 @@ router.post('/glyph/messages/:id/send', async (req, res): Promise<void> => {
     return;
   }
   if (['sending', 'uncertain'].includes(message.status)) {
-    const gmailId = await findSentMessage(message.rfcMessageId);
+    const gmailId = await findSentMessage(ownerId, message.rfcMessageId);
     if (!gmailId) {
       res.status(409).json({
         error:
@@ -343,7 +343,7 @@ router.post('/glyph/messages/:id/send', async (req, res): Promise<void> => {
       .json({ error: 'Edit and save this draft before trying again.' });
     return;
   }
-  const from = await mailboxEmail();
+  const from = await userMailboxEmail(ownerId);
   const settings = await settingsFor(ownerId);
   const requestOrigin = req.get('origin');
   let base: string;
@@ -396,7 +396,7 @@ router.post('/glyph/messages/:id/send', async (req, res): Promise<void> => {
     return;
   }
   try {
-    const result = await gmailRequest('/messages/send', {
+    const result = await userGmailRequest(ownerId, '/messages/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ raw }),
@@ -505,8 +505,7 @@ router.get('/glyph/connection', async (req, res): Promise<void> => {
         connected: false,
         authorized: false,
         email: null,
-        message:
-          'Sign in with the verified email address of the connected Gmail account to view your saved data.',
+        message: 'Sign in to connect your own Gmail account.',
       }),
     );
     return;
@@ -515,12 +514,12 @@ router.get('/glyph/connection', async (req, res): Promise<void> => {
     const authorized = await ownsMailbox(ownerId);
     res.json(
       GetConnectionResponse.parse({
-        connected: true,
+        connected: authorized,
         authorized,
-        email: authorized ? await mailboxEmail() : null,
+        email: authorized ? await userMailboxEmail(ownerId) : null,
         message: authorized
           ? 'Gmail connected. Ready to send tracked emails.'
-          : 'Use a verified sign-in email matching the Gmail account connected to this project. Additional mailboxes are not supported yet.',
+          : 'Connect or reconnect your Gmail account on the Gmail page.',
       }),
     );
   } catch (err) {
@@ -531,7 +530,7 @@ router.get('/glyph/connection', async (req, res): Promise<void> => {
         authorized: false,
         email: null,
         message:
-          "Gmail is unavailable. Reconnect Gmail in the project's Integrations panel.",
+          'Gmail is unavailable. Connect or reconnect your account on the Gmail page.',
       }),
     );
   }

@@ -131,3 +131,4 @@ channel = "stable-25_05"
 
 [userenv.shared]
 GLYPH_ADMIN_EMAILS = "glyph.test.email@gmail.com"
+GLYPH_GMAIL_OAUTH_ORIGIN = "https://glyph.rocks"

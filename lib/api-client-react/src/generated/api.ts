@@ -30,8 +30,12 @@ import type {
   Attachment,
   AttachmentInput,
   AttachmentUpload,
+  BeginGmailAuthorization200,
+  CompleteGmailAuthorizationParams,
   Connection,
+  DisconnectGmail200,
   ForbiddenResponse,
+  GmailAuthorization,
   HealthStatus,
   ListActivityParams,
   ListMessagesParams,
@@ -1528,6 +1532,339 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getUpdateSettingsMutationOptions(options), queryClient);
     }
+
+export const getGetGmailAuthorizationUrl = () => {
+
+
+
+
+  return `/api/glyph/gmail/authorization`
+}
+
+export const getGmailAuthorization = async ( options?: Parameters<typeof customFetch>[1]): Promise<GmailAuthorization> => {
+
+  return customFetch<GmailAuthorization>(getGetGmailAuthorizationUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGmailAuthorizationQueryKey = () => {
+    return [
+    `/api/glyph/gmail/authorization`
+    ] as const;
+    }
+
+
+export const getGetGmailAuthorizationQueryOptions = <TData = Awaited<ReturnType<typeof getGmailAuthorization>>, TError = ErrorType<UnauthorizedResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGmailAuthorization>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGmailAuthorizationQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGmailAuthorization>>> = ({ signal }) => getGmailAuthorization({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGmailAuthorization>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetGmailAuthorizationQueryResult = NonNullable<Awaited<ReturnType<typeof getGmailAuthorization>>>
+export type GetGmailAuthorizationQueryError = ErrorType<UnauthorizedResponse>
+
+
+export function useGetGmailAuthorization<TData = Awaited<ReturnType<typeof getGmailAuthorization>>, TError = ErrorType<UnauthorizedResponse>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGmailAuthorization>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getGmailAuthorization>>,
+          TError,
+          Awaited<ReturnType<typeof getGmailAuthorization>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetGmailAuthorization<TData = Awaited<ReturnType<typeof getGmailAuthorization>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGmailAuthorization>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getGmailAuthorization>>,
+          TError,
+          Awaited<ReturnType<typeof getGmailAuthorization>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetGmailAuthorization<TData = Awaited<ReturnType<typeof getGmailAuthorization>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGmailAuthorization>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetGmailAuthorization<TData = Awaited<ReturnType<typeof getGmailAuthorization>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGmailAuthorization>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetGmailAuthorizationQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getBeginGmailAuthorizationUrl = () => {
+
+
+
+
+  return `/api/glyph/gmail/authorization`
+}
+
+export const beginGmailAuthorization = async ( options?: Parameters<typeof customFetch>[1]): Promise<BeginGmailAuthorization200> => {
+
+  return customFetch<BeginGmailAuthorization200>(getBeginGmailAuthorizationUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getBeginGmailAuthorizationMutationKey = () => ['beginGmailAuthorization'] as const;
+
+export const getBeginGmailAuthorizationMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof beginGmailAuthorization>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof beginGmailAuthorization>>, TError,void, TContext> => {
+
+const mutationKey = getBeginGmailAuthorizationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof beginGmailAuthorization>>, void> = () => {
+
+
+          return  beginGmailAuthorization(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BeginGmailAuthorizationMutationResult = NonNullable<Awaited<ReturnType<typeof beginGmailAuthorization>>>
+
+    export type BeginGmailAuthorizationMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | void>
+
+
+    export const useBeginGmailAuthorization = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof beginGmailAuthorization>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof beginGmailAuthorization>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getBeginGmailAuthorizationMutationOptions(options), queryClient);
+    }
+
+export const getDisconnectGmailUrl = () => {
+
+
+
+
+  return `/api/glyph/gmail/authorization`
+}
+
+export const disconnectGmail = async ( options?: Parameters<typeof customFetch>[1]): Promise<DisconnectGmail200> => {
+
+  return customFetch<DisconnectGmail200>(getDisconnectGmailUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDisconnectGmailMutationKey = () => ['disconnectGmail'] as const;
+
+export const getDisconnectGmailMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectGmail>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof disconnectGmail>>, TError,void, TContext> => {
+
+const mutationKey = getDisconnectGmailMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof disconnectGmail>>, void> = () => {
+
+
+          return  disconnectGmail(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DisconnectGmailMutationResult = NonNullable<Awaited<ReturnType<typeof disconnectGmail>>>
+
+    export type DisconnectGmailMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | void>
+
+
+    export const useDisconnectGmail = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectGmail>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof disconnectGmail>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDisconnectGmailMutationOptions(options), queryClient);
+    }
+
+export const getCompleteGmailAuthorizationUrl = (params: CompleteGmailAuthorizationParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/glyph/gmail/oauth/callback?${stringifiedParams}` : `/api/glyph/gmail/oauth/callback`
+}
+
+export const completeGmailAuthorization = async (params: CompleteGmailAuthorizationParams, options?: Parameters<typeof customFetch>[1]): Promise<unknown> => {
+
+  return customFetch<unknown>(getCompleteGmailAuthorizationUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getCompleteGmailAuthorizationQueryKey = (params?: CompleteGmailAuthorizationParams,) => {
+    return [
+    `/api/glyph/gmail/oauth/callback`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getCompleteGmailAuthorizationQueryOptions = <TData = Awaited<ReturnType<typeof completeGmailAuthorization>>, TError = ErrorType<void | UnauthorizedResponse>>(params: CompleteGmailAuthorizationParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof completeGmailAuthorization>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCompleteGmailAuthorizationQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof completeGmailAuthorization>>> = ({ signal }) => completeGmailAuthorization(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof completeGmailAuthorization>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type CompleteGmailAuthorizationQueryResult = NonNullable<Awaited<ReturnType<typeof completeGmailAuthorization>>>
+export type CompleteGmailAuthorizationQueryError = ErrorType<void | UnauthorizedResponse>
+
+
+export function useCompleteGmailAuthorization<TData = Awaited<ReturnType<typeof completeGmailAuthorization>>, TError = ErrorType<void | UnauthorizedResponse>>(
+ params: CompleteGmailAuthorizationParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof completeGmailAuthorization>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof completeGmailAuthorization>>,
+          TError,
+          Awaited<ReturnType<typeof completeGmailAuthorization>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCompleteGmailAuthorization<TData = Awaited<ReturnType<typeof completeGmailAuthorization>>, TError = ErrorType<void | UnauthorizedResponse>>(
+ params: CompleteGmailAuthorizationParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof completeGmailAuthorization>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof completeGmailAuthorization>>,
+          TError,
+          Awaited<ReturnType<typeof completeGmailAuthorization>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCompleteGmailAuthorization<TData = Awaited<ReturnType<typeof completeGmailAuthorization>>, TError = ErrorType<void | UnauthorizedResponse>>(
+ params: CompleteGmailAuthorizationParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof completeGmailAuthorization>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useCompleteGmailAuthorization<TData = Awaited<ReturnType<typeof completeGmailAuthorization>>, TError = ErrorType<void | UnauthorizedResponse>>(
+ params: CompleteGmailAuthorizationParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof completeGmailAuthorization>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getCompleteGmailAuthorizationQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetConnectionUrl = () => {
 
