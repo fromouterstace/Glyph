@@ -1,4 +1,10 @@
-import { useEffect, useRef, type ReactNode, type ComponentType } from 'react';
+import {
+  lazy,
+  useEffect,
+  useRef,
+  type ReactNode,
+  type ComponentType,
+} from 'react';
 import { ClerkProvider, SignIn, SignUp, Show, useClerk } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import {
@@ -18,15 +24,15 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
-import Dashboard from '@/pages/dashboard';
-import Emails from '@/pages/emails';
-import ActivityPage from '@/pages/activity';
-import SettingsPage from '@/pages/settings';
-import GmailPage from '@/pages/gmail';
-import SystemPage from '@/pages/system';
-import { Shell } from '@/components/shell';
+import { ProtectedPage } from '@/components/protected-page';
 import { GlyphMark } from '@/components/bits';
-import { AuthGate } from '@/components/auth-gate';
+
+const Dashboard = lazy(() => import('@/pages/dashboard'));
+const Emails = lazy(() => import('@/pages/emails'));
+const ActivityPage = lazy(() => import('@/pages/activity'));
+const SettingsPage = lazy(() => import('@/pages/settings'));
+const GmailPage = lazy(() => import('@/pages/gmail'));
+const SystemPage = lazy(() => import('@/pages/system'));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -247,23 +253,12 @@ function PublicLanding() {
   );
 }
 
-function AppHome() {
-  return (
-    <AuthGate>
-      <Shell>
-        <Dashboard />
-      </Shell>
-    </AuthGate>
-  );
-}
-
 const wrap = (C: ComponentType) => () => (
-  <AuthGate>
-    <Shell>
-      <C />
-    </Shell>
-  </AuthGate>
+  <ProtectedPage>
+    <C />
+  </ProtectedPage>
 );
+const AppHome = wrap(Dashboard);
 const EmailsRoute = wrap(Emails);
 const EmailAliasRoute = () => <Redirect to="/emails" />;
 const ActivityRoute = wrap(ActivityPage);

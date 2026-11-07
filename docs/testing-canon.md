@@ -1,5 +1,15 @@
 # Glyph testing canon and regression gates
 
+## Route delivery
+
+The Glyph artifact build validates Vite's production manifest with
+`scripts/check-route-chunks.mjs`. All six protected pages must remain distinct
+lazy entries outside the initial static import graph. Loading occurs inside the
+sign-in gate; the app shell remains available while a page loads.
+`artifacts/glyph/tests/protected-page.test.tsx` covers deferred loading,
+failure recovery and navigation. Chunk failures offer a manual reload rather
+than automatically reloading a tab that may hold unsaved work.
+
 Personal Gmail authorization invariants and release evidence are documented in
 [Personal Gmail connections](gmail-per-user-oauth.md). The release integration
 suite includes `scripts/tests/gmail-oauth.integration.test.mjs`, with isolated

@@ -8,7 +8,7 @@
     "predev": "node ../../extensions/build.mjs",
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
     "build": "pnpm --dir ../.. check && pnpm run build:artifact",
-    "build:artifact": "node ../../extensions/build.mjs && vite build --config vite.config.ts",
+    "build:artifact": "node ../../extensions/build.mjs && vite build --config vite.config.ts && node ../../scripts/check-route-chunks.mjs dist/public/.vite/manifest.json",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
