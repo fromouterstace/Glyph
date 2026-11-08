@@ -273,14 +273,19 @@ async function runPoll() {
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
   if (sender.id !== chrome.runtime.id || message?.channel !== CHANNEL) return;
   const gmail = sender.tab?.url?.startsWith('https://mail.google.com/');
+  const setupUrl = chrome.runtime.getURL('popup.html');
   const popup =
-    !sender.tab && sender.url === chrome.runtime.getURL('popup.html');
+    sender.url === setupUrl && (!sender.tab || sender.tab.url === setupUrl);
   if (!gmail && !popup) {
     respond({ ok: false, error: 'Unsupported caller.' });
     return;
   }
   const execute = async () => {
     switch (message.action) {
+      case 'setup':
+        if (!gmail) throw new Error('Open connection setup from Gmail.');
+        await chrome.tabs.create({ url: setupUrl });
+        return { opened: true };
       case 'context':
         return context();
       case 'prepare': {

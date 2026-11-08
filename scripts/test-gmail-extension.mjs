@@ -126,7 +126,7 @@ test('manifest and popup enforce the exact trusted Glyph origin', async () => {
       'utf8',
     ),
   );
-  assert.equal(manifest.version, '0.5.4');
+  assert.equal(manifest.version, '0.5.5');
   assert.deepEqual(manifest.optional_host_permissions, [
     `${PUBLISHED_GLYPH_ORIGIN}/*`,
   ]);
@@ -266,6 +266,10 @@ function fixture(t, options = {}) {
         calls.push(message);
         if (options.runtimeEnvelopeError)
           return { ok: false, error: options.runtimeEnvelopeError };
+        if (message.action === 'setup')
+          return { ok: true, data: { opened: true } };
+        if (message.action === 'context' && options.contextError)
+          return { ok: false, error: options.contextError };
         if (message.action === 'context')
           return {
             ok: true,
@@ -313,6 +317,7 @@ function fixture(t, options = {}) {
     button: () =>
       document.querySelector('#compose0 .glyph-native-toolbar button'),
     add: async () => {
+      await wait();
       document.querySelector('#compose0 .glyph-native-toolbar button').click();
       await wait();
     },
@@ -342,6 +347,53 @@ test('compact controls stay beside native Send and outside compose and reply mes
     send.click();
     assert.equal(sent, 1);
   }
+});
+
+test('a missing connection offers setup instead of pretending to prepare tracking', async (t) => {
+  const options = {
+    contextError: 'Click the Glyph extension and connect your app first.',
+  };
+  const f = fixture(t, options);
+  assert.equal(f.button().textContent, 'Checking…');
+  assert.equal(f.button().disabled, true);
+  await wait();
+  assert.equal(f.button().textContent, 'Connect Glyph');
+  assert.equal(f.button().disabled, false);
+  await f.add();
+  assert.equal(f.calls.filter((call) => call.action === 'setup').length, 1);
+  assert.equal(f.calls.filter((call) => call.action === 'prepare').length, 0);
+  assert.match(
+    f.document.querySelector('.glyph-native-status').textContent,
+    /setup tab/,
+  );
+  assert.equal(f.body.innerHTML, f.original);
+  options.contextError = null;
+  await f.add();
+  assert.equal(f.button().textContent, 'Add glyph');
+  assert.equal(f.calls.filter((call) => call.action === 'prepare').length, 0);
+  await f.add();
+  assert.equal(f.calls.filter((call) => call.action === 'prepare').length, 1);
+});
+
+test('nested Gmail Send cells get a separate full-width row, not a toolbar in the narrow button wrapper', async (t) => {
+  const f = fixture(t);
+  await wait();
+  const root = f.document.getElementById('compose0');
+  const cell = f.document.createElement('div');
+  cell.className = 'btC';
+  const narrow = f.document.createElement('div');
+  narrow.className = 'gU Up';
+  const send = f.document.getElementById('send0');
+  root.querySelector('.send-controls').replaceWith(cell);
+  cell.append(narrow);
+  narrow.append(send);
+  await wait(300);
+  const toolbar = root.querySelector('.glyph-native-toolbar');
+  assert.equal(toolbar.parentElement, cell);
+  assert.equal(cell.firstElementChild, toolbar);
+  assert.equal(toolbar.nextElementSibling, narrow);
+  assert.equal(narrow.querySelector('.glyph-native-toolbar'), null);
+  assert.equal(f.body.innerHTML, f.original);
 });
 
 test('Send controls can mount late or be replaced without duplicate toolbars or lost edits', async (t) => {

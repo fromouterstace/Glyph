@@ -177,6 +177,39 @@ test('extension trust policy matches the application tracking origin', () => {
     PUBLISHED_GLYPH_ORIGIN,
   );
 });
+test('Gmail setup opens only the extension-owned connection page without enrolling a host', async () => {
+  const f = fixture({ origin: undefined });
+  const result = await f.request('setup', {
+    origin: 'https://attacker.invalid',
+  });
+  assert.equal(result.ok, true);
+  assert.equal(f.openedTabs.length, 1);
+  assert.equal(
+    f.openedTabs[0].url,
+    'chrome-extension://own-extension/popup.html',
+  );
+  assert.equal(f.registered.length, 0);
+  assert.equal(f.permissionChecks.length, 0);
+  const outside = await f.request(
+    'setup',
+    {},
+    { id: 'own-extension', tab: { url: 'https://attacker.invalid' } },
+  );
+  assert.equal(outside.ok, false);
+  assert.equal(f.openedTabs.length, 1);
+});
+test('extension-owned setup tab uses the same explicit permission checks as the popup', async () => {
+  const f = fixture({ permission: false });
+  const url = 'chrome-extension://own-extension/popup.html';
+  const response = await f.request(
+    'connect',
+    { origin: PUBLISHED_GLYPH_ORIGIN },
+    { id: 'own-extension', url, tab: { url } },
+  );
+  assert.equal(response.ok, false);
+  assert.match(response.error, /Allow access/);
+  assert.equal(f.registered.length, 0);
+});
 test('only own Gmail content script or own popup can call the background', async () => {
   const f = fixture();
   const unknown = await f.request(

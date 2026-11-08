@@ -59,6 +59,8 @@
       state.body.dispatchEvent(new Event('input', { bubbles: true }));
     }
     state.button.disabled = true;
+    state.opens.disabled = true;
+    state.clicks.disabled = true;
     state.recovery.hidden = false;
     setStatus(state, error.message, true);
   }
@@ -73,6 +75,59 @@
           'Unable to prepare tracking. Your email has not been sent.',
         true,
       );
+  }
+  function connectionFailed(state, error) {
+    if (disposed) return;
+    state.connected = false;
+    state.button.textContent = 'Connect Glyph';
+    state.opens.disabled = true;
+    state.clicks.disabled = true;
+    if (error.name === 'GlyphExtensionUnavailable') showRecovery(state, error);
+    else {
+      state.button.disabled = false;
+      setStatus(
+        state,
+        error.message ===
+          'Click the Glyph extension and connect your app first.'
+          ? 'Not connected. Click Connect Glyph to open setup.'
+          : error.message || 'Connect Glyph to enable tracking.',
+        true,
+      );
+    }
+  }
+  async function openConnectionSetup(state) {
+    state.button.disabled = true;
+    try {
+      // The user may have finished authorization in another tab since the
+      // toolbar loaded. Recheck without preparing or changing the draft.
+      try {
+        const { settings } = await request('context');
+        if (disposed) return;
+        state.connected = true;
+        state.opens.checked = settings.defaultTrackOpens;
+        state.clicks.checked = settings.defaultTrackClicks;
+        state.opens.disabled = false;
+        state.clicks.disabled = false;
+        state.button.textContent = 'Add glyph';
+        setStatus(
+          state,
+          'Connected. Click Add glyph to enable tracking for this draft.',
+        );
+        return;
+      } catch (error) {
+        if (error.name === 'GlyphExtensionUnavailable') throw error;
+      }
+      await request('setup');
+      if (!disposed)
+        setStatus(
+          state,
+          'Click Connect Glyph in the setup tab, approve access, then sign in and connect Gmail on the Glyph tab.',
+        );
+    } catch (error) {
+      connectionFailed(state, error);
+    } finally {
+      if (!disposed && !state.disconnected) state.button.disabled = false;
+    }
   }
   function validEmail(value) {
     const address = String(value || '').trim();
@@ -292,7 +347,13 @@
     state.button.disabled = true;
     try {
       setStatus(state, 'Preparing glyph…');
-      const ctx = await request('context');
+      let ctx;
+      try {
+        ctx = await request('context');
+      } catch (error) {
+        connectionFailed(state, error);
+        return;
+      }
       const groups = recipients(state.root, state.body);
       const from = sender(state.root);
       if (!from)
@@ -378,15 +439,22 @@
           '.glyph-native-toolbar, .gmail_quote, [contenteditable="true"], [g_editable="true"]',
         ),
     );
-    const parent = send?.parentElement;
+    // Gmail often wraps Send in a narrow floating div inside a wider .btC
+    // action cell. Use the full action cell so tracking is not squeezed among
+    // Send, formatting, attachments and trash.
+    const parent = send?.closest('.btC') || send?.parentElement;
     const safeParent =
       parent &&
       !body.contains(parent) &&
+      !parent.contains(body) &&
       !parent.closest('[contenteditable="true"], [g_editable="true"]') &&
       !['TABLE', 'TBODY', 'THEAD', 'TFOOT', 'TR'].includes(parent.tagName);
     if (safeParent) {
-      if (toolbar.parentElement !== parent || toolbar.nextSibling !== send)
-        parent.insertBefore(toolbar, send);
+      if (
+        toolbar.parentElement !== parent ||
+        parent.firstElementChild !== toolbar
+      )
+        parent.prepend(toolbar);
     } else if (!root.closest('[contenteditable="true"], [g_editable="true"]')) {
       // Unknown/localized Gmail layout: keep controls below the compose rather
       // than inserting anything into the outgoing draft. Re-anchor on rescan
@@ -402,23 +470,28 @@
     toolbar.setAttribute('contenteditable', 'false');
     toolbar.setAttribute('role', 'group');
     toolbar.setAttribute('aria-label', 'Glyph tracking controls');
+    const controls = document.createElement('div');
+    controls.className = 'glyph-native-controls';
+    toolbar.append(controls);
     const brand = document.createElement('strong');
     brand.textContent = 'glyph';
-    toolbar.append(brand);
+    controls.append(brand);
     const check = (text) => {
       const label = document.createElement('label');
       const input = document.createElement('input');
       input.type = 'checkbox';
       input.checked = true;
+      input.disabled = true;
       label.append(input, document.createTextNode(text));
-      toolbar.append(label);
+      controls.append(label);
       return input;
     };
     const opens = check('Pixel loads'),
       clicks = check('Links');
     const button = document.createElement('button');
     button.type = 'button';
-    button.textContent = 'Add glyph';
+    button.textContent = 'Checking…';
+    button.disabled = true;
     const status = document.createElement('span');
     const recovery = document.createElement('button');
     recovery.type = 'button';
@@ -434,7 +507,8 @@
     status.className = 'glyph-native-status';
     status.setAttribute('role', 'status');
     status.setAttribute('aria-live', 'polite');
-    toolbar.append(button, recovery, status);
+    controls.append(button, recovery);
+    toolbar.append(status);
     const info = document.createElement('details');
     info.className = 'glyph-native-info';
     const summary = document.createElement('summary');
@@ -444,7 +518,7 @@
     caveat.textContent =
       'Shared messages have aggregate signals, not individual read receipts. Proxies, scanners and forwarding can affect attribution.';
     info.append(summary, caveat);
-    toolbar.append(info);
+    controls.append(info);
     const state = {
       body,
       root,
@@ -459,6 +533,7 @@
       attached: false,
       recovery,
       disconnected: false,
+      connected: false,
       handlers,
     };
     placeToolbar(state);
@@ -467,6 +542,10 @@
     on(button, 'click', (event) => {
       event.preventDefault();
       event.stopPropagation();
+      if (!state.connected && !state.disconnected) {
+        void openConnectionSetup(state);
+        return;
+      }
       void apply(state);
     });
     for (const input of [opens, clicks])
@@ -494,18 +573,15 @@
         ) {
           opens.checked = settings.defaultTrackOpens;
           clicks.checked = settings.defaultTrackClicks;
+          state.connected = true;
+          opens.disabled = false;
+          clicks.disabled = false;
+          state.button.disabled = false;
+          state.button.textContent = 'Add glyph';
         }
       })
       .catch((error) => {
-        if (disposed) return;
-        if (error.name === 'GlyphExtensionUnavailable')
-          showRecovery(state, error);
-        else
-          setStatus(
-            state,
-            error.message || 'Connect via the Glyph extension popup.',
-            true,
-          );
+        connectionFailed(state, error);
       });
   }
   function scan() {
