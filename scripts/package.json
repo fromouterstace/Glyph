@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node run-unit-tests.mjs",
-    "test:contracts": "tsx --test test-gmail-extension.mjs test-gmail-background.mjs tracking-origin.contract.test.mjs monitoring.contract.test.mjs casing.contract.test.mjs",
+    "test:contracts": "tsx --test test-gmail-extension.mjs test-gmail-background.mjs tracking-origin.contract.test.mjs monitoring.contract.test.mjs casing.contract.test.mjs web-serving.contract.test.mjs",
     "test:gates": "node --test quality-gates.integration.test.mjs",
     "test:integration": "GLYPH_DATABASE_TESTS=1 tsx --test database.integration.test.mjs && pnpm test:services && pnpm test:process",
     "test:process": "GLYPH_DATABASE_TESTS=1 tsx --test server-process.integration.test.mjs",

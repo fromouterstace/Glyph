@@ -6,6 +6,10 @@ The verification section below is the historical 2026-11-05 snapshot, not a
 current production guarantee. Current probes found authenticated account APIs,
 working TLS/HSTS on both published origins, and missing browser security headers
 on published HTML. Fixing and verifying that HTML delivery remains a priority.
+The [header-delivery implementation](html-security-header-delivery.md) now replaces
+production static serving with a header-capable web process and build/smoke gates.
+It awaits publishing and live verification on both hostnames; the audit's live
+observations must not be relabeled as fixed merely because workspace tests pass.
 
 **Workspace status:** Sections 0–7 have workspace implementation or
 documentation evidence; Section 4 is now implemented and verified in the

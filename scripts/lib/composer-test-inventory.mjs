@@ -40,6 +40,7 @@ export const requiredRunners = {
     'tracking-origin.contract.test.mjs',
     'monitoring.contract.test.mjs',
     'casing.contract.test.mjs',
+    'web-serving.contract.test.mjs',
   ],
   'test:integration': [
     'database.integration.test.mjs',

@@ -296,14 +296,11 @@ test('every integration-stage failure prevents a green chained database gate', a
   }
 });
 
-test('a broken built-asset check prevents a successful frontend artifact build', async (t) => {
+test('broken asset or production-header checks prevent a successful frontend artifact build', async (t) => {
   const directory = await mkdtemp(join(tmpdir(), 'glyph-artifact-gate-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   for (const [name, body] of [
-    [
-      'node',
-      'case "$1" in *check-built-assets.mjs) exit 23;; *) exit 0;; esac',
-    ],
+    ['node', 'case "$1" in *"$FAIL_GATE") exit 23;; *) exit 0;; esac'],
     ['vite', 'exit 0'],
   ]) {
     const executable = join(directory, name);
@@ -316,10 +313,16 @@ test('a broken built-asset check prevents a successful frontend artifact build',
       'utf8',
     ),
   );
-  const result = spawnSync('sh', ['-c', scripts['build:artifact']], {
-    env: { ...process.env, PATH: `${directory}:${process.env.PATH}` },
-    encoding: 'utf8',
-    timeout: 5_000,
-  });
-  assert.equal(result.status, 23);
+  for (const gate of ['check-built-assets.mjs', 'check-web-server.mjs']) {
+    const result = spawnSync('sh', ['-c', scripts['build:artifact']], {
+      env: {
+        ...process.env,
+        PATH: `${directory}:${process.env.PATH}`,
+        FAIL_GATE: gate,
+      },
+      encoding: 'utf8',
+      timeout: 5_000,
+    });
+    assert.equal(result.status, 23, gate);
+  }
 });

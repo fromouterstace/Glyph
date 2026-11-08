@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import { smokeOrigin, waitForHealth } from './health-probe.mjs';
 import { checkSmokeAssets, entryAssets } from './smoke-assets.mjs';
 import { assertExtensionArchive } from './extension-archive.mjs';
+import { assertDocumentSecurity } from './document-security.mjs';
 
-const pages = [
+export const pages = [
   '/',
   '/app',
   '/email',
@@ -63,6 +64,8 @@ export async function runSmoke({ base, fetchImpl = fetch, report = () => {} }) {
       /text\/html/i,
     );
     assert.match(result.body.toString(), /id=["']root["']/);
+    if (origin.startsWith('https://'))
+      assertDocumentSecurity(result.response.headers, path);
     if (path === '/') shell = result.body.toString();
     result.done();
   }

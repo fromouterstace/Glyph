@@ -20,6 +20,7 @@ export const criticalModules = [
 // Discovery is a separate invariant from coverage percentages: absent tests
 // must not silently reduce the suite that produces a green report.
 export const requiredUnitSuites = [
+  'test-document-security.mjs',
   'test-built-assets.mjs',
   'test-composer-delivery.mjs',
   'test-composer-test-inventory.mjs',
