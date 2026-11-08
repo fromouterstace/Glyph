@@ -115,8 +115,9 @@ existing pooled queries; this audit does not apply that breaking schema change.
 Current DB-enforced integrity includes primary keys, unique pixel/link tokens,
 reply fingerprints, owner-scoped native-compose keys, cascading message→event/
 link/budget references and validated tracking-budget checks. The readiness probe
-now performs bounded catalog-only checks for the unique indexes, required
-cascading foreign keys and budget checks, without disclosing catalog data. The
+now checks all nine relations and critical columns, plus bounded catalog-only
+checks for primary keys, critical unique indexes, required cascading foreign
+keys and budget checks, without disclosing catalog data. The
 existing `/api/readyz` smoke path exercises those checks in Preview and published
 smoke; an unhealthy database returns only `not_ready`.
 

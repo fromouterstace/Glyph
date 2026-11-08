@@ -81,6 +81,22 @@ test('real API readiness fails when a required cascading foreign key is missing'
   assert.deepEqual(await ready.json(), { status: 'not_ready' });
 });
 
+test('real API readiness fails when OAuth single-use state loses its primary key', async (t) => {
+  await database.query(
+    'ALTER TABLE glyph_gmail_oauth_states DROP CONSTRAINT glyph_gmail_oauth_states_pkey',
+  );
+  t.after(() =>
+    database.query(
+      'ALTER TABLE glyph_gmail_oauth_states ADD CONSTRAINT glyph_gmail_oauth_states_pkey PRIMARY KEY (state_hash)',
+    ),
+  );
+  const worker = await startProcess(schema);
+  t.after(() => worker.stop());
+  const ready = await fetch(`${worker.base}/api/readyz`);
+  assert.equal(ready.status, 503);
+  assert.deepEqual(await ready.json(), { status: 'not_ready' });
+});
+
 test('SIGTERM drains an actual blocked pixel write before closing PostgreSQL and exiting', async (t) => {
   const fixture = await messageFixture(database.query);
   const worker = await startProcess(schema);

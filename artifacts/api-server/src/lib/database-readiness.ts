@@ -10,17 +10,30 @@ interface ProbeResult {
 // Parse critical relations without scanning rows or exposing account data.
 const probeSql = `SELECT m.id, m.body_html, m.attachments, e.id, l.id,
   s.id, g.owner_id, g.encrypted_tokens, g.reply_identity, o.state_hash,
-  a.id, a.owner_id, a.object_path, a.generation, a.size, a.content_type
+  a.id, a.owner_id, a.object_path, a.generation, a.size, a.content_type,
+  pref.owner_id, pref.notify_opens, pref.notify_clicks, pref.notify_replies,
+  b.message_id, b.kind, b.window_bucket, b.window_count, b.day_bucket, b.day_count
   FROM glyph_messages m LEFT JOIN glyph_events e ON false
   LEFT JOIN glyph_links l ON false LEFT JOIN glyph_system_events s ON false
   LEFT JOIN glyph_gmail_connections g ON false
   LEFT JOIN glyph_gmail_oauth_states o ON false
-  LEFT JOIN glyph_attachments a ON false LIMIT 0`;
+  LEFT JOIN glyph_attachments a ON false
+  LEFT JOIN glyph_settings pref ON false
+  LEFT JOIN glyph_tracking_budgets b ON false LIMIT 0`;
 
 // A schema can contain every required column and still have lost the database
 // constraints that protect idempotency and prevent orphan activity. Inspect
 // PostgreSQL catalogs only; never expose constraint names/details publicly.
 const integritySql = `SELECT required.name FROM (VALUES
+  ('primary', 'glyph_messages_pkey', 'glyph_messages', ''),
+  ('primary', 'glyph_events_pkey', 'glyph_events', ''),
+  ('primary', 'glyph_links_pkey', 'glyph_links', ''),
+  ('primary', 'glyph_settings_pkey', 'glyph_settings', ''),
+  ('primary', 'glyph_system_events_pkey', 'glyph_system_events', ''),
+  ('primary', 'glyph_attachments_pkey', 'glyph_attachments', ''),
+  ('primary', 'glyph_gmail_connections_pkey', 'glyph_gmail_connections', ''),
+  ('primary', 'glyph_gmail_oauth_states_pkey', 'glyph_gmail_oauth_states', ''),
+  ('primary', 'glyph_tracking_budgets_message_id_kind_pk', 'glyph_tracking_budgets', ''),
   ('index', 'glyph_messages_pixel_token_unique', 'glyph_messages', ''),
   ('index', 'glyph_events_fingerprint_unique', 'glyph_events', ''),
   ('index', 'glyph_links_token_unique', 'glyph_links', ''),
@@ -33,9 +46,21 @@ const integritySql = `SELECT required.name FROM (VALUES
   ('check', 'glyph_tracking_budgets_counts_check', 'glyph_tracking_budgets', '')
 ) AS required(kind, name, table_name, expected)
 WHERE CASE required.kind
+  WHEN 'primary' THEN NOT EXISTS (
+    SELECT 1 FROM pg_constraint c
+    JOIN pg_class tbl ON tbl.oid = c.conrelid
+    JOIN pg_namespace ns ON ns.oid = tbl.relnamespace
+    JOIN pg_index i ON i.indexrelid = c.conindid
+    WHERE ns.nspname = current_schema()
+      AND c.conname = required.name
+      AND tbl.relname = required.table_name
+      AND c.contype = 'p' AND c.convalidated
+      AND i.indisvalid AND i.indisready AND i.indisprimary
+  )
   WHEN 'index' THEN NOT EXISTS (
     SELECT 1 FROM pg_index i
     JOIN pg_class idx ON idx.oid = i.indexrelid
+    JOIN pg_class tbl ON tbl.oid = i.indrelid
     JOIN pg_namespace ns ON ns.oid = idx.relnamespace
     WHERE ns.nspname = current_schema()
       AND idx.relname = required.name
@@ -52,6 +77,7 @@ WHERE CASE required.kind
       AND c.conname = required.name
       AND tbl.relname = required.table_name
       AND ref.relname = 'glyph_messages'
+      AND ref.relnamespace = tbl.relnamespace
       AND c.contype = 'f'
       AND c.confdeltype = required.expected
       AND c.convalidated

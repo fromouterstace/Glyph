@@ -54,16 +54,29 @@ enforcement scope and explicit limitations.
 
 ## Workspace verification
 
-- `pnpm check` passed: lint with zero warnings, independent Prettier check,
+- `pnpm check:all` passed: lint with zero warnings, independent Prettier check,
   strict TypeScript, mandatory suite discovery and critical-source coverage,
-  226 unit tests, 76 contracts, 74 UI tests and 13 gate controls.
+  227 unit tests, 77 contracts, 74 UI tests and 13 gate controls.
+- PostgreSQL verification passed: 21 tracking/database tests, 98 service/owner/
+  attachment/lifecycle contracts, and nine actual API-process tests. Isolated
+  negative controls remove a required unique constraint, cascading foreign key
+  or OAuth-state primary key and establish a 503 readiness response.
+- All 32 running-server HTTP contracts and the complete local HTTP smoke passed.
+  The running Preview returned `{"status":"ready"}`. Readiness checks all nine
+  relations and critical columns, primary keys, critical unique indexes,
+  validated cascading references and budget checks.
+- Aggregate-only development and production integrity queries found zero
+  unexpected message statuses/delivery sources/event types/event sources,
+  sent messages without timestamps, orphan message children, unowned attachment
+  references or nonpositive attachment sizes. This is point-in-time evidence.
+- Dependency, static-code and privacy/dataflow scans completed without findings.
+  Clean scanners do not invalidate the manual RLS and integrity-boundary gaps.
 - The eight database-safety tests exercise positive and negative cases, including
   production push refusal before database access and removed/narrowed shapes.
 - `pnpm check:database` passed, including a local base-commit history invocation.
   The small final baseline-SQL rejection/formatting change was followed by a
   fresh safety-gate and Prettier check.
 - Signed-out `/emails` Preview still renders the sign-in wall.
-- No database fixtures, schema push, backup export, restore, real mail or
-  production publication was performed. Isolated process-level tests used only
-  temporary test schemas and verified that missing critical indexes fail
-  readiness.
+- No existing development/production records or schemas were changed. Tests
+  created and dropped temporary isolated schemas only. No schema push, backup
+  export, restore, real mail or production publication was performed.

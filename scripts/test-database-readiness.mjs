@@ -11,6 +11,8 @@ function assertProbeQuery(text) {
       'glyph_links',
       'glyph_system_events',
       'glyph_attachments',
+      'glyph_settings',
+      'glyph_tracking_budgets',
       'm.body_html',
       'm.attachments',
       'a.generation',
@@ -22,6 +24,15 @@ function assertProbeQuery(text) {
   assert.match(text, /i\.indpred IS NULL AND i\.indexprs IS NULL/);
   assert.match(text, /tbl\.relname = required\.table_name/);
   for (const constraint of [
+    'glyph_messages_pkey',
+    'glyph_events_pkey',
+    'glyph_links_pkey',
+    'glyph_settings_pkey',
+    'glyph_system_events_pkey',
+    'glyph_attachments_pkey',
+    'glyph_gmail_connections_pkey',
+    'glyph_gmail_oauth_states_pkey',
+    'glyph_tracking_budgets_message_id_kind_pk',
     'glyph_messages_pixel_token_unique',
     'glyph_events_fingerprint_unique',
     'glyph_links_token_unique',
