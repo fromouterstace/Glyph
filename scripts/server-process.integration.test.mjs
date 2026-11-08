@@ -46,6 +46,41 @@ test('real API readiness fails on missing schema while liveness remains healthy'
   assert.equal(ready.headers.get('cache-control'), 'no-store');
 });
 
+test('real API readiness fails when a required uniqueness index is missing', async (t) => {
+  await database.query(
+    'ALTER TABLE glyph_events DROP CONSTRAINT glyph_events_fingerprint_unique',
+  );
+  t.after(() =>
+    database.query(
+      'ALTER TABLE glyph_events ADD CONSTRAINT glyph_events_fingerprint_unique UNIQUE (fingerprint)',
+    ),
+  );
+  const worker = await startProcess(schema);
+  t.after(() => worker.stop());
+  assert.equal((await fetch(`${worker.base}/api/healthz`)).status, 200);
+  const ready = await fetch(`${worker.base}/api/readyz`);
+  assert.equal(ready.status, 503);
+  assert.deepEqual(await ready.json(), { status: 'not_ready' });
+  assert.equal(ready.headers.get('cache-control'), 'no-store');
+});
+
+test('real API readiness fails when a required cascading foreign key is missing', async (t) => {
+  await database.query(
+    'ALTER TABLE glyph_events DROP CONSTRAINT glyph_events_message_id_glyph_messages_id_fk',
+  );
+  t.after(() =>
+    database.query(
+      'ALTER TABLE glyph_events ADD CONSTRAINT glyph_events_message_id_glyph_messages_id_fk FOREIGN KEY (message_id) REFERENCES glyph_messages(id) ON DELETE CASCADE',
+    ),
+  );
+  const worker = await startProcess(schema);
+  t.after(() => worker.stop());
+  assert.equal((await fetch(`${worker.base}/api/healthz`)).status, 200);
+  const ready = await fetch(`${worker.base}/api/readyz`);
+  assert.equal(ready.status, 503);
+  assert.deepEqual(await ready.json(), { status: 'not_ready' });
+});
+
 test('SIGTERM drains an actual blocked pixel write before closing PostgreSQL and exiting', async (t) => {
   const fixture = await messageFixture(database.query);
   const worker = await startProcess(schema);

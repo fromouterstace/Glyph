@@ -3,6 +3,41 @@ import assert from 'node:assert/strict';
 import FakeTimers from '@sinonjs/fake-timers';
 import { createReadinessProbe } from '../artifacts/api-server/src/lib/database-readiness.ts';
 
+function assertProbeQuery(text) {
+  if (text.includes('LIMIT 0')) {
+    for (const column of [
+      'glyph_messages',
+      'glyph_events',
+      'glyph_links',
+      'glyph_system_events',
+      'glyph_attachments',
+      'm.body_html',
+      'm.attachments',
+      'a.generation',
+    ])
+      assert.ok(text.includes(column), `missing ${column}`);
+    return;
+  }
+  assert.match(text, /pg_index/);
+  assert.match(text, /i\.indpred IS NULL AND i\.indexprs IS NULL/);
+  assert.match(text, /tbl\.relname = required\.table_name/);
+  for (const constraint of [
+    'glyph_messages_pixel_token_unique',
+    'glyph_events_fingerprint_unique',
+    'glyph_links_token_unique',
+    'glyph_native_compose_idx',
+    'glyph_gmail_connections_email_idx',
+    'glyph_events_message_id_glyph_messages_id_fk',
+    'glyph_links_message_id_glyph_messages_id_fk',
+    'glyph_tracking_budgets_message_id_glyph_messages_id_fk',
+    'glyph_tracking_budgets_kind_check',
+    'glyph_tracking_budgets_counts_check',
+    'c.confdeltype = required.expected',
+    "ref.relname = 'glyph_messages'",
+  ])
+    assert.ok(text.includes(constraint), `missing ${constraint}`);
+}
+
 test('database readiness checks critical schema, coalesces callers and briefly caches results', async () => {
   let calls = 0;
   let released = 0;
@@ -12,15 +47,8 @@ test('database readiness checks critical schema, coalesces callers and briefly c
       calls++;
       return {
         query: async ({ text }) => {
-          assert.match(text, /glyph_messages/);
-          assert.match(text, /glyph_events/);
-          assert.match(text, /glyph_links/);
-          assert.match(text, /glyph_system_events/);
-          assert.match(text, /glyph_attachments/);
-          assert.match(text, /m.body_html/);
-          assert.match(text, /m.attachments/);
-          assert.match(text, /a.generation/);
-          assert.match(text, /LIMIT 0/);
+          assertProbeQuery(text);
+          return { rows: [] };
         },
         release: () => {
           released++;
@@ -36,6 +64,21 @@ test('database readiness checks critical schema, coalesces callers and briefly c
   assert.equal(await probe(), true);
   assert.equal(calls, 2);
   assert.equal(released, 2);
+});
+
+test('missing or invalid integrity constraints fail readiness without leaking catalog details', async () => {
+  let queries = 0;
+  const probe = createReadinessProbe(async () => ({
+    query: async ({ text }) => {
+      queries++;
+      if (text.includes('pg_index'))
+        return { rows: [{ name: 'private-index-name' }] };
+      return { rows: [] };
+    },
+    release: () => {},
+  }));
+  assert.equal(await probe(), false);
+  assert.equal(queries, 2);
 });
 
 test('unreachable PostgreSQL and missing schema fail readiness without leaking errors', async () => {

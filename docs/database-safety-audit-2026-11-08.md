@@ -22,16 +22,20 @@ production recovery procedure. Planner row estimates are not exact row counts.
 
 ## Findings and remediation
 
-| Finding | Resolution |
-| --- | --- |
-| Drizzle push and force-push commands had no application-level environment guard | Replace push with a dev-only opt-in wrapper; remove force command |
-| No versioned schema-review inventory | Commit existing schema hashes as baseline; require sequential append-only reviews and SQL plans for subsequent changes |
-| Hashes alone cannot detect an omitted destructive change in the SQL plan | Compare actual exported Drizzle table/column/type/nullability shape with versioned shapes and block removals, renames and changes |
-| No migration-plan destructive-SQL gate | Fail closed on destructive/opaque/unsupported SQL; initial policy allows only reviewed CREATE TABLE/INDEX plans |
-| Post-merge used an incorrect workspace selector and implicitly attempted schema push | Replace with read-only safety validation; schema-changing merges now require an explicit reviewed development application |
-| Existing instruction allowed production push with authorization | Correct canon/project instructions: managed production uses Publish, never direct pushes |
-| No explicit clone/backup/recovery evidence requirements | Add required release checklist, expand/migrate/observe/contract policy, attachment recovery caveat, and approval boundary |
-| No tests for the new safety boundaries | Unit/negative-control suite is mandatory in discovered tests; CI validates immutable review history |
+| Finding                                                                                | Resolution                                                                                                                                                |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Drizzle push and force-push commands had no application-level environment guard        | Replace push with a dev-only opt-in wrapper; remove force command                                                                                         |
+| No versioned schema-review inventory                                                   | Commit existing schema hashes as baseline; require sequential append-only reviews and SQL plans for subsequent changes                                    |
+| Hashes alone cannot detect an omitted destructive change in the SQL plan               | Compare actual exported Drizzle table/column/type/nullability shape with versioned shapes and block removals, renames and changes                         |
+| No migration-plan destructive-SQL gate                                                 | Fail closed on destructive/opaque/unsupported SQL; initial policy allows only reviewed CREATE TABLE/INDEX plans                                           |
+| Post-merge used an incorrect workspace selector and implicitly attempted schema push   | Replace with read-only safety validation; schema-changing merges now require an explicit reviewed development application                                 |
+| Existing instruction allowed production push with authorization                        | Correct canon/project instructions: managed production uses Publish, never direct pushes                                                                  |
+| No explicit clone/backup/recovery evidence requirements                                | Add required release checklist, expand/migrate/observe/contract policy, attachment recovery caveat, and approval boundary                                 |
+| No tests for the new safety boundaries                                                 | Unit/negative-control suite is mandatory in discovered tests; CI validates immutable review history                                                       |
+| Readiness checked critical relations and columns but not essential database safeguards | Readiness and HTTP smoke now verify critical unique indexes, validated cascading foreign keys and tracking-budget checks without exposing catalog details |
+| Tenant isolation is application-scoped, with PostgreSQL RLS disabled                   | Record defense-in-depth gap; require a deliberate pooled-connection/RLS design before adding direct database access paths                                 |
+| Status, event-source/type and attachment shape rules are partly application-only       | Document the boundary and point-in-time integrity checks; retain server validation and PostgreSQL contracts before adding constraints                     |
+| No account-wide erase flow or data-retention worker was found                          | Record unresolved privacy/operations scope; do not introduce an unreviewed purge or retention promise                                                     |
 
 ## Remaining operational evidence
 
@@ -60,5 +64,6 @@ enforcement scope and explicit limitations.
   fresh safety-gate and Prettier check.
 - Signed-out `/emails` Preview still renders the sign-in wall.
 - No database fixtures, schema push, backup export, restore, real mail or
-  production publication was performed. Existing isolated PostgreSQL contracts
-  were not rerun for these tooling/documentation-only changes.
+  production publication was performed. Isolated process-level tests used only
+  temporary test schemas and verified that missing critical indexes fail
+  readiness.

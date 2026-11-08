@@ -98,6 +98,48 @@ deletion to the authenticated owner's unsent web drafts/failed messages.
 Attachments live in App Storage: a PostgreSQL restore alone cannot restore
 deleted attachment bytes or their exact object generations.
 
+## Tenant security and integrity boundaries
+
+The current data-access security model is **application-enforced owner scoping**:
+authenticated handlers derive Clerk owner IDs server-side and owner-isolation
+integration tests cover account reads, writes, pagination, settings, activity,
+draft claims and attachments. Catalog inspection on 2026-11-08 found PostgreSQL
+row-level security disabled for every Glyph table in both environments. Therefore
+a database credential or future query path that bypasses those handlers is not
+contained by RLS. Do not claim database-level tenant isolation. Before adding
+direct SQL clients, analytics, or another service, design and test transaction-
+scoped tenant identity plus RLS (including FORCE RLS, table owner/BYPASSRLS
+behavior, pool reuse and background jobs). Enabling policies ad hoc would break
+existing pooled queries; this audit does not apply that breaking schema change.
+
+Current DB-enforced integrity includes primary keys, unique pixel/link tokens,
+reply fingerprints, owner-scoped native-compose keys, cascading message→event/
+link/budget references and validated tracking-budget checks. The readiness probe
+now performs bounded catalog-only checks for the unique indexes, required
+cascading foreign keys and budget checks, without disclosing catalog data. The
+existing `/api/readyz` smoke path exercises those checks in Preview and published
+smoke; an unhealthy database returns only `not_ready`.
+
+Other integrity boundaries remain application-enforced: message status,
+delivery source, event type/source, attachment size/shape, attachment JSON-to-
+table ownership/generation, and owner IDs that refer to Clerk rather than an
+in-database account table do not all have PostgreSQL constraints. Preserve
+server-side validation, transaction/owner checks and focused integration tests.
+Before adding a database constraint, inspect existing production values and
+exercise an expand/backfill/validate plan; do not infer safety just from the
+schema types. On the audit date, aggregate-only checks found zero unexpected
+statuses, delivery sources, event types/sources, missing sent timestamps, orphan
+message children, unowned attachment references, or nonpositive attachment
+sizes in development and production. This is a point-in-time check, not a
+continuous integrity guarantee.
+
+There is no automated message/event retention purge or account-wide database
+erasure path. The product canon intentionally has not promised a retention
+window/export contract. Do not create a purge job until those requirements,
+legal/privacy review and attachment/App Storage cleanup semantics are defined.
+OAuth state expiry is checked when state is consumed and stale owner states are
+cleaned on a later OAuth initiation; no database-wide expiry worker was verified.
+
 ## Mandatory pre-execution release checklist
 
 Copy this checklist into the schema-change review. **Stop if evidence is missing.**
