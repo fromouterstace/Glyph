@@ -259,3 +259,67 @@ test('the fast gate propagates a composer inventory failure before running tests
   });
   assert.equal(result.status, 23);
 });
+
+test('every integration-stage failure prevents a green chained database gate', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'glyph-integration-gate-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  for (const [name, boundary] of [
+    ['tsx', 'database'],
+    ['pnpm', '$1'],
+  ]) {
+    const executable = join(directory, name);
+    await writeFile(
+      executable,
+      `#!/bin/sh\nboundary=${boundary}\nprintf "%s\\n" "$boundary"\n[ "$boundary" != "$FAIL_BOUNDARY" ] || exit 23\n`,
+    );
+    await chmod(executable, 0o755);
+  }
+  const { scripts } = JSON.parse(
+    await readFile(new URL('./package.json', import.meta.url), 'utf8'),
+  );
+  const boundaries = ['database', 'test:services', 'test:process'];
+  for (const [index, boundary] of boundaries.entries()) {
+    const result = spawnSync('sh', ['-c', scripts['test:integration']], {
+      env: {
+        ...process.env,
+        PATH: `${directory}:${process.env.PATH}`,
+        FAIL_BOUNDARY: boundary,
+      },
+      encoding: 'utf8',
+      timeout: 5_000,
+    });
+    assert.equal(result.status, 23);
+    assert.deepEqual(
+      result.stdout.trim().split('\n'),
+      boundaries.slice(0, index + 1),
+    );
+  }
+});
+
+test('a broken built-asset check prevents a successful frontend artifact build', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'glyph-artifact-gate-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  for (const [name, body] of [
+    [
+      'node',
+      'case "$1" in *check-built-assets.mjs) exit 23;; *) exit 0;; esac',
+    ],
+    ['vite', 'exit 0'],
+  ]) {
+    const executable = join(directory, name);
+    await writeFile(executable, `#!/bin/sh\n${body}\n`);
+    await chmod(executable, 0o755);
+  }
+  const { scripts } = JSON.parse(
+    await readFile(
+      new URL('../artifacts/glyph/package.json', import.meta.url),
+      'utf8',
+    ),
+  );
+  const result = spawnSync('sh', ['-c', scripts['build:artifact']], {
+    env: { ...process.env, PATH: `${directory}:${process.env.PATH}` },
+    encoding: 'utf8',
+    timeout: 5_000,
+  });
+  assert.equal(result.status, 23);
+});

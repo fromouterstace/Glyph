@@ -1,11 +1,18 @@
 # Glyph testing canon and regression gates
 
+The [2026-11-08 coverage audit](test-coverage-audit-2026-11-08.md) records the
+expanded critical-suite inventory, built/lazy-asset and ZIP integrity gates,
+process-test correction, and remaining live-provider evidence boundaries.
+
 ## Route delivery
 
 The Glyph artifact build validates Vite's production manifest with
 `scripts/check-route-chunks.mjs`. All six protected pages must remain distinct
 lazy entries outside the initial static import graph. Loading occurs inside the
 sign-in gate; the app shell remains available while a page loads.
+After this manifest gate, `scripts/check-built-assets.mjs` traverses the real
+compiled asset graph and validates extension ZIP integrity and runtime files.
+The same graph/package validators run in read-only smoke against HTTP responses.
 `artifacts/glyph/tests/protected-page.test.tsx` covers deferred loading,
 failure recovery and navigation. Chunk failures offer a manual reload rather
 than automatically reloading a tab that may hold unsaved work.

@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { smokeOrigin, waitForHealth } from './health-probe.mjs';
+import { checkSmokeAssets, entryAssets } from './smoke-assets.mjs';
+import { assertExtensionArchive } from './extension-archive.mjs';
 
 const pages = [
   '/',
@@ -64,41 +66,15 @@ export async function runSmoke({ base, fetchImpl = fetch, report = () => {} }) {
     if (path === '/') shell = result.body.toString();
     result.done();
   }
-  const assets = [
-    ...shell.matchAll(
-      /<(?:script|link)\b[^>]*(?:src|href)=["']([^"']+)["'][^>]*>/gi,
-    ),
-  ]
-    .filter(
-      ([tag]) => /^<script/i.test(tag) || /rel=["']stylesheet["']/i.test(tag),
-    )
-    .map(([, path]) => new URL(path, origin))
-    .filter((url) => url.origin === origin);
-  assert.ok(
-    assets.some((url) => /\.(?:[cm]?js|tsx?)(?:$|\?)/.test(url.pathname)),
-    'No local JavaScript entry found',
-  );
-  for (const asset of new Map(assets.map((url) => [url.href, url])).values()) {
-    const result = await read(asset.pathname + asset.search, 200);
-    const css = asset.pathname.endsWith('.css');
-    assert.match(
-      result.response.headers.get('content-type') ?? '',
-      css ? /text\/css/i : /(?:javascript|ecmascript)/i,
-      `${asset.pathname}: wrong asset type`,
-    );
-    assert.ok(result.body.length > 0, 'Empty asset');
-    assert.doesNotMatch(
-      result.body.toString(),
-      /^\s*(?:<!doctype html|<html)/i,
-    );
-    result.done();
-  }
+  const assets = entryAssets(shell, origin);
+  await checkSmokeAssets(assets, read);
   const zip = await read('/glyph-extension.zip', 200);
   assert.equal(
     zip.body.subarray(0, 4).toString('hex'),
     '504b0304',
     'Extension download is not a ZIP',
   );
+  assertExtensionArchive(zip.body);
   zip.done();
   for (const path of protectedReads) {
     const result = await read(`/api/glyph${path}`, 401);
@@ -118,7 +94,16 @@ export async function runSmoke({ base, fetchImpl = fetch, report = () => {} }) {
     pixel.response.headers.get('content-type') ?? '',
     /^image\/gif\b/i,
   );
-  assert.equal(pixel.response.headers.get('set-cookie'), null);
+  // Replit's Google edge may add GAESA for instance routing. It is not a
+  // Glyph authentication cookie. Reject everything else without logging values.
+  const cookieNames = pixel.response.headers
+    .getSetCookie()
+    .map((cookie) => cookie.split('=', 1)[0].trim());
+  assert.deepEqual(
+    cookieNames.filter((name) => name !== 'GAESA'),
+    [],
+    'Public pixel unexpectedly sets application cookies',
+  );
   assert.equal(pixel.body.length, 43);
   assert.equal(pixel.body.subarray(0, 6).toString(), 'GIF89a');
   pixel.done();

@@ -118,7 +118,13 @@ test('a shutdown deadline exits nonzero rather than hanging on a blocked databas
     'SELECT type FROM glyph_events WHERE message_id=$1',
     [fixture.id],
   );
-  assert.deepEqual(stored.rows, []);
+  // A closed client socket does not synchronously cancel a statement already
+  // waiting inside PostgreSQL. Releasing the lock can race with disconnect
+  // detection; a forced process exit is not an atomic rollback guarantee.
+  // The deadline contract is bounded nonzero exit, not a fabricated write
+  // outcome. Recovery must tolerate either result without creating duplicates.
+  assert.ok(stored.rows.length <= 1);
+  assert.ok(stored.rows.every((event) => event.type === 'open'));
 });
 
 test('a committed sending claim survives SIGKILL and restart confirmation stays idempotent', async (t) => {

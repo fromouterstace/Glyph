@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { runSmoke } from './lib/smoke-checks.mjs';
+import { extensionZip } from './tests/helpers/extension-archive.mjs';
 
 function fixture(overrides = new Map(), calls = []) {
   return async (input) => {
@@ -23,7 +24,7 @@ function fixture(overrides = new Map(), calls = []) {
     if (pathname.startsWith('/api/'))
       return Response.json({ error: 'Sign in' }, { status: 401 });
     if (pathname === '/glyph-extension.zip')
-      return new Response(Buffer.from('504b0304', 'hex'));
+      return new Response(extensionZip());
     if (pathname === '/assets/app.js')
       return new Response('console.log("fixture")', {
         headers: { 'content-type': 'application/javascript' },
@@ -127,5 +128,66 @@ test('a blank frontend shell cannot produce a false-green smoke result', async (
   await assert.rejects(
     runSmoke({ base: 'http://localhost', fetchImpl: fixture(overrides) }),
     /No local JavaScript entry/,
+  );
+});
+
+test('a broken lazy page chunk fails smoke even when entry assets load', async () => {
+  const overrides = new Map([
+    [
+      '/assets/app.js',
+      () =>
+        new Response('export const page=()=>import("./emails.js")', {
+          headers: { 'content-type': 'application/javascript' },
+        }),
+    ],
+    [
+      '/assets/emails.js',
+      () =>
+        new Response('<html>missing page</html>', {
+          headers: { 'content-type': 'text/html' },
+        }),
+    ],
+  ]);
+  await assert.rejects(
+    runSmoke({ base: 'http://localhost', fetchImpl: fixture(overrides) }),
+    /wrong asset type/,
+  );
+});
+
+test('a truncated ZIP with a valid magic signature cannot pass deployed smoke', async () => {
+  const overrides = new Map([
+    [
+      '/glyph-extension.zip',
+      () => new Response(Buffer.from('504b0304', 'hex')),
+    ],
+  ]);
+  await assert.rejects(
+    runSmoke({ base: 'http://localhost', fetchImpl: fixture(overrides) }),
+    /truncated/,
+  );
+});
+
+test('the documented edge routing cookie is allowed but auth cookies fail without exposing values', async () => {
+  const response = (cookie) =>
+    new Response(Buffer.concat([Buffer.from('GIF89a'), Buffer.alloc(37)]), {
+      headers: { 'content-type': 'image/gif', 'set-cookie': cookie },
+    });
+  const path = '/api/glyph/t/smoke-invalid-token.gif';
+  await runSmoke({
+    base: 'http://localhost',
+    fetchImpl: fixture(
+      new Map([[path, () => response('GAESA=synthetic-routing')]]),
+    ),
+  });
+  await assert.rejects(
+    runSmoke({
+      base: 'http://localhost',
+      fetchImpl: fixture(
+        new Map([[path, () => response('__session=synthetic-secret')]]),
+      ),
+    }),
+    (error) =>
+      error.message.includes('application cookies') &&
+      !error.message.includes('synthetic-secret'),
   );
 });

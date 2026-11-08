@@ -1,9 +1,18 @@
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { assertComposerInventory } from './lib/composer-test-inventory.mjs';
+import { readFile } from 'node:fs/promises';
+import {
+  assertComposerInventory,
+  assertRunnerInventory,
+} from './lib/composer-test-inventory.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 try {
+  assertRunnerInventory(
+    JSON.parse(
+      await readFile(new URL('./package.json', import.meta.url), 'utf8'),
+    ).scripts,
+  );
   for (const [layer, workspace, config] of [
     ['ui', '@workspace/glyph', 'vitest.config.ts'],
     ['integration', '@workspace/scripts', 'vitest.integration.config.mts'],
@@ -34,7 +43,9 @@ try {
       );
     assertComposerInventory(layer, JSON.parse(result.stdout), root);
   }
-  console.log('Required web-composer suites are discovered in both layers.');
+  console.log(
+    'Required auth, Gmail, tracking, composer and security suites are discovered; dedicated runners retain their critical boundaries.',
+  );
 } catch (error) {
   console.error(error.message);
   process.exitCode = 1;

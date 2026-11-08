@@ -50,3 +50,23 @@ Frontend UI tests must explicitly select `NODE_ENV=test`, even when invoked by a
 **Why:** Publishing passes `NODE_ENV=production` into build subprocesses. Vitest preserves that existing value, causing React's production exports to lack the test `act` implementation even though the same tests pass in the workspace.
 
 **How to apply:** Keep test mode scoped to the test subprocess; do not change the actual application bundle's production mode. Verify publishing failures using the artifact's production command and configured build environment, not only the workspace release command.
+
+Do not assume that killing a client process synchronously rolls back an SQL
+statement already waiting inside PostgreSQL.
+
+**Why:** A shutdown-deadline regression test intermittently saw a pixel event
+commit after the child exited and its blocking table lock was released. Server-side
+statement execution and disconnect detection can race.
+
+**How to apply:** Test bounded shutdown and graceful draining separately.
+Treat interrupted writes as uncertain and verify idempotent recovery; do not
+promise rollback without an explicit transaction/cancellation guarantee.
+
+Published Replit responses can carry the infrastructure-managed `GAESA` routing
+cookie even when the application sets no cookies.
+
+**Why:** Live pixel smoke failed an absolute no-Set-Cookie assertion. Replit's
+documentation identifies GAESA as Google's routing cookie, not session data.
+
+**How to apply:** Distinguish that exact infrastructure cookie from application
+cookies in public-route smoke, and never include cookie values in diagnostics.

@@ -3,11 +3,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { criticalModules, unitFiles } from './lib/test-policy.mjs';
+import {
+  criticalModules,
+  unitFiles,
+  assertUnitInventory,
+} from './lib/test-policy.mjs';
 import { assertCoverageInventory } from './lib/coverage-inventory.mjs';
 
 const cwd = fileURLToPath(new URL('.', import.meta.url));
 const files = unitFiles(await readdir(cwd));
+assertUnitInventory(files);
 if (!files.length)
   throw new Error('No unit tests discovered; refusing a green gate.');
 const directory = await mkdtemp(join(tmpdir(), 'glyph-unit-coverage-'));
