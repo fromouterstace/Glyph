@@ -5,7 +5,7 @@ import {
   type ReactNode,
   type ComponentType,
 } from 'react';
-import { ClerkProvider, SignIn, SignUp, Show, useClerk } from '@clerk/react';
+import { ClerkProvider, Show, useClerk } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import {
   QueryClient,
@@ -26,6 +26,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { ProtectedPage } from '@/components/protected-page';
 import { GlyphMark } from '@/components/bits';
+import { AuthForm } from '@/components/auth-form';
 
 const Dashboard = lazy(() => import('@/pages/dashboard'));
 const Emails = lazy(() => import('@/pages/emails'));
@@ -46,7 +47,6 @@ const clerkPubKey = publishableKeyFromHost(
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
-const postAuthUrl = `${basePath}/gmail`;
 
 function stripBase(path: string): string {
   return basePath && path.startsWith(basePath)
@@ -162,12 +162,7 @@ function AuthFrame({ children }: { children: ReactNode }) {
 function SignInPage() {
   return (
     <AuthFrame>
-      <SignIn
-        routing="path"
-        path={`${basePath}/sign-in`}
-        signUpUrl={`${basePath}/sign-up`}
-        forceRedirectUrl={postAuthUrl}
-      />
+      <AuthForm mode="sign-in" basePath={basePath} />
     </AuthFrame>
   );
 }
@@ -175,12 +170,7 @@ function SignInPage() {
 function SignUpPage() {
   return (
     <AuthFrame>
-      <SignUp
-        routing="path"
-        path={`${basePath}/sign-up`}
-        signInUrl={`${basePath}/sign-in`}
-        forceRedirectUrl={postAuthUrl}
-      />
+      <AuthForm mode="sign-up" basePath={basePath} />
     </AuthFrame>
   );
 }

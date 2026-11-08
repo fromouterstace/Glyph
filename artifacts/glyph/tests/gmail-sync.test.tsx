@@ -18,8 +18,14 @@ vi.mock('@/lib/glyph', () => ({
   useInvalidateAll: () => mocks.invalidate,
   errorText: (error: Error) => error.message,
 }));
-afterEach(cleanup);
-beforeEach(() => vi.clearAllMocks());
+afterEach(() => {
+  cleanup();
+  vi.unstubAllEnvs();
+});
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.stubEnv('DEV', false);
+});
 
 const result = {
   confirmed: 0,
@@ -88,4 +94,16 @@ test('a send-status check blocked by cooldown also shows paused status', () => {
       variant: 'default',
     }),
   );
+});
+
+test('Preview links to production activity without attempting a separate mailbox sync', () => {
+  vi.stubEnv('DEV', true);
+  render(<SyncGmailButton />);
+  const link = screen.getByRole('link', {
+    name: 'View published Gmail activity',
+  });
+  expect(link.getAttribute('href')).toBe('https://glyph.rocks/emails');
+  expect(link.getAttribute('target')).toBe('_blank');
+  expect(screen.queryByTestId('button-sync-gmail')).toBeNull();
+  expect(mocks.mutate).not.toHaveBeenCalled();
 });

@@ -12,3 +12,4 @@
 - [Readiness probe budgets](readiness-probe-budgets.md) — a timed-out pool acquisition can remain queued; do not accumulate replacement probes during an outage.
 - [Rich composer storage](rich-composer-storage.md) — web formatting must survive drafts/MIME; private attachments pin finalized generations to prevent byte substitution.
 - [Google consent access](google-consent-access.md) — a Google Testing-mode audience restriction was confirmed; check consent access before changing app auth.
+- [Managed auth environments](managed-auth-environments.md) — verify missing mail in the right database; managed accounts-domain TLS and proxy auth are distinct.

@@ -3,6 +3,7 @@ import { useSyncNativeMessages } from '@workspace/api-client-react';
 import { errorText, useInvalidateAll, useSession } from '@/lib/glyph';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { PUBLISHED_GLYPH_ORIGIN } from '@/lib/tracking-origin';
 
 export const GMAIL_URL = 'https://mail.google.com';
 
@@ -54,6 +55,22 @@ export function SyncGmailButton({
         });
       },
     });
+  if (import.meta.env.DEV)
+    return (
+      <a
+        href={`${PUBLISHED_GLYPH_ORIGIN}/emails`}
+        target="_blank"
+        rel="noreferrer"
+        data-testid="link-published-gmail-activity"
+        className={cn(
+          'inline-flex items-center gap-1.5 rounded-sm border border-border bg-card px-3 py-1.5 text-sm font-medium hover:border-foreground/40',
+          className,
+        )}
+        title="The Gmail extension connects to published Glyph. Its messages and connection are separate from Preview."
+      >
+        View published Gmail activity
+      </a>
+    );
   return (
     <button
       type="button"

@@ -252,10 +252,11 @@ export function Shell({ children }: { children: ReactNode }) {
               </a>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              Save and edit drafts here. Send real emails from published Glyph:
-              use its web composer or connect the Gmail extension there. Drafts
-              and attachments do not transfer automatically. Publishing does not
-              update tracking links in emails already sent.
+              Preview has separate accounts, Gmail connections, and message
+              data. The Gmail extension saves tracked messages in published
+              Glyph, not here. Open published Glyph to see sent messages, sync
+              Gmail, and view tracking activity. Drafts and attachments saved
+              here do not transfer automatically.
             </p>
           </div>
         )}
