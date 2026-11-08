@@ -1,13 +1,12 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'wouter';
-import { Download, Copy, Check, ArrowUpRight } from 'lucide-react';
+import { Copy, Check, ArrowUpRight } from 'lucide-react';
 import { Caveat, SectionHead } from '@/components/bits';
 import { GMAIL_URL } from '@/components/gmail-sync';
 import { GmailAuthorization } from '@/components/gmail-authorization';
+import { ExtensionDownload } from '@/components/extension-download';
 import { useSession } from '@/lib/glyph';
 import { extensionConnectionOrigin } from '@/lib/tracking-origin';
-
-const zipUrl = `${import.meta.env.BASE_URL}glyph-extension.zip`;
 
 export default function GmailPage() {
   const { isSignedIn } = useSession();
@@ -119,14 +118,7 @@ export default function GmailPage() {
         title="Track from inside Gmail."
         right={
           <div className="flex flex-wrap gap-2">
-            <a
-              href={zipUrl}
-              download
-              data-testid="link-download-extension"
-              className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
-            >
-              <Download className="size-4" /> Download extension
-            </a>
+            <ExtensionDownload />
             <a
               href={GMAIL_URL}
               target="_blank"
