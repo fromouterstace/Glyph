@@ -1,4 +1,5 @@
 import { sanitizeEmailHtml } from './email-html';
+import { safeHttpUrl } from './html-links';
 export const escapeHtml = (value: string) =>
   value.replace(
     /[&<>"']/g,
@@ -12,20 +13,7 @@ export function extractUrls(text: string): string[] {
   const found = text.match(/https?:\/\/[^\s<>"']+/gi) ?? [];
   return [
     ...new Set(
-      found
-        .map((s) => s.replace(/[.,;!?)\]]+$/, ''))
-        .filter((s) => {
-          try {
-            const u = new URL(s);
-            return (
-              ['https:', 'http:'].includes(u.protocol) &&
-              !u.username &&
-              !u.password
-            );
-          } catch {
-            return false;
-          }
-        }),
+      found.map((s) => s.replace(/[.,;!?)\]]+$/, '')).filter(safeHttpUrl),
     ),
   ].slice(0, 100);
 }
@@ -49,7 +37,7 @@ export function trackedEmailHtml(
   let htmlBody = escapeHtml(message.body);
   if (urls.length && !message.bodyHtml) {
     const destinations = new Map(
-      links.map((link) => [
+      (message.trackClicks ? links : []).map((link) => [
         escapeHtml(link.url),
         `${base}/api/glyph/l/${link.token}`,
       ]),

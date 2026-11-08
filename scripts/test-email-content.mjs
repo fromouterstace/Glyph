@@ -14,6 +14,17 @@ const message = {
   trackClicks: true,
 };
 
+test('plain-text rendering honors disabled tracking even with stale stored links', () => {
+  const url = 'https://example.org/offer?a=1&b=2';
+  const html = trackedEmailHtml(
+    { ...message, body: url, trackClicks: false, trackOpens: false },
+    base,
+    [{ url, token: 'stale-click-token' }],
+  );
+  assert.match(html, /href="https:\/\/example.org\/offer\?a=1&amp;b=2"/);
+  assert.doesNotMatch(html, /stale-click-token|\/api\/glyph\/l\/|<img/);
+});
+
 test('email content escapes all HTML metacharacters', () => {
   assert.equal(
     escapeHtml('<script>"&\'</script>'),

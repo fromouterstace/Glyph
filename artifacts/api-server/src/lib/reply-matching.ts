@@ -29,28 +29,35 @@ export function messageIds(value: string): string[] {
   if (matches.length) return matches;
   return /^[^<>\s]+@[^<>\s]+$/.test(value.trim()) ? [value.trim()] : [];
 }
+/** Automatic responses and sender drafts cannot establish a recipient reply. */
+function isAutomatedReply(
+  candidate: ReplyCandidate,
+  headers: MessageHeaders,
+): boolean {
+  if (
+    candidate.labelIds?.some((label) => label === 'SENT' || label === 'DRAFT')
+  )
+    return true;
+  if (candidate.payload?.mimeType === 'multipart/report') return true;
+  const auto = headerValue(headers, 'auto-submitted').trim().toLowerCase();
+  if (auto && auto !== 'no') return true;
+  return Boolean(
+    /^(bulk|junk|list)$/i.test(headerValue(headers, 'precedence').trim()) ||
+    headerValue(headers, 'x-autoreply') ||
+    headerValue(headers, 'x-autorespond') ||
+    /delivery-status|disposition-notification/i.test(
+      headerValue(headers, 'content-type'),
+    ),
+  );
+}
+
 export function matchReply(
   candidate: ReplyCandidate,
   originals: ReplyOriginal[],
   mailbox: string,
 ): ReplyOriginal | null {
   const headers = candidate.payload?.headers ?? [];
-  if (
-    candidate.labelIds?.some((label) => label === 'SENT' || label === 'DRAFT')
-  )
-    return null;
-  if (candidate.payload?.mimeType === 'multipart/report') return null;
-  const auto = headerValue(headers, 'auto-submitted').trim().toLowerCase();
-  if (auto && auto !== 'no') return null;
-  if (
-    /^(bulk|junk|list)$/i.test(headerValue(headers, 'precedence').trim()) ||
-    headerValue(headers, 'x-autoreply') ||
-    headerValue(headers, 'x-autorespond') ||
-    /delivery-status|disposition-notification/i.test(
-      headerValue(headers, 'content-type'),
-    )
-  )
-    return null;
+  if (isAutomatedReply(candidate, headers)) return null;
   const from = mailboxAddresses(headerValue(headers, 'from'));
   if (
     from.length !== 1 ||

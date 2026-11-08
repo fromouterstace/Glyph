@@ -38,10 +38,10 @@ Gmail-connected sales email tracking: a glyph is the tracking pixel; tracked lin
 
 ## Architecture decisions
 
-- This first version uses the project's connected Gmail mailbox, not separate Gmail connections per app user. A verified Clerk email must match that mailbox before any mutation or mailbox address disclosure. Never allow arbitrary signed-in users to send through the shared connector.
-- Signed-in reads and writes are owner-scoped. A validated Clerk user's verified email must match the shared mailbox before any operation that accesses that mailbox or sends through the connector. Never trust a client-supplied owner ID.
-- Signed-out views are read-only and contain no fabricated messages or engagement. Static empty-state copy and documented first-use setting defaults are configuration, not activity.
-- The Gmail extension supports up to 100 unique To/Cc/Bcc recipients on one shared message; pixel and click signals are aggregate, not per-recipient attribution. The secondary web composer supports one To address. Unique opaque pixel/link tokens associate signals with the sent copy, but forwarding, proxies, and scanners prevent proof of reader identity.
+- Each Glyph user can authorize one personal Gmail mailbox matching a verified Clerk email. Mailbox switching and send-as aliases are not supported. The original shared connector remains available only to its verified owner during migration; a personal grant, including a disconnected one, must never fall back to that connector.
+- Signed-in reads and writes are owner-scoped. Validate the authenticated user's verified email against the selected Gmail mailbox before mailbox access or sending. Never trust a client-supplied owner ID.
+- Private dashboard pages and account-data APIs require sign-in; the public landing page contains no account activity. Static empty-state copy and documented first-use setting defaults are configuration, not activity.
+- The Gmail extension and secondary web composer support up to 100 unique To/Cc/Bcc recipients on one shared message. Pixel and click signals are aggregate, not per-recipient attribution. Unique opaque pixel/link tokens associate signals with the sent copy, but forwarding, proxies, and scanners prevent proof of reader identity.
 - Never automatically retry uncertain Gmail sends: reconcile by RFC Message-ID with Gmail Sent, and require manual review if still uncertain.
 - API authentication uses validated Clerk sessions; public token-based tracking endpoints deliberately remain unauthenticated so recipient clients can load images and follow tracked links.
 - Use PostgreSQL as the source of truth for messages, tokens, links, events, preferences, and counts. Event counts must come from persisted events; never fabricate or infer opens.
@@ -49,7 +49,7 @@ Gmail-connected sales email tracking: a glyph is the tracking pixel; tracked lin
 
 ## Product
 
-The primary product is a desktop Gmail browser extension. Its Add glyph control augments Gmail's own rich-text compose; Gmail still handles Send and keyboard shortcuts. The web app is the reporting, installation and connection companion. A legacy web composer remains secondary. Image caching, proxies, and security scanning make engagement approximate, not guaranteed read receipts.
+The primary product is a desktop Gmail browser extension. Its Add glyph control augments Gmail's own rich-text compose; Gmail still handles Send and keyboard shortcuts. The web app is the reporting, installation and connection companion. The rich web composer remains secondary. Image caching, proxies, and security scanning make engagement approximate, not guaranteed read receipts.
 
 ## Gotchas
 
