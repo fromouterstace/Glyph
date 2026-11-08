@@ -3,18 +3,23 @@
 **Latest observed posture:** See the
 [2026-11-08 security/HTTPS audit](security-https-audit-2026-11-08.md).
 The verification section below is the historical 2026-11-05 snapshot, not a
-current production guarantee. Current probes found authenticated account APIs,
-working TLS/HSTS on both published origins, and missing browser security headers
-on published HTML. Fixing and verifying that HTML delivery remains a priority.
+current production guarantee. Post-publish probes on 2026-11-08 at
+21:30:24Z–21:30:35Z passed on both published origins, including document GET/HEAD
+security policies, TLS/HSTS, database readiness, built assets, extension ZIP,
+anonymous account-API rejection and invalid-token tracking delivery.
 The [header-delivery implementation](html-security-header-delivery.md) now replaces
 production static serving with a header-capable web process and build/smoke gates.
-It awaits publishing and live verification on both hostnames; the audit's live
-observations must not be relabeled as fixed merely because workspace tests pass.
+The production HTML-header delivery gap is resolved based on those external
+responses, not merely workspace tests or publishing metadata. Real-browser
+sign-in, Google OAuth and actual Gmail recipient delivery remain separate
+acceptance items; the HTTP probes do not establish them.
 
 **Workspace status:** Sections 0–7 have workspace implementation or
 documentation evidence; Section 4 is now implemented and verified in the
-workspace. Phase 8 read-only preflight is complete, but release verification is
-blocked pending approval. None of the listed remediations has been published.
+workspace. Phase 8 read-only preflight is complete. The header-serving remediation
+has now been published by the user and observed working externally. This does
+not assert that every roadmap phase or provider-dependent acceptance item has
+been verified in production.
 **Basis:** Manual security audit dated 2026-11-05  
 **Audience assumption:** The person implementing the work and anyone reviewing
 security priorities.  

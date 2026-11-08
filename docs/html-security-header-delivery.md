@@ -71,9 +71,10 @@ This change does not disable certificate validation or modify managed Clerk DNS.
 
 ## Release verification
 
-**Workspace implementation is not a production fix until published.** Before
-publishing, HTTPS smoke against the existing live build is expected to fail the
-new document-header requirement. Do not weaken the gate to make that build green.
+**Workspace implementation is not a production fix until published and externally
+verified.** Before this remediation was published, HTTPS smoke correctly failed
+the old release's document-header requirement. Do not weaken the gate to accept
+an older or regressed release.
 
 After the user publishes:
 
@@ -104,8 +105,8 @@ production entrypoint also passed startup, headers, built assets/downloads, a
 combined read-only smoke against the existing local API, and clean SIGTERM exit.
 The dependency audit reported no vulnerabilities.
 
-The pre-publish live smoke still fails with `missing CSP frame-ancestors 'none'`.
-That is the expected unresolved deployment observation, not a passing live result.
+The initial pre-publish live smoke failed with `missing CSP frame-ancestors 'none'`.
+That was an unresolved deployment observation, not a passing live result.
 
 ## Follow-up gates and external evidence
 
@@ -122,7 +123,38 @@ also returned 200 on both origins with HSTS present, but CSP, X-Frame-Options,
 nosniff, Referrer-Policy and Permissions-Policy absent; caching was `private`,
 not the required `no-store`.
 
-**Release acceptance remains blocked on publishing and successful external
-reverification.** No publish was triggered by the agent. The scheduled workflow
-was updated in source; remote repository configuration and workflow activation
-were not performed or established.
+At that observation time, header release acceptance was blocked on publishing
+and external reverification. No publish was triggered by the agent. The scheduled
+workflow was updated in source; remote repository configuration and workflow
+activation were not performed or established.
+
+## Successful post-publish verification
+
+The user confirmed republishing succeeded. Publishing metadata reports a
+successful build completed at 2026-11-08T21:14:25Z. The previous failing probe
+at 21:10:51Z–21:10:53Z preceded that publication; it was not evidence of failure
+of the newly published serving configuration.
+
+At 2026-11-08T21:30:24Z–21:30:35Z, this command exited successfully:
+
+```sh
+pnpm check:published https://glyph.rocks https://glyph-mail.replit.app
+```
+
+Both origins independently passed:
+
+- GET and HEAD document policies across all 11 smoke document routes (44
+  document responses across both hosts), including CSP, frame denial, nosniff,
+  referrer and permissions policies, and no-store caching.
+- HTTPS certificate validation and at least one year of edge HSTS.
+- Bounded database readiness, entry and lazy asset graph, and extension ZIP.
+- Anonymous account reads returning 401.
+- Invalid-token pixel delivery returning a GIF and invalid link returning 404,
+  without generating customer engagement or sending mail.
+
+**The production HTML security-header delivery gap is resolved at this observed
+release.** `glyph.rocks` remains canonical; the alias is compatibility coverage.
+This point-in-time success is not continuous-monitoring evidence, comprehensive
+XSS protection, authenticated browser/OAuth acceptance, or real Gmail delivery
+evidence. Those remain separate checks. No additional publish was triggered by
+the agent.

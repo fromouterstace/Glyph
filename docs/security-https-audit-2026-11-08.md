@@ -2,6 +2,12 @@
 
 ## Executive assessment
 
+**Post-publish update, 2026-11-08T21:30Z:** Finding S1's HTML-header delivery gap
+is resolved on both public origins based on successful external GET/HEAD
+verification. See [header release evidence](html-security-header-delivery.md).
+The initial observations below are historical; the remaining auth-provider and
+stronger script-policy findings are not closed by this result.
+
 No critical/high finding was identified by the three fresh automated scans or
 the manual checks described below. This is **not** a claim of complete security.
 The principal confirmed gap is missing browser security headers on published
@@ -26,6 +32,9 @@ authorization branches, TLS configuration, or absence of business-logic flaws.
 ## Findings and priorities
 
 ### S1 — Medium: published HTML lacks browser security headers
+
+**Status: resolved after publishing and external verification at 21:30Z.**
+The following records the original failing observations, not the current release.
 
 **Confirmed on both published origins**, for `/`, `/sign-in`, `/emails`, and
 `/gmail`:
