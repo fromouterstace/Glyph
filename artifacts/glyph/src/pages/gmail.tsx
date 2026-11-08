@@ -187,16 +187,17 @@ export default function GmailPage() {
         data-testid="section-update-extension"
       >
         <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
-          Already installed? Update to v0.5.3
+          Already installed? Update to v0.5.4
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
-          Connects only to glyph.rocks, where you sign in and connect your Gmail
-          account. An older glyph-mail.replit.app extension connection is
-          cleared on update; reconnect and approve access to glyph.rocks.
-          Refreshes open Gmail tabs after extension updates, browser startup,
-          and reconnect. Updated scripts hand over without reloading Gmail or
-          sending your draft. Older scripts may need one manual Gmail reload
-          after the draft is saved.
+          Compact tracking controls sit near Gmail’s Send controls, outside the
+          outgoing message, including in inline replies. Connects only to
+          glyph.rocks, where you sign in and connect your Gmail account. An
+          older glyph-mail.replit.app extension connection is cleared on update;
+          reconnect and approve access to glyph.rocks. Refreshes open Gmail tabs
+          after extension updates, browser startup, and reconnect. Updated
+          scripts hand over without reloading Gmail or sending your draft. Older
+          scripts may need one manual Gmail reload after the draft is saved.
         </p>
         <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm">
           <li>Download the new ZIP above and extract it.</li>

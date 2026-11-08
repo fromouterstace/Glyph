@@ -37,3 +37,13 @@ the two browser origins share the user's authenticated session.
 permission and package version together. Clear obsolete bridge state and
 require explicit permission on the new origin. Keep mailbox OAuth authorization
 distinct from app sign-in; never bypass either check to repair the connection.
+
+Keep Glyph's browser controls outside outgoing message content and use a compact
+placement near Gmail's native Send controls, including inline replies.
+
+**Why:** The user found the full-width toolbar above reply text too intrusive
+and explicitly chose compact controls near Send instead.
+
+**How to apply:** Preserve draft content and Gmail's own Send behavior when
+changing placement. If an unfamiliar layout prevents locating Send safely,
+place controls outside the editor rather than guessing inside message content.

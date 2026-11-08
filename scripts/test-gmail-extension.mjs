@@ -126,7 +126,7 @@ test('manifest and popup enforce the exact trusted Glyph origin', async () => {
       'utf8',
     ),
   );
-  assert.equal(manifest.version, '0.5.3');
+  assert.equal(manifest.version, '0.5.4');
   assert.deepEqual(manifest.optional_host_permissions, [
     `${PUBLISHED_GLYPH_ORIGIN}/*`,
   ]);
@@ -227,16 +227,17 @@ test('a pre-handoff orphaned toolbar fails safely without rewriting its draft', 
   assert.equal(f.calls.length, before);
   assert.equal(f.document.querySelectorAll('.glyph-native-toolbar').length, 1);
 });
-function editor(index = 0) {
-  return `<div class="M9" id="compose${index}"><input name="subjectbox" value="A proposal">
+function editor(index = 0, inline = false) {
+  const tag = inline ? 'form' : 'div';
+  return `<${tag} ${inline ? '' : 'class="M9"'} id="compose${index}"><input name="subjectbox" value="A proposal">
     <div email="recipient@example.com" id="recipient${index}"></div>
     <div><div role="textbox" contenteditable="true" g_editable="true" id="body${index}"><b>Hi there</b>, see <a href="https://example.com/pitch">the proposal</a><div>https://example.com/docs</div><div class="gmail_quote">Quoted <a href="https://example.com/old">history</a></div></div></div>
-    <button id="send${index}">Send</button></div>`;
+    <div class="send-controls"><button type="button" aria-label="Send" id="send${index}">Send</button></div></${tag}>`;
 }
 // Test harness construction is reusable setup, not a single test case.
 function fixture(t, options = {}) {
   const dom = new JSDOM(
-    `<a aria-label="Google Account: Owner (owner@example.com)" href="https://accounts.google.com/SignOutOptions"></a>${editor()}${options.two ? editor(1) : ''}`,
+    `<a aria-label="Google Account: Owner (owner@example.com)" href="https://accounts.google.com/SignOutOptions"></a>${editor(0, options.inline)}${options.two ? editor(1) : ''}`,
     { url: 'https://mail.google.com/mail/u/0/', runScripts: 'outside-only' },
   );
   const clock = FakeTimers.withGlobal(dom.window).install({
@@ -317,6 +318,75 @@ function fixture(t, options = {}) {
     },
   };
 }
+test('compact controls stay beside native Send and outside compose and reply message bodies', async (t) => {
+  for (const inline of [false, true]) {
+    const f = fixture(t, { inline });
+    await wait();
+    const toolbar = f.document.querySelector('.glyph-native-toolbar');
+    const send = f.document.getElementById('send0');
+    assert.equal(toolbar.parentElement, send.parentElement);
+    assert.equal(toolbar.nextElementSibling, send);
+    assert.equal(toolbar.getAttribute('role'), 'group');
+    assert.equal(toolbar.getAttribute('aria-label'), 'Glyph tracking controls');
+    assert.equal(toolbar.getAttribute('contenteditable'), 'false');
+    assert.equal(toolbar.closest('[contenteditable="true"]'), null);
+    assert.equal(f.body.querySelector('.glyph-native-toolbar'), null);
+    assert.equal(f.body.innerHTML, f.original);
+    assert.equal(toolbar.querySelector('details').open, false);
+    assert.equal(toolbar.querySelector('.glyph-native-status').textContent, '');
+    let sent = 0;
+    send.addEventListener('click', () => sent++);
+    toolbar.querySelector('summary').click();
+    toolbar.querySelector('input').click();
+    assert.equal(sent, 0);
+    send.click();
+    assert.equal(sent, 1);
+  }
+});
+
+test('Send controls can mount late or be replaced without duplicate toolbars or lost edits', async (t) => {
+  const f = fixture(t, { inline: true });
+  await wait();
+  const root = f.document.getElementById('compose0');
+  const toolbar = root.querySelector('.glyph-native-toolbar');
+  root.querySelector('.send-controls').remove();
+  f.body.append(' My unsent edits');
+  await wait(300);
+  assert.equal(toolbar.parentElement, root);
+  assert.equal(f.document.querySelectorAll('.glyph-native-toolbar').length, 1);
+  const controls = f.document.createElement('div');
+  controls.className = 'send-controls';
+  controls.innerHTML =
+    '<div role="button" data-tooltip="Send (Ctrl-Enter)">Send</div>';
+  root.append(controls);
+  await wait(300);
+  assert.equal(toolbar.parentElement, controls);
+  assert.equal(toolbar.nextElementSibling.getAttribute('role'), 'button');
+  assert.equal(f.document.querySelectorAll('.glyph-native-toolbar').length, 1);
+  assert.equal(f.body.innerHTML, `${f.original} My unsent edits`);
+  assert.equal(f.calls.filter((call) => call.action === 'prepare').length, 0);
+  f.window.eval(source);
+  await wait();
+  assert.equal(f.document.querySelectorAll('.glyph-native-toolbar').length, 1);
+  assert.equal(f.body.innerHTML, `${f.original} My unsent edits`);
+});
+
+test('unknown layouts keep the toolbar below the compose, never beside a quoted Send button', async (t) => {
+  const f = fixture(t);
+  await wait();
+  const root = f.document.getElementById('compose0');
+  root.querySelector('.send-controls').remove();
+  const quote = f.document.createElement('div');
+  quote.className = 'gmail_quote';
+  quote.innerHTML = '<div role="button" aria-label="Send">Quoted content</div>';
+  root.append(quote);
+  await wait(300);
+  const toolbar = root.querySelector('.glyph-native-toolbar');
+  assert.equal(toolbar.parentElement, root);
+  assert.equal(quote.querySelector('.glyph-native-toolbar'), null);
+  assert.equal(f.body.innerHTML, f.original);
+});
+
 test('adds one control per compose without touching the Send button', async (t) => {
   const f = fixture(t);
   await wait(300);

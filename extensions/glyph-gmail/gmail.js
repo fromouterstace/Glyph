@@ -175,7 +175,9 @@
   }
   function cleanClone(body) {
     const clone = body.cloneNode(true);
-    clone.querySelectorAll('.glyph-native-footer').forEach((el) => el.remove());
+    clone
+      .querySelectorAll('.glyph-native-footer, .glyph-native-toolbar')
+      .forEach((el) => el.remove());
     return clone;
   }
   function snapshot(state) {
@@ -362,12 +364,44 @@
       state.button.disabled = !!state.disconnected;
     }
   }
+  function placeToolbar({ body, root, toolbar }) {
+    // Gmail's inline replies and pop-out composes have different containers.
+    // Anchor to the native Send control, never to the editable body or its
+    // wrapper. Do not change Gmail's button, layout, or send handlers.
+    const send = [
+      ...root.querySelectorAll(
+        '[role="button"][data-tooltip^="Send"], [role="button"][aria-label^="Send"], button[aria-label^="Send"]',
+      ),
+    ].find(
+      (node) =>
+        !node.closest(
+          '.glyph-native-toolbar, .gmail_quote, [contenteditable="true"], [g_editable="true"]',
+        ),
+    );
+    const parent = send?.parentElement;
+    const safeParent =
+      parent &&
+      !body.contains(parent) &&
+      !parent.closest('[contenteditable="true"], [g_editable="true"]') &&
+      !['TABLE', 'TBODY', 'THEAD', 'TFOOT', 'TR'].includes(parent.tagName);
+    if (safeParent) {
+      if (toolbar.parentElement !== parent || toolbar.nextSibling !== send)
+        parent.insertBefore(toolbar, send);
+    } else if (!root.closest('[contenteditable="true"], [g_editable="true"]')) {
+      // Unknown/localized Gmail layout: keep controls below the compose rather
+      // than inserting anything into the outgoing draft. Re-anchor on rescan
+      // if Gmail mounts its Send controls later.
+      if (toolbar.parentElement !== root) root.append(toolbar);
+    }
+  }
   function attach(body, root) {
     const handlers = [];
     const on = (...args) => handlers.push(listen(...args));
     const toolbar = document.createElement('div');
     toolbar.className = 'glyph-native-toolbar';
     toolbar.setAttribute('contenteditable', 'false');
+    toolbar.setAttribute('role', 'group');
+    toolbar.setAttribute('aria-label', 'Glyph tracking controls');
     const brand = document.createElement('strong');
     brand.textContent = 'glyph';
     toolbar.append(brand);
@@ -400,13 +434,17 @@
     status.className = 'glyph-native-status';
     status.setAttribute('role', 'status');
     status.setAttribute('aria-live', 'polite');
-    status.textContent = 'Rich-text mode · To / Cc / Bcc';
     toolbar.append(button, recovery, status);
-    const caveat = document.createElement('small');
+    const info = document.createElement('details');
+    info.className = 'glyph-native-info';
+    const summary = document.createElement('summary');
+    summary.textContent = 'Info';
+    summary.title = 'About Glyph tracking';
+    const caveat = document.createElement('p');
     caveat.textContent =
       'Shared messages have aggregate signals, not individual read receipts. Proxies, scanners and forwarding can affect attribution.';
-    toolbar.append(caveat);
-    body.parentElement.insertBefore(toolbar, body);
+    info.append(summary, caveat);
+    toolbar.append(info);
     const state = {
       body,
       root,
@@ -423,6 +461,7 @@
       disconnected: false,
       handlers,
     };
+    placeToolbar(state);
     states.set(body, state);
     live.add(state);
     on(button, 'click', (event) => {
@@ -479,6 +518,7 @@
         live.delete(state);
         continue;
       }
+      placeToolbar(state);
       if (!globalThis.glyphMessaging.available()) {
         showRecovery(state);
         continue;
@@ -498,6 +538,7 @@
         body.closest('form');
       if (
         !root ||
+        root.closest('[contenteditable="true"], [g_editable="true"]') ||
         root.querySelectorAll('div[contenteditable="true"][role="textbox"]')
           .length > 1
       )

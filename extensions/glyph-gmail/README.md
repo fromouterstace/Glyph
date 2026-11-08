@@ -41,7 +41,12 @@ Use https://glyph.rocks for the extension connection and sign in there. Then cli
 
 ## Updating from an earlier extension
 
-Replace the files in the original unpacked extension folder with the v0.5.3 package, click Reload in `chrome://extensions` or `edge://extensions`, then reconnect to https://glyph.rocks and approve host access. On update, the extension unregisters the previous dynamic bridge and removes saved untrusted host permissions and connection state, including the previous glyph-mail.replit.app connection. Existing tracking tokens and emails are not changed. Publishing the web app alone does not update an installed extension.
+Replace the files in the original unpacked extension folder with the v0.5.4 package, click Reload in `chrome://extensions` or `edge://extensions`, then reconnect to https://glyph.rocks and approve host access. On update, the extension unregisters the previous dynamic bridge and removes saved untrusted host permissions and connection state, including the previous glyph-mail.replit.app connection. Existing tracking tokens and emails are not changed. Publishing the web app alone does not update an installed extension.
+
+Tracking controls use a compact toolbar beside Gmail's Send controls in composes
+and inline replies, outside the editable message. Explanatory text is collapsed
+under Info. Unknown layouts fall back below the compose, never inside the draft;
+the toolbar re-anchors when Gmail mounts or replaces Send controls.
 
 Chrome invalidates old content-script runtimes when an extension is replaced,
 reloaded, disabled or removed. The extension now reinjects its current messaging,

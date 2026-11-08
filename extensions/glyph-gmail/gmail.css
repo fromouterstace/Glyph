@@ -2,12 +2,15 @@
   display: none !important;
 }
 .glyph-native-toolbar {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px;
-  padding: 9px 10px;
-  margin: 0 0 8px;
+  vertical-align: middle;
+  max-width: 100%;
+  box-sizing: border-box;
+  gap: 6px;
+  padding: 4px 6px;
+  margin: 4px 6px 4px 0;
   border: 1px solid #d8dfdc;
   border-radius: 6px;
   background: #f4f6f3;
@@ -17,7 +20,7 @@
     sans-serif;
 }
 .glyph-native-toolbar strong {
-  font-size: 15px;
+  font-size: 12px;
   letter-spacing: -0.4px;
 }
 .glyph-native-toolbar strong::before {
@@ -42,7 +45,7 @@
   cursor: pointer;
   border: 0;
   border-radius: 4px;
-  padding: 6px 10px;
+  padding: 4px 7px;
   background: #d94020;
   color: white;
   font:
@@ -62,6 +65,19 @@
   color: #526864;
   font-size: 11px;
   overflow-wrap: anywhere;
+}
+.glyph-native-status:empty {
+  display: none;
+}
+.glyph-native-info summary {
+  cursor: pointer;
+  color: #526864;
+  font-size: 11px;
+}
+.glyph-native-info p {
+  max-width: 280px;
+  margin: 6px 0 0;
+  font-size: 11px;
 }
 .glyph-native-error {
   color: #a92b16;
