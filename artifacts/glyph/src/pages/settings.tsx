@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BellRing, Globe } from 'lucide-react';
 import {
   useGetSettings,
+  useGetConnection,
   useUpdateSettings,
   type SettingsInput,
 } from '@workspace/api-client-react';
@@ -21,7 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function SettingsPage() {
   const { isSignedIn } = useSession();
-  const s = useGetSettings();
+  const s = useGetSettings({ query: { refetchInterval: 30_000 } });
   const upd = useUpdateSettings();
   const invalidate = useInvalidateAll();
   const { toast } = useToast();
@@ -136,7 +137,7 @@ export default function SettingsPage() {
             <Toggle
               id="notify-opens"
               label="Alert on pixel loads"
-              desc="In-app toast when a new pixel load arrives."
+              desc="New pixel-load signals, excluding known automated requests. Applies to in-app and email alerts."
               checked={form.notifyOpens}
               disabled={locked}
               onChange={(v) => set('notifyOpens', v)}
@@ -144,7 +145,7 @@ export default function SettingsPage() {
             <Toggle
               id="notify-clicks"
               label="Alert on tracked-link requests"
-              desc="In-app toast when a tracked link is followed."
+              desc="New tracked-link signals, excluding known automated requests. Applies to in-app and email alerts."
               checked={form.notifyClicks}
               disabled={locked}
               onChange={(v) => set('notifyClicks', v)}
@@ -158,6 +159,27 @@ export default function SettingsPage() {
               onChange={(v) => set('notifyReplies', v)}
             />
             <BrowserNotifications locked={locked} />
+            <EmailConsentToggle
+              value={form.emailAlerts}
+              locked={locked}
+              onChange={(v) => set('emailAlerts', v)}
+            />
+            <div className="border-t border-border p-5 text-xs text-muted-foreground">
+              <p>
+                Email alerts work without an open tab while the Glyph server is
+                running. Only new signals after consent qualify; no historical
+                backfill. At most one open and one click email per tracked
+                message, and one email per minute. Queued alerts expire after 24
+                hours. Disable above and save to stop queued alerts. Reply
+                alerts remain in-app only.
+              </p>
+              <p className="mt-2">
+                Signals do not prove human reading or recipient identity.
+                Proxies, forwarding and undetected scanners can still trigger
+                them.
+              </p>
+              <EmailAlertStatus status={s.data?.emailAlertStatus} />
+            </div>
           </section>
 
           <div className="flex justify-end">
@@ -176,11 +198,49 @@ export default function SettingsPage() {
   );
 }
 
+function EmailConsentToggle({
+  value,
+  locked,
+  onChange,
+}: {
+  value?: boolean;
+  locked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  const c = useGetConnection();
+  return (
+    <Toggle
+      id="email-alerts"
+      label="Email alerts, even when Glyph is closed"
+      desc={`I agree to send open and click alert emails from and to my verified Gmail mailbox${c.data?.email ? ` (${c.data.email})` : ''}. Off by default. Save changes to confirm.`}
+      checked={value ?? false}
+      disabled={locked || !c.data?.authorized}
+      onChange={onChange}
+    />
+  );
+}
+
+function EmailAlertStatus({ status }: { status?: string }) {
+  return status ? (
+    <p className="mt-2" data-testid="text-email-alert-status">
+      {status}
+    </p>
+  ) : null;
+}
+
 function editableSettings({
   readOnly: _readOnly,
+  emailAlertStatus: _emailAlertStatus,
   ...settings
-}: SettingsInput & { readOnly?: boolean }): SettingsInput {
-  return { ...settings, notifyReplies: settings.notifyReplies ?? true };
+}: SettingsInput & {
+  readOnly?: boolean;
+  emailAlertStatus?: string;
+}): SettingsInput {
+  return {
+    ...settings,
+    emailAlerts: settings.emailAlerts ?? false,
+    notifyReplies: settings.notifyReplies ?? true,
+  };
 }
 
 function settingsChanged(

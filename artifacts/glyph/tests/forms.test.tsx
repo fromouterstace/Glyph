@@ -21,6 +21,8 @@ const mocks = vi.hoisted(() => ({
   settingsRefetch: vi.fn(),
   sending: false,
   settings: {
+    emailAlerts: false,
+    emailAlertStatus: '0 queued',
     defaultTrackOpens: true,
     defaultTrackClicks: false,
     notifyOpens: true,
@@ -68,6 +70,9 @@ vi.mock('@/components/rich-email-editor', () => ({
   ),
 }));
 vi.mock('@workspace/api-client-react', () => ({
+  useGetConnection: () => ({
+    data: { authorized: true, email: 'owner@example.com' },
+  }),
   useGetSettings: () => ({
     data: mocks.settings,
     isError: mocks.settingsError,
@@ -212,6 +217,7 @@ beforeEach(() => {
   mocks.settings.trackingBaseUrl = '';
   mocks.settings.defaultTrackOpens = true;
   mocks.settings.readOnly = false;
+  mocks.settings.emailAlerts = false;
   mocks.userLoaded = true;
   mocks.user = {
     id: 'sender-1',
@@ -563,6 +569,18 @@ describe('composer sessions', () => {
   });
 });
 
+it('requires saving explicit email consent and never submits the read-only delivery status', () => {
+  render(<SettingsPage />);
+  const toggle = screen.getByTestId('switch-email-alerts');
+  expect(toggle.getAttribute('aria-checked')).toBe('false');
+  fireEvent.click(toggle);
+  expect(mocks.settingsUpdate).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByTestId('button-save-settings'));
+  const payload = mocks.settingsUpdate.mock.calls[0][0].data;
+  expect(payload.emailAlerts).toBe(true);
+  expect(payload.emailAlertStatus).toBeUndefined();
+  expect(payload.readOnly).toBeUndefined();
+});
 describe('settings editing', () => {
   it('preserves pending changes across server refreshes', () => {
     const view = render(<SettingsPage />);

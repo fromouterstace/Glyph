@@ -2,6 +2,7 @@ import app from './app';
 import { logger } from './lib/logger';
 import { pool } from '@workspace/db';
 import { startManagedServer } from './lib/server-lifecycle';
+import { startAlertWorker } from './lib/glyph-alerts';
 
 const rawPort = process.env['PORT'];
 
@@ -17,9 +18,16 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-startManagedServer({
+let stopAlerts = () => {};
+const { server } = startManagedServer({
   app,
   port,
   logger,
-  closeDependencies: () => pool.end(),
+  closeDependencies: async () => {
+    stopAlerts();
+    await pool.end();
+  },
+});
+server.once('listening', () => {
+  stopAlerts = startAlertWorker();
 });

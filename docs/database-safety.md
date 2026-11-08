@@ -42,8 +42,9 @@ Prisma solely to apply this guidance to an existing Drizzle app.
   Manual CI runs without a base still check current inventory and SQL; they do
   not independently establish append-only history.
 - The conservative SQL blocker rejects DROP, TRUNCATE, DELETE, UPDATE, renames,
-  ALTER, procedural/dynamic SQL, comments, dollar quoting, and unsupported
-  statements. Its initial allowlist is CREATE TABLE / CREATE INDEX review plans.
+  existing-column ALTER, procedural/dynamic SQL, comments, dollar quoting, and unsupported
+  statements. Its allowlist is CREATE TABLE / CREATE INDEX review plans and
+  the strictly validated nullable/constant-default ADD COLUMN forms below.
   It is not Atlas or a full SQL parser, and it does not prove an additive
   statement has no locking/performance effects. It may reject harmless literals.
   Extending support (for example nullable ADD COLUMN) requires a reviewed policy
@@ -74,6 +75,13 @@ Drizzle/psql remains possible: these controls do not replace permissions, review
 or the platform's production safeguards.
 
 ## Required expand-and-contract sequence
+
+Reviewed expansion plans may add nullable text/timestamptz columns or boolean
+columns with constant true/false defaults (including NOT NULL with that default).
+Expression defaults, type changes, renames, removals and arbitrary ALTER remain
+blocked. New-table foreign keys may use ON DELETE CASCADE to preserve existing
+message deletion semantics; this does not permit DROP CASCADE or data-changing
+statements. The alert delivery expansion does not run DDL or backfill at startup.
 
 1. **Expand:** design additive structures and backwards-compatible readers.
    Document old/new application compatibility, owner isolation, indexes,

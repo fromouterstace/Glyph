@@ -9,16 +9,27 @@ export function assertSafePlan(sql) {
   if (!sql.trim()) throw new Error('Schema plan must not be empty.');
   if (/\/\*|--|\$\$|\\/.test(sql))
     throw new Error('Comments, dollar quoting and escapes are not allowed.');
-  if (
-    /\b(drop|truncate|delete|update|rename|cascade|execute|call|do|copy|grant|revoke|alter|insert|select|as)\b/i.test(
-      sql,
-    )
-  )
-    throw new Error('Destructive, data-changing or unsupported SQL blocked.');
   for (const statement of sql.split(';').filter((part) => part.trim())) {
+    // Expand-only preference columns. Never admit expression defaults, existing
+    // column changes, constraints on populated rows, or arbitrary ALTER SQL.
+    const identifier = '(?:"[a-z_][a-z0-9_]*"|[a-z_][a-z0-9_]*)';
+    const additiveColumn = new RegExp(
+      `^\\s*ALTER TABLE ${identifier} ADD COLUMN ${identifier} (?:text|timestamp with time zone|boolean(?: DEFAULT (?:true|false)(?: NOT NULL)?)?)\\s*$`,
+      'i',
+    );
+    if (additiveColumn.test(statement)) continue;
+    // ON DELETE CASCADE on a new FK preserves existing message-delete semantics;
+    // it is not an instruction to cascade a schema contraction.
+    const checked = statement.replace(/\bON DELETE CASCADE\b/gi, '');
+    if (
+      /\b(drop|truncate|delete|update|rename|cascade|execute|call|do|copy|grant|revoke|alter|insert|select|as)\b/i.test(
+        checked,
+      )
+    )
+      throw new Error('Destructive, data-changing or unsupported SQL blocked.');
     if (!/^\s*CREATE\s+(TABLE|(?:UNIQUE\s+)?INDEX)\s/i.test(statement))
       throw new Error(
-        'Only reviewed additive CREATE TABLE/INDEX plans allowed.',
+        'Only reviewed additive CREATE TABLE/INDEX or safe ADD COLUMN plans allowed.',
       );
   }
 }

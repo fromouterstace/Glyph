@@ -9,4 +9,5 @@ import type { SettingsInput } from './settingsInput';
 
 export type Settings = SettingsInput & {
   readOnly: boolean;
+  emailAlertStatus?: string;
 };

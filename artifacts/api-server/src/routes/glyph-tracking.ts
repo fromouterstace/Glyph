@@ -1,15 +1,23 @@
 import { Router, type Request } from 'express';
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
-import { db, glyphEvents, glyphLinks, glyphMessages } from '@workspace/db';
+import {
+  db,
+  glyphDeliveries,
+  glyphSettings,
+  glyphEvents,
+  glyphLinks,
+  glyphMessages,
+} from '@workspace/db';
 import { syncNative } from '../lib/gmail-native';
 import { transparentGif } from '../lib/tracking-pixel';
 import { logSafeError } from '../lib/logger';
 import { consumeTrackingBudget } from '../lib/tracking-budget';
+import { wantsEmailAlert } from '../lib/alert-policy';
 
 const router = Router();
 
-async function recordSignal(
+export async function recordSignal(
   messageId: string,
   type: 'open' | 'click',
   agent: string,
@@ -27,14 +35,42 @@ async function recordSignal(
       : 'Unverified client request';
   if (!(await consumeTrackingBudget(messageId, type))) return false;
   const id = randomUUID();
-  await db.insert(glyphEvents).values({
-    id,
-    messageId,
-    type,
-    url,
-    automated,
-    source,
-    fingerprint: id,
+  await db.transaction(async (tx) => {
+    const [event] = await tx
+      .insert(glyphEvents)
+      .values({
+        id,
+        messageId,
+        type,
+        url,
+        automated,
+        source,
+        fingerprint: id,
+      })
+      .returning();
+    const [message] = await tx
+      .select()
+      .from(glyphMessages)
+      .where(eq(glyphMessages.id, messageId));
+    const [settings] = await tx
+      .select()
+      .from(glyphSettings)
+      .where(eq(glyphSettings.ownerId, message.ownerId));
+    if (!wantsEmailAlert(settings, event)) return;
+    const deliveryId = randomUUID();
+    await tx
+      .insert(glyphDeliveries)
+      .values({
+        id: deliveryId,
+        messageId,
+        eventId: event.id,
+        ownerId: message.ownerId,
+        type,
+        consentAt: settings.emailAlertsSince!,
+        mailbox: settings.alertMailbox!,
+        rfcMessageId: `glyph-alert-${deliveryId}@notifications.glyph.invalid`,
+      })
+      .onConflictDoNothing();
   });
   return true;
 }

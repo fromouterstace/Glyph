@@ -86,6 +86,11 @@ function AlertWatcher() {
       sent: 'Sent',
     };
     for (const a of fresh) {
+      if (
+        a.automated ||
+        Date.now() - new Date(a.occurredAt).getTime() > 120_000
+      )
+        continue;
       if (!enabled[a.type]) continue;
       const label = labels[a.type];
       const title = `${label}${a.automated ? ' (likely automated)' : ''}`;

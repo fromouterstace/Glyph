@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "phase": "expand",
+  "reason": "Add explicit email-alert consent and an owner-scoped durable delivery queue without backfilling historical signals.",
+  "compatibility": "Additive only: existing settings keep their values and email alerts default off. Old application instances ignore the new columns and table. Publish must apply this expansion before the alert worker is enabled. New foreign-key cascades retain existing message/event deletion behavior; no data migration or startup DDL.",
+  "recovery": "No production DDL or real email is run by this review. Before release, review the actual Publish diff, verify target-specific recovery and rehearse on an isolated clone with notification workers disabled. Roll back application code with consent off; retain additive columns and queued records rather than dropping data.",
+  "schema": {
+    "lib/db/src/schema/glyph-attachments.ts": "994719e904e83bac6a23585a403354292ea841cf7f95898e1f359b966d060d94",
+    "lib/db/src/schema/glyph-gmail.ts": "b1c5b54b114fb0943fc94edbfd9c2ea0565f65176dfd33e6d54de9966057c363",
+    "lib/db/src/schema/glyph-system.ts": "2122e4d97147fdf2e837af1c1acf85a760d134587e6abee9c4d1f9977c735c91",
+    "lib/db/src/schema/glyph.ts": "d764e19eefef11b7153d71e1c3951133268ae859b105ca90a5eb4db6acf5e399",
+    "lib/db/src/schema/index.ts": "8a3e806418a9b9c90f7ed3e6aea00499c8440ed9417538dc81e599f785dd4142"
+  },
+  "planSha256": "ee5b7786582fefd57d62aeb8bcac47843457b3d44523419737fa2aeeac65fa4d"
+}

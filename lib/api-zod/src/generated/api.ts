@@ -541,6 +541,7 @@ export const getSettingsResponseOneTrackingBaseUrlMax = 500;
 
 
 export const GetSettingsResponse = zod.object({
+  "emailAlerts": zod.boolean().optional(),
   "notifyOpens": zod.boolean(),
   "notifyClicks": zod.boolean(),
   "notifyReplies": zod.boolean().default(getSettingsResponseOneNotifyRepliesDefault),
@@ -548,7 +549,8 @@ export const GetSettingsResponse = zod.object({
   "defaultTrackClicks": zod.boolean(),
   "trackingBaseUrl": zod.string().max(getSettingsResponseOneTrackingBaseUrlMax)
 }).and(zod.object({
-  "readOnly": zod.boolean()
+  "readOnly": zod.boolean(),
+  "emailAlertStatus": zod.string().optional()
 }))
 
 
@@ -558,6 +560,7 @@ export const updateSettingsBodyTrackingBaseUrlMax = 500;
 
 
 export const UpdateSettingsBody = zod.object({
+  "emailAlerts": zod.boolean().optional(),
   "notifyOpens": zod.boolean(),
   "notifyClicks": zod.boolean(),
   "notifyReplies": zod.boolean().default(updateSettingsBodyNotifyRepliesDefault),
@@ -572,6 +575,7 @@ export const updateSettingsResponseOneTrackingBaseUrlMax = 500;
 
 
 export const UpdateSettingsResponse = zod.object({
+  "emailAlerts": zod.boolean().optional(),
   "notifyOpens": zod.boolean(),
   "notifyClicks": zod.boolean(),
   "notifyReplies": zod.boolean().default(updateSettingsResponseOneNotifyRepliesDefault),
@@ -579,7 +583,8 @@ export const UpdateSettingsResponse = zod.object({
   "defaultTrackClicks": zod.boolean(),
   "trackingBaseUrl": zod.string().max(updateSettingsResponseOneTrackingBaseUrlMax)
 }).and(zod.object({
-  "readOnly": zod.boolean()
+  "readOnly": zod.boolean(),
+  "emailAlertStatus": zod.string().optional()
 }))
 
 

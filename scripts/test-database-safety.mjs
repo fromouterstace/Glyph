@@ -42,6 +42,24 @@ test('destructive and opaque SQL fails closed including mixed case and multi-sta
     assert.throws(() => assertSafePlan(sql), undefined, sql);
 });
 
+test('safe nullable or constant-default column expansion is accepted without changing existing data', () => {
+  for (const sql of [
+    'ALTER TABLE glyph_settings ADD COLUMN email_alerts boolean DEFAULT false NOT NULL;',
+    'ALTER TABLE "glyph_settings" ADD COLUMN "email_alerts_since" timestamp with time zone;',
+    'ALTER TABLE glyph_settings ADD COLUMN alert_mailbox text;',
+    'CREATE TABLE alerts (message_id text REFERENCES glyph_messages(id) ON DELETE CASCADE);',
+  ])
+    assert.doesNotThrow(() => assertSafePlan(sql));
+  for (const sql of [
+    'ALTER TABLE glyph_settings ADD COLUMN broken text NOT NULL;',
+    'ALTER TABLE glyph_settings ADD COLUMN broken text DEFAULT current_user;',
+    'ALTER TABLE glyph_settings ADD COLUMN broken boolean DEFAULT true NOT NULL, DROP COLUMN notify_opens;',
+    'ALTER TABLE glyph_settings ADD COLUMN broken boolean DEFAULT (some_function());',
+    'DROP TABLE glyph_settings CASCADE;',
+  ])
+    assert.throws(() => assertSafePlan(sql));
+});
+
 test('schema review sequence and evidence are mandatory; no contract bypass', () => {
   const valid = {
     version: 2,

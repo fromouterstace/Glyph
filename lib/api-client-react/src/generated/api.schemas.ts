@@ -295,6 +295,7 @@ export interface Overview {
 }
 
 export interface SettingsInput {
+  emailAlerts?: boolean;
   notifyOpens: boolean;
   notifyClicks: boolean;
   notifyReplies?: boolean;
@@ -306,6 +307,7 @@ export interface SettingsInput {
 
 export type Settings = SettingsInput & {
   readOnly: boolean;
+  emailAlertStatus?: string;
 };
 
 export type GmailAuthorizationKind = typeof GmailAuthorizationKind[keyof typeof GmailAuthorizationKind];

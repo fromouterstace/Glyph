@@ -115,6 +115,9 @@ export const glyphTrackingBudgets = pgTable(
 
 export const glyphSettings = pgTable('glyph_settings', {
   ownerId: text('owner_id').primaryKey(),
+  emailAlerts: boolean('email_alerts').notNull().default(false),
+  emailAlertsSince: timestamp('email_alerts_since', { withTimezone: true }),
+  alertMailbox: text('alert_mailbox'),
   notifyOpens: boolean('notify_opens').notNull().default(true),
   notifyClicks: boolean('notify_clicks').notNull().default(true),
   notifyReplies: boolean('notify_replies').notNull().default(true),
@@ -123,10 +126,44 @@ export const glyphSettings = pgTable('glyph_settings', {
   trackingBaseUrl: text('tracking_base_url').notNull().default(''),
 });
 
+// Notification deduplication must not collapse the underlying request events.
+export const glyphDeliveries = pgTable(
+  'glyph_deliveries',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    messageId: text('message_id')
+      .notNull()
+      .references(() => glyphMessages.id, { onDelete: 'cascade' }),
+    eventId: text('event_id')
+      .notNull()
+      .references(() => glyphEvents.id, { onDelete: 'cascade' }),
+    type: text('type').notNull(),
+    consentAt: timestamp('consent_at', { withTimezone: true }).notNull(),
+    mailbox: text('mailbox').notNull(),
+    status: text('status').notNull().default('pending'),
+    rfcMessageId: text('rfc_message_id').notNull().unique(),
+    gmailId: text('gmail_id'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('glyph_delivery_signal_idx').on(t.messageId, t.type),
+    index('glyph_delivery_status_idx').on(t.status, t.updatedAt),
+    index('glyph_delivery_owner_idx').on(t.ownerId, t.updatedAt),
+  ],
+);
+
 export const insertGlyphMessageSchema = createInsertSchema(glyphMessages);
 export const insertGlyphLinkSchema = createInsertSchema(glyphLinks);
 export const insertGlyphEventSchema = createInsertSchema(glyphEvents);
 export const insertGlyphSettingsSchema = createInsertSchema(glyphSettings);
+export const insertGlyphDeliverySchema = createInsertSchema(glyphDeliveries);
+export type GlyphDelivery = typeof glyphDeliveries.$inferSelect;
 export type GlyphMessage = typeof glyphMessages.$inferSelect;
 export type GlyphEvent = typeof glyphEvents.$inferSelect;
 export * from './glyph-attachments';

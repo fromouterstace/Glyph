@@ -737,6 +737,7 @@ components:
           trackingBaseUrl,
         ]
       properties:
+        emailAlerts: { type: boolean }
         notifyOpens: { type: boolean }
         notifyClicks: { type: boolean }
         notifyReplies: { type: boolean, default: true }
@@ -750,6 +751,7 @@ components:
           required: [readOnly]
           properties:
             readOnly: { type: boolean }
+            emailAlertStatus: { type: string }
     GmailAuthorization:
       type: object
       required: [configured, connectOrigin, connected, email, kind]

@@ -7,6 +7,7 @@
  */
 
 export interface SettingsInput {
+  emailAlerts?: boolean;
   notifyOpens: boolean;
   notifyClicks: boolean;
   notifyReplies?: boolean;

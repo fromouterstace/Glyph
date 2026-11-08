@@ -235,7 +235,14 @@ regression checks are specified in [web-composer.md](web-composer.md).
 - Notifications reflect persisted eligible event types and the user's individual
   preferences. Browser alarms/notifications require a live browser context and
   signed-in connection tab; offline or throttled polling can delay alerts. Do not
-  promise delivery while the browser is closed.
+  promise browser-notification delivery while the browser is closed.
+- Explicitly opted-in server email alerts work without a browser while the API
+  server is running. Send only from and to the owner's verified Gmail mailbox,
+  respecting open/click preferences. No historical backfill or known-scanner
+  alerts; one email per tracked message and signal type, at most once per minute
+  per owner, with a 24-hour queue lifetime. Reply alerts remain in-app only.
+  Retain durable claims and RFC Message-IDs; uncertain sends are reconciled
+  through that owner's Sent mailbox, never automatically resent.
 
 ## 6. Environment, origin, and release safety
 

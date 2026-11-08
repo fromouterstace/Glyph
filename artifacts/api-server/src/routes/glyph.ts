@@ -1,6 +1,6 @@
 import { Router, type Request } from 'express';
 import { getAuth } from '@clerk/express';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, count } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import {
   db,
@@ -8,6 +8,7 @@ import {
   glyphLinks,
   glyphEvents,
   glyphSettings,
+  glyphDeliveries,
 } from '@workspace/db';
 import {
   CreateMessageBody,
@@ -76,7 +77,15 @@ async function settingsFor(ownerId: string | null) {
     .select()
     .from(glyphSettings)
     .where(eq(glyphSettings.ownerId, ownerId));
-  return { ...(row ?? defaultSettings), readOnly: false };
+  const counts = await db
+    .select({ status: glyphDeliveries.status, count: count() })
+    .from(glyphDeliveries)
+    .where(eq(glyphDeliveries.ownerId, ownerId))
+    .groupBy(glyphDeliveries.status);
+  const total = (status: string) =>
+    counts.find((c) => c.status === status)?.count ?? 0;
+  const emailAlertStatus = `${total('pending')} queued · ${total('sent')} confirmed sent · ${total('sending') + total('uncertain')} awaiting confirmation. Unconfirmed sends are checked in Gmail Sent and never automatically resent.`;
+  return { ...(row ?? defaultSettings), emailAlertStatus, readOnly: false };
 }
 const ownMessage = async (ownerId: string, id: string) => {
   const [row] = await db
@@ -490,11 +499,33 @@ router.patch('/glyph/settings', async (req, res): Promise<void> => {
     }
   }
   const ownerId = userId(req)!;
-  const data = { ...parsed.data, trackingBaseUrl: origin };
-  await db
-    .insert(glyphSettings)
-    .values({ ownerId, ...data })
-    .onConflictDoUpdate({ target: glyphSettings.ownerId, set: data });
+  const mailbox = await userMailboxEmail(ownerId);
+  await db.transaction(async (tx) => {
+    await tx.insert(glyphSettings).values({ ownerId }).onConflictDoNothing();
+    const [previous] = await tx
+      .select()
+      .from(glyphSettings)
+      .where(eq(glyphSettings.ownerId, ownerId))
+      .for('update');
+    const emailAlerts = parsed.data.emailAlerts ?? previous.emailAlerts;
+    const renewed =
+      emailAlerts &&
+      (!previous.emailAlerts || previous.alertMailbox !== mailbox);
+    await tx
+      .update(glyphSettings)
+      .set({
+        ...parsed.data,
+        trackingBaseUrl: origin,
+        emailAlerts,
+        emailAlertsSince: emailAlerts
+          ? renewed
+            ? new Date()
+            : previous.emailAlertsSince
+          : null,
+        alertMailbox: emailAlerts ? mailbox : null,
+      })
+      .where(eq(glyphSettings.ownerId, ownerId));
+  });
   res.json(UpdateSettingsResponse.parse(await settingsFor(ownerId)));
 });
 router.get('/glyph/connection', async (req, res): Promise<void> => {

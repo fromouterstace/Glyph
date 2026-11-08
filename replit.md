@@ -54,6 +54,9 @@ The primary product is a desktop Gmail browser extension. Its Add glyph control 
 
 ## Gotchas
 
+- Opt-in email alerts use each owner's verified Gmail mailbox, from and to itself, and work with Glyph closed while the API is running. Consent never backfills old signals. At most one open and one click alert per tracked message, excluding known automation; queued alerts expire after 24 hours and send at most once per minute per owner. Reply alerts remain in-app.
+- Notification sends use durable claims and stable RFC Message-IDs. Recover sending/uncertain jobs by searching that owner's Gmail Sent only; absence from search never authorizes a resend. No real test mail without explicit recipient/content approval.
+
 - Use a durable published HTTPS origin for reliable external tracking. A blank tracking origin follows the connection origin; a preview connection is still temporary.
 - Do not seed live mailbox data or send test emails without the user's explicit confirmation of recipient and content.
 - Native extension source is in `extensions/glyph-gmail`; `node extensions/build.mjs` produces the downloadable ZIP at web app predev/prebuild time. Generated PNG icons and ZIP need not be committed.
