@@ -126,7 +126,7 @@ test('manifest and popup enforce the exact trusted Glyph origin', async () => {
       'utf8',
     ),
   );
-  assert.equal(manifest.version, '0.5.5');
+  assert.equal(manifest.version, '0.5.6');
   assert.deepEqual(manifest.optional_host_permissions, [
     `${PUBLISHED_GLYPH_ORIGIN}/*`,
   ]);
@@ -393,6 +393,64 @@ test('nested Gmail Send cells get a separate full-width row, not a toolbar in th
   assert.equal(cell.firstElementChild, toolbar);
   assert.equal(toolbar.nextElementSibling, narrow);
   assert.equal(narrow.querySelector('.glyph-native-toolbar'), null);
+  assert.equal(f.body.innerHTML, f.original);
+});
+
+test('a constrained Gmail action table gets a separate row outside all native cells', async (t) => {
+  const f = fixture(t);
+  const root = f.document.getElementById('compose0');
+  const send = f.document.getElementById('send0');
+  const table = f.document.createElement('table');
+  table.innerHTML =
+    '<tbody><tr><td class="btC" style="height:32px;overflow:hidden"><div class="gU Up"></div></td><td>Other controls</td></tr></tbody>';
+  table.querySelector('.gU').append(send);
+  root.querySelector('.send-controls').replaceWith(table);
+  await wait(300);
+  const toolbar = root.querySelector('.glyph-native-toolbar');
+  assert.equal(toolbar.parentElement, table.parentElement);
+  assert.equal(toolbar.nextElementSibling, table);
+  assert.equal(table.querySelector('.glyph-native-toolbar'), null);
+  assert.equal(f.body.innerHTML, f.original);
+});
+
+test('editor-only M9 wrappers use the enclosing compose footer rather than the clipped editor area', async (t) => {
+  const f = fixture(t);
+  const root = f.document.getElementById('compose0');
+  root.classList.remove('M9');
+  root.setAttribute('role', 'dialog');
+  f.body.parentElement.className = 'M9';
+  f.window.eval(source);
+  await wait(300);
+  const toolbar = root.querySelector('.glyph-native-toolbar');
+  assert.equal(toolbar.parentElement, root.querySelector('.send-controls'));
+  assert.equal(
+    f.body.parentElement.querySelector('.glyph-native-toolbar'),
+    null,
+  );
+  assert.equal(f.body.innerHTML, f.original);
+});
+
+test('Gmail editors without textbox roles remain discoverable and quoted editors are ignored', async (t) => {
+  const f = fixture(t);
+  f.body.removeAttribute('role');
+  f.body.querySelector('.gmail_quote').innerHTML =
+    '<div contenteditable="true" role="textbox">quoted editor</div>';
+  const content = f.body.innerHTML;
+  f.window.eval(source);
+  await wait(300);
+  assert.equal(f.document.querySelectorAll('.glyph-native-toolbar').length, 1);
+  assert.equal(f.body.innerHTML, content);
+});
+
+test('editability attributes added after Gmail mounts trigger discovery', async (t) => {
+  const f = fixture(t);
+  f.body.removeAttribute('contenteditable');
+  f.window.eval(source);
+  await wait(300);
+  assert.equal(f.document.querySelector('.glyph-native-toolbar'), null);
+  f.body.setAttribute('contenteditable', 'true');
+  await wait(300);
+  assert.equal(f.document.querySelectorAll('.glyph-native-toolbar').length, 1);
   assert.equal(f.body.innerHTML, f.original);
 });
 

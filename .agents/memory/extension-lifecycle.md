@@ -50,3 +50,12 @@ into Gmail's narrow button wrapper.
 changing placement; do not mix tracking controls into the native action row.
 If an unfamiliar layout prevents locating Send safely,
 place controls outside the editor rather than guessing inside message content.
+Keep the independent row outside Gmail's constrained action table, and do not
+assume the nearest editor wrapper also owns the compose footer.
+
+**Why:** Testing a generic div-based footer did not expose Gmail's table-cell
+clipping or editor-only wrapper variants. A passing simplified DOM fixture is
+not evidence that placement works in the user's live Gmail tab.
+
+**How to apply:** Exercise table-based narrow composes and wrapper variants;
+report live-Gmail verification separately from local layout evidence.

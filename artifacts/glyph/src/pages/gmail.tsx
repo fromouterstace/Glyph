@@ -179,7 +179,7 @@ export default function GmailPage() {
         data-testid="section-update-extension"
       >
         <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
-          Already installed? Update to v0.5.5
+          Already installed? Update to v0.5.6
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
           Tracking controls have their own compact row above Gmail’s Send

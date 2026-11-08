@@ -425,20 +425,68 @@
       state.button.disabled = !!state.disconnected;
     }
   }
-  function placeToolbar({ body, root, toolbar }) {
+  const editorSelector =
+    '[contenteditable="true"][role="textbox"], [contenteditable="true"][g_editable="true"]';
+  const sendSelector =
+    '[role="button"][data-tooltip^="Send"], [role="button"][aria-label^="Send"], button[aria-label^="Send"]';
+  function composeEditors(root) {
+    return [...root.querySelectorAll(editorSelector)].filter(
+      (node) => !node.closest('.gmail_quote, .glyph-native-toolbar'),
+    );
+  }
+  function composeRoot(body) {
+    const candidates = [];
+    for (let node = body.parentElement; node; node = node.parentElement) {
+      if (
+        node.matches('.M9, [role="dialog"], form, .AD, .ip') &&
+        !node.closest('[contenteditable="true"], [g_editable="true"]') &&
+        composeEditors(node).length === 1
+      )
+        candidates.push(node);
+    }
+    // A .M9 editor wrapper does not always include Gmail's Send footer.
+    // Prefer the enclosing single-compose container with native controls.
+    return (
+      candidates.find((node) => node.querySelector(sendSelector)) ||
+      candidates[0]
+    );
+  }
+  function placeBeforeActionTable({ body, root, toolbar }, send) {
+    // Real Gmail footers use table cells with constrained heights/widths.
+    // A block inside .btC is not an independent row and can be clipped.
+    // Put our row before the action table, without changing its cells.
+    const table = send?.closest('table');
+    if (
+      table &&
+      root.contains(table) &&
+      !table.contains(body) &&
+      !table.parentElement.closest(
+        '[contenteditable="true"], [g_editable="true"]',
+      )
+    ) {
+      if (
+        toolbar.parentElement !== table.parentElement ||
+        toolbar.nextElementSibling !== table
+      )
+        table.before(toolbar);
+      return true;
+    }
+    return false;
+  }
+  function placeToolbar(state) {
+    const { body, toolbar } = state;
+    const root = composeRoot(body) || state.root;
+    state.root = root;
     // Gmail's inline replies and pop-out composes have different containers.
     // Anchor to the native Send control, never to the editable body or its
     // wrapper. Do not change Gmail's button, layout, or send handlers.
-    const send = [
-      ...root.querySelectorAll(
-        '[role="button"][data-tooltip^="Send"], [role="button"][aria-label^="Send"], button[aria-label^="Send"]',
-      ),
-    ].find(
+    const send = [...root.querySelectorAll(sendSelector)].find(
       (node) =>
         !node.closest(
           '.glyph-native-toolbar, .gmail_quote, [contenteditable="true"], [g_editable="true"]',
         ),
     );
+    if (placeBeforeActionTable(state, send)) return;
     // Gmail often wraps Send in a narrow floating div inside a wider .btC
     // action cell. Use the full action cell so tracking is not squeezed among
     // Send, formatting, attachments and trash.
@@ -604,21 +652,14 @@
         setStatus(state, 'Draft changed — add glyph again.');
       }
     }
-    for (const body of document.querySelectorAll(
-      'div[contenteditable="true"][role="textbox"]',
-    )) {
-      if (states.has(body) || body.closest('.glyph-native-toolbar')) continue;
-      const root =
-        body.closest('.M9') ||
-        body.closest('[role="dialog"]') ||
-        body.closest('form');
+    for (const body of document.querySelectorAll(editorSelector)) {
       if (
-        !root ||
-        root.closest('[contenteditable="true"], [g_editable="true"]') ||
-        root.querySelectorAll('div[contenteditable="true"][role="textbox"]')
-          .length > 1
+        states.has(body) ||
+        body.closest('.glyph-native-toolbar, .gmail_quote')
       )
         continue;
+      const root = composeRoot(body);
+      if (!root) continue;
       if (
         !body.hasAttribute('g_editable') &&
         !root.querySelector('input[name="subjectbox"]')
@@ -662,7 +703,15 @@
     subtree: true,
     characterData: true,
     attributes: true,
-    attributeFilter: ['email', 'data-recipient-id', 'href', 'src'],
+    attributeFilter: [
+      'email',
+      'data-recipient-id',
+      'href',
+      'src',
+      'role',
+      'contenteditable',
+      'g_editable',
+    ],
   });
   function dispose() {
     if (disposed) return;

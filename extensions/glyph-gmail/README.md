@@ -41,7 +41,7 @@ Use https://glyph.rocks for the extension connection and sign in there. Then cli
 
 ## Updating from an earlier extension
 
-Replace the files in the original unpacked extension folder with the v0.5.5 package, click Reload in `chrome://extensions` or `edge://extensions`, then reconnect to https://glyph.rocks and approve host access. On update, the extension unregisters the previous dynamic bridge and removes saved untrusted host permissions and connection state, including the previous glyph-mail.replit.app connection. Existing tracking tokens and emails are not changed. Publishing the web app alone does not update an installed extension.
+Replace the files in the original unpacked extension folder with the v0.5.6 package, click Reload in `chrome://extensions` or `edge://extensions`, then reconnect to https://glyph.rocks and approve host access. On update, the extension unregisters the previous dynamic bridge and removes saved untrusted host permissions and connection state, including the previous glyph-mail.replit.app connection. Existing tracking tokens and emails are not changed. Publishing the web app alone does not update an installed extension.
 
 Tracking controls use a separate compact row above Gmail's Send controls in composes
 and inline replies, outside the editable message and narrow Send button wrappers.
