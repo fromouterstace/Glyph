@@ -1,5 +1,12 @@
 # Glyph security remediation roadmap
 
+**Latest observed posture:** See the
+[2026-11-08 security/HTTPS audit](security-https-audit-2026-11-08.md).
+The verification section below is the historical 2026-11-05 snapshot, not a
+current production guarantee. Current probes found authenticated account APIs,
+working TLS/HSTS on both published origins, and missing browser security headers
+on published HTML. Fixing and verifying that HTML delivery remains a priority.
+
 **Workspace status:** Sections 0–7 have workspace implementation or
 documentation evidence; Section 4 is now implemented and verified in the
 workspace. Phase 8 read-only preflight is complete, but release verification is
