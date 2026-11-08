@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "phase": "baseline",
+  "reason": "Record the existing schema without applying DDL or claiming historical migrations.",
+  "compatibility": "No schema change. Replit Publish remains the sole managed-production schema application path.",
+  "recovery": "No mutation in this baseline. Future releases require target-specific recovery evidence and isolated restore rehearsal.",
+  "schema": {
+    "lib/db/src/schema/glyph-attachments.ts": "994719e904e83bac6a23585a403354292ea841cf7f95898e1f359b966d060d94",
+    "lib/db/src/schema/glyph-gmail.ts": "b1c5b54b114fb0943fc94edbfd9c2ea0565f65176dfd33e6d54de9966057c363",
+    "lib/db/src/schema/glyph-system.ts": "2122e4d97147fdf2e837af1c1acf85a760d134587e6abee9c4d1f9977c735c91",
+    "lib/db/src/schema/glyph.ts": "45a48f047b2e19763017b353fbe80ab3f4763f12ffa5caeff5ee74d41edef4f3",
+    "lib/db/src/schema/index.ts": "8a3e806418a9b9c90f7ed3e6aea00499c8440ed9417538dc81e599f785dd4142"
+  }
+}

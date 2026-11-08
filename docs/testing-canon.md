@@ -1,5 +1,23 @@
 # Glyph testing canon and regression gates
 
+## Database change safety
+
+`pnpm check:database` runs before quality/build and in post-merge. CI additionally
+supplies the PR/push base to reject edits/deletion of existing review history.
+The mandatory `test-database-safety.mjs` suite uses small independent unit and
+negative-control cases under the 50-line test-function budget; the existing
+100/150/200 contract/integration/E2E budgets remain unchanged. It covers blocked
+SQL, schema inventory drift, review sequencing/evidence, immutable history, dev
+target/force rejection, process exit before database access, deploy/runtime DDL
+patterns, and quality/build/CI wiring. These checks do not connect to PostgreSQL.
+
+The existing isolated PostgreSQL contracts remain necessary, but they do not
+verify production recovery. Before schema changes, require the manual gates in
+[database safety](database-safety.md): a reviewed actual Publish diff, verified
+recovery point, isolated restore rehearsal, compatible application versions and
+explicit destructive-change approval. Never simulate success with empty evidence
+or describe a static lint pass as a completed backup or clone test.
+
 The [2026-11-08 coverage audit](test-coverage-audit-2026-11-08.md) records the
 expanded critical-suite inventory, built/lazy-asset and ZIP integrity gates,
 process-test correction, and remaining live-provider evidence boundaries.

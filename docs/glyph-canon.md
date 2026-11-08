@@ -1,5 +1,19 @@
 # Glyph product, engineering, and safety canon
 
+## Database data-loss prevention
+
+The [database safety canon](database-safety.md) is mandatory for schema and data
+changes. Version schema reviews, run `pnpm check:database`, prohibit destructive
+or opaque SQL plans by default, and follow expand/migrate/observe/contract.
+Replit Publish alone applies managed-production schema changes: no direct
+production push, custom migration runner, startup DDL, or deploy-build DDL.
+Before a schema-changing release, review Publish's actual diff and require
+verified target-specific recovery and isolated-clone rehearsal evidence. A
+development checkpoint, static lint pass, or nonempty review field is not proof
+of a restorable production backup. Never overwrite production with development
+data to solve drift. See the dated [audit](database-safety-audit-2026-11-08.md)
+for inspected evidence and limits.
+
 This document records the product rules and guardrails future changes must
 preserve. Read it before changing tracking behavior, Gmail access, ownership,
 event storage, notifications, test policy, or production operations.

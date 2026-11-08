@@ -5,7 +5,8 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "test": "pnpm --filter @workspace/scripts test && pnpm --filter @workspace/scripts test:contracts && pnpm --filter @workspace/glyph test",
-    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm check:composer && pnpm test && pnpm check:gates",
+    "check": "pnpm check:database && pnpm lint && pnpm format:check && pnpm typecheck && pnpm check:composer && pnpm test && pnpm check:gates",
+    "check:database": "node scripts/check-database-safety.mjs",
     "check:composer": "node scripts/check-composer-tests.mjs",
     "check:gates": "pnpm --filter @workspace/scripts test:gates",
     "check:integration": "pnpm --filter @workspace/scripts test:integration",

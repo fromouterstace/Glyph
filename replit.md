@@ -15,7 +15,8 @@ Gmail-connected sales email tracking: a glyph is the tracking pixel; tracked lin
 - `pnpm run typecheck` — full typecheck across all packages
 - `PORT=3000 BASE_PATH=/ pnpm build` — full quality gates followed by production artifact builds
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — dev database schema only; never point this command at production without explicit authorization and a reviewed migration plan
+- `GLYPH_DATABASE_TARGET=development pnpm --filter @workspace/db run push` — reviewed development connection only, never production. Requires current versioned schema review. No force push; post-merge does not automatically mutate the schema.
+- Production schema application is owned exclusively by Replit Publish. Follow `docs/database-safety.md`; no custom production migration runners, deploy DDL, or startup DDL.
 - Required env: `DATABASE_URL` — obtain/configure it through the workspace secret flow; never print or commit it
 
 ## Stack

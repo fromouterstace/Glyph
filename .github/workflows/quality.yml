@@ -30,6 +30,8 @@ jobs:
       BASE_PATH: /
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           version: 10
@@ -38,6 +40,10 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Immutable schema history and data-loss blockers
+        env:
+          GLYPH_SCHEMA_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: pnpm check:database
       - name: Lint, formatting, strict types, risk-weighted coverage and builds
         run: pnpm build
       - name: PostgreSQL contracts and real tracking-route persistence
