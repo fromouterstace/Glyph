@@ -132,3 +132,6 @@ channel = "stable-25_05"
 [userenv.shared]
 GLYPH_ADMIN_EMAILS = "glyph.test.email@gmail.com"
 GLYPH_GMAIL_OAUTH_ORIGIN = "https://glyph.rocks"
+
+[objectStorage]
+defaultBucketID = "replit-objstore-f95b1e64-65bc-4eb1-bf81-b16e9ae9b796"
