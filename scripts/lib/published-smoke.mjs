@@ -1,5 +1,7 @@
 import { runSmoke } from './smoke-checks.mjs';
 
+export const CANONICAL_PUBLISHED_ORIGIN = 'https://glyph.rocks';
+
 export function publishedOrigins(values) {
   if (values.length < 2)
     throw new Error(
@@ -24,6 +26,10 @@ export function publishedOrigins(values) {
   });
   if (new Set(origins).size !== origins.length)
     throw new Error('Published smoke origins must be distinct.');
+  if (origins[0] !== CANONICAL_PUBLISHED_ORIGIN)
+    throw new Error(
+      `Published smoke primary must be ${CANONICAL_PUBLISHED_ORIGIN}.`,
+    );
   return origins;
 }
 

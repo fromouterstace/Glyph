@@ -1,10 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { publishedOrigins, runPublishedSmoke } from './lib/published-smoke.mjs';
+import {
+  CANONICAL_PUBLISHED_ORIGIN,
+  publishedOrigins,
+  runPublishedSmoke,
+} from './lib/published-smoke.mjs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const origins = ['https://primary.example', 'https://alias.example'];
+const origins = [CANONICAL_PUBLISHED_ORIGIN, 'https://alias.example'];
 
 test('published checks require distinct bare HTTPS primary and alias origins', () => {
   assert.deepEqual(publishedOrigins(origins.map((v) => v + '/')), origins);
@@ -36,7 +40,7 @@ test('an unhealthy primary cannot skip the alias or yield a successful release r
       },
       report: (row) => rows.push(row),
     }),
-    /failed for: https:\/\/primary.example/,
+    /failed for: https:\/\/glyph\.rocks/,
   );
   assert.deepEqual(visited, origins);
   assert.deepEqual(
@@ -80,6 +84,18 @@ test('published checks report success only after every origin passes', async () 
     origins,
   );
   assert.equal(rows.filter((r) => r.path === '/emails').length, 2);
+});
+
+test('the primary cannot drift to an alias, arbitrary host or lookalike', () => {
+  for (const primary of [
+    'https://glyph-mail.replit.app',
+    'https://other.example',
+    'https://glyph.rocks.attacker.example',
+  ])
+    assert.throws(
+      () => publishedOrigins([primary, 'https://alias.example']),
+      /primary must be https:\/\/glyph\.rocks/,
+    );
 });
 
 test('the real published CLI fails closed without an alias, before any network request', () => {

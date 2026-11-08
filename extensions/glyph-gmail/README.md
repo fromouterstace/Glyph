@@ -8,8 +8,8 @@ for its historical assessment.
 
 1. Extract the downloaded archive.
 2. Open `chrome://extensions` or `edge://extensions`, enable Developer mode, select **Load unpacked**, and choose the extracted `glyph-extension` folder.
-3. Pin Glyph. The v0.5.2 popup is fixed to `https://glyph-mail.replit.app`; click Connect and approve only that origin. Preview addresses, custom hosts and lookalike domains are not supported.
-4. Sign in on the Glyph connection tab with the verified email matching the project's connected Gmail mailbox. Keep that tab open (background is fine). The extension uses that tab's existing session; it never stores your Gmail password or OAuth tokens.
+3. Pin Glyph. The popup is fixed to `https://glyph.rocks`; click Connect and approve only that origin. Preview addresses, other hosts and lookalike domains are not supported.
+4. Sign in on the Glyph connection tab at `https://glyph.rocks` with the verified email matching your own Gmail mailbox, then connect that Gmail account on the page. Keep that tab open (background is fine). The extension uses that tab's existing session; it never stores your Gmail password or OAuth tokens.
 5. Reload Gmail. In a rich-text compose with up to 100 To, Cc and Bcc recipients, click **Add glyph**, then send using Gmail's normal Send or Ctrl/Cmd+Enter. Glyph does not intercept Send or split your message into separate sends. Finish entering recipient chips first and remove duplicate addresses across roles.
 6. Editing the body, recipient or subject removes the glyph; add it again after your edits. Remove glyph restores original links. Attachments and existing formatting are not replaced.
 
@@ -21,7 +21,7 @@ This is a single-mailbox developer build, not multi-tenant Gmail OAuth. Each Gly
 
 Use a root-mounted Glyph app and API on the same stable HTTPS origin, with working Clerk sign-in and the connected Gmail mailbox. Set the dashboard tracking origin to that same durable origin (or leave blank to use the connection origin). Do not point production tracking at a temporary preview. No publishing is performed by installing the extension.
 
-Required Gmail host access reads compose recipients, subject, text and links only when preparing tracking and adds the controls/pixel/link replacements. Optional HTTPS access is requested only for the fixed `https://glyph-mail.replit.app` origin; the manifest does not grant arbitrary HTTPS hosts or blanket website access. Scripting runs the isolated same-origin bridge on your open Glyph tab. Storage saves origin/preferences and notification state; alarms and notifications support browser engagement alerts. Neither OAuth tokens nor session cookies are stored in the extension.
+Required Gmail host access reads compose recipients, subject, text and links only when preparing tracking and adds the controls/pixel/link replacements. Optional HTTPS access is requested only for the fixed `https://glyph.rocks` origin; the manifest does not grant arbitrary HTTPS hosts or blanket website access. Scripting runs the isolated same-origin bridge on your open Glyph tab. Storage saves origin/preferences and notification state; alarms and notifications support browser engagement alerts. Neither OAuth tokens nor session cookies are stored in the extension.
 
 Tracking controls and attribution caveats are visible in each supported compose before you click Add glyph. If a draft changes, tracking is removed without cancelling Gmail Send. Inspect the “Glyph ready” status before sending. Gmail keyboard shortcuts and Undo Send remain Gmail's responsibility.
 

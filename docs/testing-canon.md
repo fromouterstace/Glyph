@@ -32,6 +32,11 @@ it to accept an old release or present a successful build as live evidence.
 Scheduled GitHub smoke uses repository variables `GLYPH_SMOKE_ORIGIN` (primary)
 and `GLYPH_SMOKE_ADDITIONAL_ORIGINS` (space-separated aliases). Both are required;
 missing, duplicate, HTTP, credential-bearing or non-origin targets fail closed.
+The primary must normalize to `https://glyph.rocks`; an alias, arbitrary HTTPS
+site or lookalike cannot replace it. A contract pins agreement between the
+frontend origin, extension trust policy/permission and release-smoke primary.
+Alias checks protect compatibility without making the alias a second canonical
+user workflow.
 The checked-in schedule does not prove the repository has been connected, its
 variables configured, or its workflow enabled. Per-origin UTC outcomes are retained
 in the existing workflow artifact, and any unhealthy outcome keeps the incident

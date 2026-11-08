@@ -225,6 +225,15 @@ regression checks are specified in [web-composer.md](web-composer.md).
 
 ## 6. Environment, origin, and release safety
 
+- `https://glyph.rocks` is the canonical production origin, chosen for
+  deterministic setup and operations. New user-facing setup links, extension
+  connections, and tracking workflows use it. Treat `glyph-mail.replit.app` as a
+  compatibility alias, not an interchangeable primary. Preserve existing token
+  URLs and alias response protections; do not rewrite already-sent emails or
+  silently migrate sessions/OAuth callbacks between origins.
+- The published smoke primary must be `https://glyph.rocks`; the app constant,
+  extension permission policy and smoke primary must agree in a contract test.
+  Alias compatibility checks remain required, not a second canonical workflow.
 - Use a stable published HTTPS origin for new real sends, connection, redirects,
   pixels, and reporting. The extension connection, server-approved tracking URLs,
   and dashboard must refer to the same deployment origin.
