@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   useGetGmailAuthorization,
-  useBeginGmailAuthorization,
+  beginGmailAuthorization,
   useDisconnectGmail,
   getGetGmailAuthorizationQueryKey,
   getGetConnectionQueryKey,
@@ -23,24 +23,39 @@ const outcomes: Record<string, string> = {
 
 export function GmailAuthorization() {
   const status = useGetGmailAuthorization();
-  const begin = useBeginGmailAuthorization();
+  const begin = useMutation({
+    mutationFn: () =>
+      beginGmailAuthorization({ signal: AbortSignal.timeout(15_000) }),
+    retry: false,
+    // Do not silently pause this explicit user action when the browser reports
+    // offline. Let the request fail visibly so the user can retry.
+    networkMode: 'always',
+  });
   const disconnect = useDisconnectGmail();
   const cache = useQueryClient();
   const [confirm, setConfirm] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [authorizationUrl, setAuthorizationUrl] = useState<string | null>(null);
   const busy = begin.isPending || disconnect.isPending;
   const outcome =
     new URLSearchParams(window.location.search).get('gmail') ?? '';
   const connect = async () => {
-    setMessage(null);
+    setAuthorizationUrl(null);
+    setMessage('Requesting secure Gmail authorization…');
     try {
       const result = await begin.mutateAsync();
       const url = new URL(result.authorizationUrl);
       if (url.origin !== 'https://accounts.google.com')
         throw new Error('The Gmail authorization URL is invalid.');
+      setAuthorizationUrl(url.toString());
+      setMessage('Opening Google to authorize your Gmail account…');
       window.location.assign(url.toString());
     } catch (error) {
-      setMessage(errorText(error));
+      setMessage(
+        error instanceof DOMException && error.name === 'TimeoutError'
+          ? 'Gmail authorization timed out. Check your connection and click Connect Gmail to try again.'
+          : errorText(error),
+      );
     }
   };
   const remove = async () => {
@@ -108,6 +123,15 @@ export function GmailAuthorization() {
         <p role="status" className="text-sm">
           {message || outcomes[outcome]}
         </p>
+      )}
+      {authorizationUrl && (
+        <a
+          href={authorizationUrl}
+          referrerPolicy="no-referrer"
+          className="inline-block text-sm font-medium text-primary underline"
+        >
+          Continue to Google if this page did not redirect
+        </a>
       )}
     </section>
   );

@@ -29,10 +29,7 @@ vi.mock('@workspace/api-client-react', () => ({
     isError: mock.error,
     refetch: mock.refetch,
   }),
-  useBeginGmailAuthorization: () => ({
-    mutateAsync: mock.begin,
-    isPending: false,
-  }),
+  beginGmailAuthorization: (...args: unknown[]) => mock.begin(...args),
   useDisconnectGmail: () => ({
     mutateAsync: mock.disconnect,
     isPending: false,
@@ -105,6 +102,76 @@ it('does not hide an authorization failure or navigate to an untrusted URL', asy
     expect(screen.getByRole('status').textContent).toContain(
       'authorization URL is invalid',
     ),
+  );
+  expect(screen.queryByRole('link', { name: /Continue to Google/ })).toBeNull();
+});
+
+it('shows immediate progress, prevents duplicate clicks, and bounds the request', async () => {
+  let reject!: (error: Error) => void;
+  mock.begin.mockImplementation(
+    () =>
+      new Promise((_resolve, fail) => {
+        reject = fail;
+      }),
+  );
+  const timeout = vi.spyOn(AbortSignal, 'timeout');
+  show();
+  fireEvent.click(screen.getByRole('button', { name: 'Connect Gmail' }));
+  expect(screen.getByRole('status').textContent).toContain(
+    'Requesting secure Gmail authorization',
+  );
+  await waitFor(() => expect(mock.begin).toHaveBeenCalledOnce());
+  expect(timeout).toHaveBeenCalledWith(15_000);
+  expect(mock.begin.mock.calls[0][0].signal).toBeInstanceOf(AbortSignal);
+  expect(
+    (screen.getByRole('button', { name: 'Please wait…' }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(true);
+  reject(new DOMException('Request timed out', 'TimeoutError'));
+  await waitFor(() =>
+    expect(screen.getByRole('status').textContent).toContain(
+      'Gmail authorization timed out',
+    ),
+  );
+  expect(
+    (screen.getByRole('button', { name: 'Connect Gmail' }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(false);
+  timeout.mockRestore();
+});
+
+it('shows server and network failures and allows an explicit retry', async () => {
+  mock.begin.mockRejectedValueOnce(
+    new Error('Sign in before connecting Gmail.'),
+  );
+  show();
+  fireEvent.click(screen.getByRole('button', { name: 'Connect Gmail' }));
+  await waitFor(() =>
+    expect(screen.getByRole('status').textContent).toContain(
+      'Sign in before connecting Gmail.',
+    ),
+  );
+  expect(mock.begin).toHaveBeenCalledOnce();
+  mock.begin.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+  fireEvent.click(screen.getByRole('button', { name: 'Connect Gmail' }));
+  await waitFor(() =>
+    expect(screen.getByRole('status').textContent).toContain('Failed to fetch'),
+  );
+  expect(mock.begin).toHaveBeenCalledTimes(2);
+});
+
+it('provides a validated Google link if automatic navigation does not leave the page', async () => {
+  mock.begin.mockResolvedValue({
+    authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+  });
+  show();
+  fireEvent.click(screen.getByRole('button', { name: 'Connect Gmail' }));
+  await waitFor(() =>
+    expect(
+      screen
+        .getByRole('link', { name: /Continue to Google/ })
+        .getAttribute('href'),
+    ).toBe('https://accounts.google.com/o/oauth2/v2/auth'),
   );
 });
 
