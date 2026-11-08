@@ -1,10 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { runSmoke } from './lib/smoke-checks.mjs';
+import { pages, runSmoke } from './lib/smoke-checks.mjs';
 import { extensionZip } from './tests/helpers/extension-archive.mjs';
 
-function fixture(overrides = new Map(), calls = []) {
-  return async (input) => {
+const publishedHeaders = {
+  'content-security-policy':
+    "frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
+  'x-frame-options': 'DENY',
+  'x-content-type-options': 'nosniff',
+  'referrer-policy': 'strict-origin-when-cross-origin',
+  'permissions-policy': 'camera=(), microphone=(), geolocation=()',
+  'cache-control': 'no-store',
+  'strict-transport-security': 'max-age=63072000; includeSubDomains',
+};
+
+function fixture(overrides = new Map(), calls = [], published = false) {
+  return async (input, options = {}) => {
     const { pathname } = new URL(input);
     calls.push(pathname);
     if (overrides.has(pathname)) return overrides.get(pathname)();
@@ -34,11 +45,50 @@ function fixture(overrides = new Map(), calls = []) {
         headers: { 'content-type': 'text/css' },
       });
     return new Response(
-      '<html><div id="root"></div><script src="/assets/app.js"></script><link rel="stylesheet" href="/assets/app.css"></html>',
-      { headers: { 'content-type': 'text/html' } },
+      options.method === 'HEAD'
+        ? null
+        : '<html><div id="root"></div><script src="/assets/app.js"></script><link rel="stylesheet" href="/assets/app.css"></html>',
+      {
+        headers: {
+          'content-type': 'text/html',
+          ...(published ? publishedHeaders : {}),
+        },
+      },
     );
   };
 }
+
+test('HTTPS smoke validates every document with GET and HEAD without skipping API and download checks', async () => {
+  const calls = [];
+  const heads = [];
+  const baseFixture = fixture(new Map(), calls, true);
+  await runSmoke({
+    base: 'https://glyph.example',
+    fetchImpl: (input, options) => {
+      if (options.method === 'HEAD') heads.push(new URL(input).pathname);
+      return baseFixture(input, options);
+    },
+  });
+  assert.deepEqual(heads, pages);
+  assert.ok(calls.includes('/glyph-extension.zip'));
+  assert.ok(calls.includes('/api/glyph/messages'));
+});
+
+test('a HEAD-only policy regression on a deep link fails complete HTTPS smoke', async () => {
+  const baseFixture = fixture(new Map(), [], true);
+  await assert.rejects(
+    runSmoke({
+      base: 'https://glyph.example',
+      fetchImpl: async (input, options) => {
+        const response = await baseFixture(input, options);
+        if (options.method === 'HEAD' && new URL(input).pathname === '/gmail')
+          response.headers.delete('content-security-policy');
+        return response;
+      },
+    }),
+    /\/gmail HEAD: missing CSP/,
+  );
+});
 
 test('smoke checks pages, assets, download and anonymous APIs using only safe reads', async () => {
   const calls = [];

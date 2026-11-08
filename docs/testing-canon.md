@@ -6,6 +6,38 @@ process-test correction, and remaining live-provider evidence boundaries.
 
 ## Route delivery
 
+### HTML browser-security regression gates
+
+Production HTML is served by `artifacts/glyph/server`, while development stays on
+Vite. `scripts/web-serving.contract.test.mjs` checks real GET/HEAD responses under
+both Host values, deep links, base paths, caching, ZIP integrity, rejected files,
+and non-HTML API failures. `scripts/check-web-server.mjs` repeats delivery checks
+against the real compiled output during the artifact build. A gate negative
+control proves its failure prevents a successful build.
+
+The independent `scripts/lib/document-security.mjs` response oracle must not import
+the server's policy. Required unit suites cover missing headers, conflicting CSP
+duplicates, HEAD-only failures, weakened HSTS, and multi-origin failure propagation.
+Source configuration or header strings inside HTML never substitute for real
+response headers. Keep the existing 50/100/150/200-line test-body limits, required
+suite inventory, no skips/focus, and negative gate controls.
+
+`pnpm check:published https://glyph.rocks https://glyph-mail.replit.app` runs the
+complete safe smoke on both origins, including document GET/HEAD and edge HSTS.
+It attempts both even if one fails and exits nonzero if either fails. This is a
+post-publish release acceptance check, not a pre-publish build dependency: the old
+release may legitimately fail while its replacement is being built. Never weaken
+it to accept an old release or present a successful build as live evidence.
+
+Scheduled GitHub smoke uses repository variables `GLYPH_SMOKE_ORIGIN` (primary)
+and `GLYPH_SMOKE_ADDITIONAL_ORIGINS` (space-separated aliases). Both are required;
+missing, duplicate, HTTP, credential-bearing or non-origin targets fail closed.
+The checked-in schedule does not prove the repository has been connected, its
+variables configured, or its workflow enabled. Per-origin UTC outcomes are retained
+in the existing workflow artifact, and any unhealthy outcome keeps the incident
+open and the workflow failed. Controlled real-browser sign-in/OAuth/extension
+checks remain separate; anonymous HTTP smoke does not prove them.
+
 The Glyph artifact build validates Vite's production manifest with
 `scripts/check-route-chunks.mjs`. All six protected pages must remain distinct
 lazy entries outside the initial static import graph. Loading occurs inside the
@@ -217,11 +249,13 @@ Use `pnpm check:smoke https://YOUR-PUBLISHED-ORIGIN` with the current URL return
 by publishing metadata. Remote targets must use HTTPS, without credentials,
 query strings or subpaths. The default is the local proxy on port 80.
 
-This command issues only anonymous GETs. It uses deliberately invalid tracking
+This command issues only anonymous GETs and, for HTTPS documents, HEADs. It uses
+deliberately invalid tracking
 tokens, so it cannot create customer engagement or follow a customer link. It
-checks bounded PostgreSQL/critical-table readiness, HTML shells and directly
-referenced local JavaScript/CSS, not execution of JavaScript, transitive chunks,
-sign-in, user isolation after sign-in, every schema column, Gmail authorization,
+checks bounded PostgreSQL/critical-table readiness, HTML policies, the reachable
+local JavaScript/CSS dependency graph, and extension ZIP integrity, not JavaScript
+execution, sign-in, user isolation after sign-in, every schema column, Gmail
+authorization,
 notification delivery or valid-token persistence.
 An HTML fallback for a missing asset/ZIP fails. An account-read 200 or redirect
 fails even when its result appears empty. Do not relax those assertions to make

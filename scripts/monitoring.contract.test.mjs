@@ -9,10 +9,9 @@ test('scheduled smoke retains evidence, opens an incident and never ignores an u
   );
   assert.match(workflow, /cron: '7,22,37,52 \* \* \* \*'/);
   assert.match(workflow, /vars\.GLYPH_SMOKE_ORIGIN/);
-  assert.match(
-    workflow,
-    /node scripts\/smoke-check\.mjs "\$GLYPH_SMOKE_ORIGIN"/,
-  );
+  assert.match(workflow, /node scripts\/published-smoke\.mjs/);
+  assert.match(workflow, /vars\.GLYPH_SMOKE_ADDITIONAL_ORIGINS/);
+  assert.match(workflow, /-z "\$GLYPH_SMOKE_ADDITIONAL_ORIGINS"/);
   assert.match(workflow, /actions\/upload-artifact@/);
   assert.match(workflow, /issues\.create\(/);
   assert.match(workflow, /state: 'closed'/);

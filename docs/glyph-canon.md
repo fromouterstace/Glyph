@@ -245,12 +245,29 @@ regression checks are specified in [web-composer.md](web-composer.md).
   buffer chunked responses only up to the configured cap, and return controlled
   timeout/overflow/upstream-failure responses. Preserve bodyless HEAD/204/304
   behavior and verify actual published Clerk assets before changing those limits.
-- API responses set frame, MIME, referrer, and permissions protections; static
-  response-header rules are configured in `.replit`, but their effect on this
-  Autoscale deployment's static artifact must be confirmed after publishing. Do
-  not add a restrictive script CSP or Clerk authorized-party rule until the real
-  preview, published domain, and any supported custom domain have been verified;
-  the development preview does not prove production behavior.
+- Production HTML must be delivered by the header-capable web service, not
+  headerless static hosting. API headers, `.replit` configuration, and HTML meta
+  tags are not evidence of document protection. Preserve the production GET/HEAD
+  HTTP build gate and the contract guard against reverting to static serving.
+- Browser security guardrails: require the unambiguous CSP
+  `frame-ancestors 'none'; object-src 'none'; base-uri 'self'`, `X-Frame-Options:
+  DENY`, MIME sniffing protection, strict-origin referrer policy, disabled
+  camera/microphone/geolocation, and no-store documents. Duplicate critical CSP
+  directives must fail verification. Hashed assets may retain immutable caching.
+- Release safetyrails: run read-only `pnpm check:published` against both verified
+  HTTPS origins. Every app document must pass GET and HEAD policies; public
+  responses must retain at least one year of edge HSTS. An unhealthy primary must
+  not skip the alias, and either failure must fail the overall result. Retain
+  per-origin timestamped evidence; never mark the gap closed from workspace
+  checks or a successful publishing status alone.
+- Keep Vite Preview separate from the production framing ban. Preserve `/api`
+  routing, public token endpoints, deep links, missing-asset errors, and extension
+  ZIP delivery. Do not add a restrictive script CSP or Clerk authorized-party
+  rule until supported preview and production/custom-domain browser flows have
+  been verified. This minimal CSP is not comprehensive XSS protection.
+- See [HTML header delivery](html-security-header-delivery.md) for the serving
+  decision and release evidence boundary; [testing canon](testing-canon.md) defines
+  the enforced tests and external smoke configuration.
 - Never use a preview, local, temporary, or one deployment's origin for a message
   sent from another deployment. Do not repair an already sent message by editing
   its pixel host: its token and event live in the original environment's database.

@@ -17,6 +17,7 @@ jobs:
       issues: write
     env:
       GLYPH_SMOKE_ORIGIN: ${{ vars.GLYPH_SMOKE_ORIGIN }}
+      GLYPH_SMOKE_ADDITIONAL_ORIGINS: ${{ vars.GLYPH_SMOKE_ADDITIONAL_ORIGINS }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,11 +31,11 @@ jobs:
         run: |
           set -o pipefail
           date -u +"Started %Y-%m-%dT%H:%M:%SZ" | tee production-smoke.log
-          if [[ -z "$GLYPH_SMOKE_ORIGIN" ]]; then
-            echo "Set repository variable GLYPH_SMOKE_ORIGIN to the verified published HTTPS origin." | tee -a production-smoke.log
+          if [[ -z "$GLYPH_SMOKE_ORIGIN" || -z "$GLYPH_SMOKE_ADDITIONAL_ORIGINS" ]]; then
+            echo "Set GLYPH_SMOKE_ORIGIN and GLYPH_SMOKE_ADDITIONAL_ORIGINS to the verified primary and alias HTTPS origins." | tee -a production-smoke.log
             exit 1
           fi
-          node scripts/smoke-check.mjs "$GLYPH_SMOKE_ORIGIN" 2>&1 | tee -a production-smoke.log
+          node scripts/published-smoke.mjs 2>&1 | tee -a production-smoke.log
       - name: Retain timestamped smoke evidence
         if: always()
         uses: actions/upload-artifact@v4

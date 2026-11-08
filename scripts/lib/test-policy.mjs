@@ -21,6 +21,7 @@ export const criticalModules = [
 // must not silently reduce the suite that produces a green report.
 export const requiredUnitSuites = [
   'test-document-security.mjs',
+  'test-published-smoke.mjs',
   'test-built-assets.mjs',
   'test-composer-delivery.mjs',
   'test-composer-test-inventory.mjs',

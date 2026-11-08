@@ -77,11 +77,12 @@ new document-header requirement. Do not weaken the gate to make that build green
 
 After the user publishes:
 
-1. Run `node scripts/smoke-check.mjs https://glyph.rocks`.
-2. Run `node scripts/smoke-check.mjs https://glyph-mail.replit.app`.
-3. Check actual GET and HEAD headers for `/`, `/emails`, `/gmail`, `/sign-in`,
-   and `/sign-up` on both origins.
-4. Verify direct sign-in and Google callback, an authenticated page, extension
+1. Run `pnpm check:published https://glyph.rocks https://glyph-mail.replit.app`.
+   This checks both even after a failure, requires HTTPS, checks GET and HEAD
+   policies on every document, and verifies at least one year of edge HSTS.
+2. Retain the per-origin timestamped outcomes. Neither a working API nor successful
+   build/publishing metadata is a substitute for the external document checks.
+3. Verify direct sign-in and Google callback, an authenticated page, extension
    connection/download, and normal navigation in a controlled browser. Recipient
    tracking must remain public; use invalid/synthetic tokens unless live mail
    testing is specifically authorized.
@@ -89,7 +90,12 @@ After the user publishes:
 Do not describe the published header gap as closed until these live responses
 have been checked.
 
-## Workspace verification
+For scheduled monitoring, configure the repository variables `GLYPH_SMOKE_ORIGIN`
+and `GLYPH_SMOKE_ADDITIONAL_ORIGINS`; see the testing canon. The workflow fails
+closed if the alias is omitted. The agent cannot click Publish or enable a remote
+repository workflow from the checked-in configuration alone.
+
+## Initial workspace verification
 
 Lint, independent formatting verification, strict TypeScript, 206 unit tests,
 76 contracts, 74 UI tests, and 13 gate controls passed (369 cases). Web and API
@@ -100,3 +106,23 @@ The dependency audit reported no vulnerabilities.
 
 The pre-publish live smoke still fails with `missing CSP frame-ancestors 'none'`.
 That is the expected unresolved deployment observation, not a passing live result.
+
+## Follow-up gates and external evidence
+
+On 2026-11-08, the expanded verification passed 217 unit cases, 76 contracts,
+74 UI cases, and 13 gate controls (380 total), plus lint, independent Prettier
+verification, TypeScript, and both production artifact builds. These include a
+real CLI child-process negative control proving that two headerless origins
+both get checked and produce a nonzero exit. No production data was changed.
+
+At 2026-11-08T20:28:16Z–20:28:18Z, the multi-origin live probe checked both
+`https://glyph.rocks` and `https://glyph-mail.replit.app`. Both passed readiness
+but failed the root HTML CSP requirement. Separate `/emails` GET and HEAD probes
+also returned 200 on both origins with HSTS present, but CSP, X-Frame-Options,
+nosniff, Referrer-Policy and Permissions-Policy absent; caching was `private`,
+not the required `no-store`.
+
+**Release acceptance remains blocked on publishing and successful external
+reverification.** No publish was triggered by the agent. The scheduled workflow
+was updated in source; remote repository configuration and workflow activation
+were not performed or established.

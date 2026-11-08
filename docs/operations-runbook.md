@@ -70,8 +70,15 @@ is configured. To activate:
 
 1. Commit/push the workflow and scripts to the intended GitHub repository's
    default branch through the normal approved source-control flow.
-2. Set repository **variable** `GLYPH_SMOKE_ORIGIN` to the current public HTTPS
-   origin verified from deployment metadata. It is not a credential.
+2. Set repository **variables** `GLYPH_SMOKE_ORIGIN` to the current primary public
+   HTTPS origin and `GLYPH_SMOKE_ADDITIONAL_ORIGINS` to its space-separated alias
+   origins, verified from deployment metadata. These are not credentials.
+   Both are required; omitted aliases fail closed. For the current deployment,
+   the primary is `https://glyph.rocks` and the alias is
+   `https://glyph-mail.replit.app`. Run `pnpm check:published` with both origins
+   after publishing; GET and HEAD policies, one-year-minimum HSTS, and all safe
+   HTTP smoke checks must pass separately for each. A failure on one must not
+   prevent probing the other or close the incident.
 3. Enable Actions and scheduled workflows; permit the smoke job to write issues.
 4. Manually dispatch once and inspect its artifact and incident status. Verify a
    controlled failed run and recovery, and subscribe an operator to the issue.

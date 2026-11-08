@@ -11,6 +11,7 @@
     "check:integration": "pnpm --filter @workspace/scripts test:integration",
     "check:http": "pnpm --filter @workspace/scripts test:tracking-http",
     "check:smoke": "node scripts/smoke-check.mjs",
+    "check:published": "node scripts/published-smoke.mjs",
     "release:regressions": "node scripts/release-regression.mjs report",
     "release:record": "node scripts/release-regression.mjs record",
     "release:observe": "node scripts/release-regression.mjs observe",
