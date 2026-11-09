@@ -44,6 +44,7 @@ export const glyphMessages = pgTable(
       .notNull()
       .defaultNow(),
     sentAt: timestamp('sent_at', { withTimezone: true }),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
   },
   (t) => [
     index('glyph_messages_owner_idx').on(t.ownerId, t.createdAt, t.id),
@@ -59,6 +60,7 @@ export const glyphLinks = pgTable('glyph_links', {
     .references(() => glyphMessages.id, { onDelete: 'cascade' }),
   token: text('token').notNull().unique(),
   url: text('url').notNull(),
+  retiredAt: timestamp('retired_at', { withTimezone: true }),
 });
 
 export const glyphEvents = pgTable(

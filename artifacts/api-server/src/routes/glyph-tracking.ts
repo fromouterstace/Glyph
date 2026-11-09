@@ -1,6 +1,6 @@
 import { Router, type Request } from 'express';
 import { randomUUID } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import {
   db,
   glyphDeliveries,
@@ -119,7 +119,12 @@ async function processPixelRequest(req: Request): Promise<void> {
   const [selected] = await db
     .select()
     .from(glyphMessages)
-    .where(eq(glyphMessages.pixelToken, token));
+    .where(
+      and(
+        eq(glyphMessages.pixelToken, token),
+        isNull(glyphMessages.archivedAt),
+      ),
+    );
   let message: typeof glyphMessages.$inferSelect | undefined = selected;
   const composeReferrer = /^https:\/\/mail\.google\.com(?:\/|$)/.test(
     req.get('referer') ?? '',
@@ -194,7 +199,13 @@ router.get('/glyph/l/:token', async (req, res): Promise<void> => {
     .select({ link: glyphLinks, message: glyphMessages })
     .from(glyphLinks)
     .innerJoin(glyphMessages, eq(glyphLinks.messageId, glyphMessages.id))
-    .where(eq(glyphLinks.token, token));
+    .where(
+      and(
+        eq(glyphLinks.token, token),
+        isNull(glyphLinks.retiredAt),
+        isNull(glyphMessages.archivedAt),
+      ),
+    );
   if (!row) {
     res.status(404).send('Link not found');
     return;

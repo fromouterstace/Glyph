@@ -1,4 +1,4 @@
-import { and, count, desc, eq, sql } from 'drizzle-orm';
+import { and, count, desc, eq, isNull, sql } from 'drizzle-orm';
 import { db, glyphContacts, glyphEvents, glyphMessages } from '@workspace/db';
 
 const MESSAGE_LIMIT = 25;
@@ -7,6 +7,7 @@ const EVENT_LIMIT = 50;
 function relatedMessages(ownerId: string, email: string) {
   return and(
     eq(glyphMessages.ownerId, ownerId),
+    isNull(glyphMessages.archivedAt),
     sql`(
       lower(${glyphMessages.recipientEmail}) = ${email.toLowerCase()}
       or exists (

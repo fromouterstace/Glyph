@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { getAuth } from '@clerk/express';
 import { randomUUID } from 'node:crypto';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { db, glyphMessages, glyphLinks, glyphSettings } from '@workspace/db';
 import {
   PrepareNativeMessageBody,
@@ -91,6 +91,7 @@ router.post('/glyph/native/prepare', async (req, res): Promise<void> => {
         and(
           eq(glyphMessages.ownerId, ownerId),
           eq(glyphMessages.nativeComposeKey, data.composeKey),
+          isNull(glyphMessages.archivedAt),
         ),
       )
       .for('update');
@@ -125,7 +126,7 @@ router.post('/glyph/native/prepare', async (req, res): Promise<void> => {
     const old = await tx
       .select()
       .from(glyphLinks)
-      .where(eq(glyphLinks.messageId, id));
+      .where(and(eq(glyphLinks.messageId, id), isNull(glyphLinks.retiredAt)));
     const links = data.trackClicks
       ? [...new Set(urls)].map(
           (url) =>
@@ -137,8 +138,25 @@ router.post('/glyph/native/prepare', async (req, res): Promise<void> => {
             },
         )
       : [];
-    await tx.delete(glyphLinks).where(eq(glyphLinks.messageId, id));
-    if (links.length) await tx.insert(glyphLinks).values(links);
+    const retainedIds = new Set(links.map((link) => link.id));
+    const obsolete = old.filter((link) => !retainedIds.has(link.id));
+    if (obsolete.length)
+      await tx
+        .update(glyphLinks)
+        .set({ retiredAt: new Date() })
+        .where(
+          and(
+            eq(glyphLinks.messageId, id),
+            isNull(glyphLinks.retiredAt),
+            inArray(
+              glyphLinks.id,
+              obsolete.map((link) => link.id),
+            ),
+          ),
+        );
+    const oldIds = new Set(old.map((link) => link.id));
+    const newLinks = links.filter((link) => !oldIds.has(link.id));
+    if (newLinks.length) await tx.insert(glyphLinks).values(newLinks);
     return {
       messageId: id,
       pixelUrl: data.trackOpens

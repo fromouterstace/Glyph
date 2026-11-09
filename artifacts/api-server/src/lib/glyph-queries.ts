@@ -6,6 +6,7 @@ import {
   ilike,
   inArray,
   isNotNull,
+  isNull,
   lt,
   ne,
   or,
@@ -47,7 +48,10 @@ function messageConditions(
   search?: string,
   status?: string,
 ): SQL {
-  const conditions: SQL[] = [eq(glyphMessages.ownerId, ownerId)];
+  const conditions: SQL[] = [
+    eq(glyphMessages.ownerId, ownerId),
+    isNull(glyphMessages.archivedAt),
+  ];
   const needle = search?.trim();
   if (needle) {
     const pattern = `%${needle}%`;
@@ -137,7 +141,9 @@ export async function getOwnerOverview(ownerId: string) {
     })
     .from(glyphMessages)
     .leftJoin(glyphEvents, eq(glyphEvents.messageId, glyphMessages.id))
-    .where(eq(glyphMessages.ownerId, ownerId));
+    .where(
+      and(eq(glyphMessages.ownerId, ownerId), isNull(glyphMessages.archivedAt)),
+    );
 
   const now = new Date(Date.now());
   const start = new Date(now);
@@ -156,6 +162,7 @@ export async function getOwnerOverview(ownerId: string) {
       .where(
         and(
           eq(glyphMessages.ownerId, ownerId),
+          isNull(glyphMessages.archivedAt),
           eq(glyphMessages.status, 'sent'),
           ne(glyphMessages.deliverySource, 'import'),
           gte(glyphMessages.sentAt, start),
@@ -174,6 +181,7 @@ export async function getOwnerOverview(ownerId: string) {
       .where(
         and(
           eq(glyphMessages.ownerId, ownerId),
+          isNull(glyphMessages.archivedAt),
           gte(glyphEvents.occurredAt, start),
           lt(glyphEvents.occurredAt, end),
         ),
@@ -225,7 +233,10 @@ export async function listOwnerActivity(
   ownerId: string,
   params: { limit: number; offset: number; type?: string },
 ) {
-  const conditions: SQL[] = [eq(glyphMessages.ownerId, ownerId)];
+  const conditions: SQL[] = [
+    eq(glyphMessages.ownerId, ownerId),
+    isNull(glyphMessages.archivedAt),
+  ];
   if (params.type && params.type !== 'all') {
     if (params.type === 'human')
       conditions.push(eq(glyphEvents.automated, false));
@@ -263,7 +274,11 @@ export async function listMessageEvents(
     .select()
     .from(glyphMessages)
     .where(
-      and(eq(glyphMessages.id, messageId), eq(glyphMessages.ownerId, ownerId)),
+      and(
+        eq(glyphMessages.id, messageId),
+        eq(glyphMessages.ownerId, ownerId),
+        isNull(glyphMessages.archivedAt),
+      ),
     );
   if (!message) return null;
 

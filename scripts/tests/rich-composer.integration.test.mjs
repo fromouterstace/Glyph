@@ -185,13 +185,13 @@ test('oversized or mismatched actual uploads are rejected and cleaned up', async
       })
     ).status,
   ).toBe(400);
-  expect(store.files.has(path)).toBe(false);
+  expect(store.files.has(path)).toBe(true);
   expect(
     (await h.request(`/attachments/${pending.attachment.id}`, { user: owner }))
       .status,
   ).toBe(404);
 });
-test('referenced files cannot be deleted; removing and saving releases them safely', async () => {
+test('referenced files cannot be retired; removed attachment records and bytes are retained', async () => {
   const user = h.identity();
   const { attachment } = await upload(user);
   const message = await (
@@ -226,6 +226,17 @@ test('referenced files cannot be deleted; removing and saving releases them safe
       })
     ).status,
   ).toBe(204);
+  expect(
+    (
+      await h.sql('SELECT retired_at FROM glyph_attachments WHERE id=$1', [
+        attachment.id,
+      ])
+    ).rows[0].retired_at,
+  ).not.toBeNull();
+  expect(store.files.size).toBeGreaterThan(0);
+  expect(
+    (await h.request(`/attachments/${attachment.id}`, { user })).status,
+  ).toBe(404);
 });
 test('rich formatting and exact attachment bytes reach the Gmail MIME request, not real Gmail', async () => {
   const user = h.identity();

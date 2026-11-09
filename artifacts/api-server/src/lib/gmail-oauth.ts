@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { and, eq, gt, isNull, lt, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import { clerkClient } from '@clerk/express';
 import {
   db,
@@ -41,10 +41,11 @@ export async function beginGmailAuthorization(
       sql`SELECT pg_advisory_xact_lock(hashtextextended(${ownerId}, 7451))`,
     );
     await tx
-      .delete(glyphGmailOAuthStates)
-      .where(lt(glyphGmailOAuthStates.expiresAt, new Date(Date.now())));
-    await tx
-      .delete(glyphGmailOAuthStates)
+      .update(glyphGmailOAuthStates)
+      .set({
+        encryptedVerifier: '',
+        expiresAt: new Date(0),
+      })
       .where(eq(glyphGmailOAuthStates.ownerId, ownerId));
     await tx.insert(glyphGmailOAuthStates).values({
       stateHash: hashOAuthValue(state),
@@ -159,7 +160,11 @@ async function saveConnection(
       sql`SELECT pg_advisory_xact_lock(hashtextextended(${ownerId}, 7451))`,
     );
     const [pending] = await tx
-      .delete(glyphGmailOAuthStates)
+      .update(glyphGmailOAuthStates)
+      .set({
+        encryptedVerifier: '',
+        expiresAt: new Date(0),
+      })
       .where(
         and(
           eq(glyphGmailOAuthStates.ownerId, ownerId),
@@ -264,7 +269,11 @@ export async function disconnectGmail(ownerId: string) {
       .where(eq(glyphGmailConnections.ownerId, ownerId))
       .for('update');
     await tx
-      .delete(glyphGmailOAuthStates)
+      .update(glyphGmailOAuthStates)
+      .set({
+        encryptedVerifier: '',
+        expiresAt: new Date(0),
+      })
       .where(eq(glyphGmailOAuthStates.ownerId, ownerId));
     if (!row)
       throw new GmailAuthorizationError(

@@ -1,6 +1,6 @@
 import { Router, type Request } from 'express';
 import { getAuth } from '@clerk/express';
-import { and, eq, inArray, count } from 'drizzle-orm';
+import { and, count, eq, inArray, isNull } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import {
   db,
@@ -91,7 +91,13 @@ const ownMessage = async (ownerId: string, id: string) => {
   const [row] = await db
     .select()
     .from(glyphMessages)
-    .where(and(eq(glyphMessages.id, id), eq(glyphMessages.ownerId, ownerId)));
+    .where(
+      and(
+        eq(glyphMessages.id, id),
+        eq(glyphMessages.ownerId, ownerId),
+        isNull(glyphMessages.archivedAt),
+      ),
+    );
   return row;
 };
 const responseMessage = async (id: string, ownerId: string) => {
@@ -163,7 +169,10 @@ router.get('/glyph/messages/:id', async (req, res): Promise<void> => {
   }
   const [summary, links, clicksByUrl] = await Promise.all([
     messageSignalSummary(id),
-    db.select().from(glyphLinks).where(eq(glyphLinks.messageId, id)),
+    db
+      .select()
+      .from(glyphLinks)
+      .where(and(eq(glyphLinks.messageId, id), isNull(glyphLinks.retiredAt))),
     messageLinkClickCounts(id),
   ]);
   res.json(
@@ -291,19 +300,21 @@ router.patch('/glyph/messages/:id', async (req, res): Promise<void> => {
 router.delete('/glyph/messages/:id', async (req, res): Promise<void> => {
   const ownerId = userId(req)!,
     id = String(req.params.id);
-  const deleted = await db
-    .delete(glyphMessages)
+  const archived = await db
+    .update(glyphMessages)
+    .set({ archivedAt: new Date() })
     .where(
       and(
         eq(glyphMessages.id, id),
         eq(glyphMessages.ownerId, ownerId),
+        isNull(glyphMessages.archivedAt),
         eq(glyphMessages.deliverySource, 'web'),
         inArray(glyphMessages.status, ['draft', 'failed']),
       ),
     )
     .returning();
-  if (!deleted.length) {
-    res.status(409).json({ error: 'Only unsent drafts can be deleted.' });
+  if (!archived.length) {
+    res.status(409).json({ error: 'Only unsent drafts can be archived.' });
     return;
   }
   res.status(204).end();

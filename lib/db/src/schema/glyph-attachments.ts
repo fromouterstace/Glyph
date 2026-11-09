@@ -14,6 +14,7 @@ export const glyphAttachments = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
+    retiredAt: timestamp('retired_at', { withTimezone: true }),
   },
   (t) => [index('glyph_attachments_owner_idx').on(t.ownerId, t.createdAt)],
 );

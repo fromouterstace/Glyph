@@ -1,0 +1,131 @@
+{
+  "glyph_attachments": {
+    "id": "text!",
+    "owner_id": "text!",
+    "name": "text!",
+    "size": "integer!",
+    "content_type": "text!",
+    "object_path": "text!",
+    "generation": "text?",
+    "created_at": "timestamp with time zone!",
+    "retired_at": "timestamp with time zone?"
+  },
+  "glyph_contacts": {
+    "id": "text!",
+    "owner_id": "text!",
+    "first_name": "text!",
+    "last_name": "text!",
+    "email": "text!",
+    "email_suffix": "text!",
+    "created_at": "timestamp with time zone!"
+  },
+  "glyph_deliveries": {
+    "id": "text!",
+    "owner_id": "text!",
+    "message_id": "text!",
+    "event_id": "text!",
+    "type": "text!",
+    "consent_at": "timestamp with time zone!",
+    "mailbox": "text!",
+    "status": "text!",
+    "rfc_message_id": "text!",
+    "gmail_id": "text?",
+    "created_at": "timestamp with time zone!",
+    "updated_at": "timestamp with time zone!"
+  },
+  "glyph_events": {
+    "id": "text!",
+    "message_id": "text!",
+    "type": "text!",
+    "url": "text?",
+    "automated": "boolean!",
+    "source": "text!",
+    "read": "boolean!",
+    "fingerprint": "text!",
+    "occurred_at": "timestamp with time zone!"
+  },
+  "glyph_gmail_connections": {
+    "owner_id": "text!",
+    "id": "text!",
+    "email": "text!",
+    "generation": "text!",
+    "reply_identity": "text!",
+    "encrypted_tokens": "text?",
+    "updated_at": "timestamp with time zone!"
+  },
+  "glyph_gmail_oauth_states": {
+    "state_hash": "text!",
+    "owner_id": "text!",
+    "session_hash": "text!",
+    "origin": "text!",
+    "encrypted_verifier": "text!",
+    "claimed_at": "timestamp with time zone?",
+    "expires_at": "timestamp with time zone!"
+  },
+  "glyph_label_imports": {
+    "owner_id": "text!",
+    "mailbox_identity": "text!",
+    "page_token": "text?",
+    "status": "text!",
+    "last_synced_at": "timestamp with time zone?"
+  },
+  "glyph_links": {
+    "id": "text!",
+    "message_id": "text!",
+    "token": "text!",
+    "url": "text!",
+    "retired_at": "timestamp with time zone?"
+  },
+  "glyph_messages": {
+    "id": "text!",
+    "owner_id": "text!",
+    "recipient_email": "text!",
+    "recipient_name": "text!",
+    "to_emails": "text[]!",
+    "cc_emails": "text[]!",
+    "bcc_emails": "text[]!",
+    "subject": "text!",
+    "body": "text!",
+    "body_html": "text?",
+    "attachments": "jsonb!",
+    "track_opens": "boolean!",
+    "track_clicks": "boolean!",
+    "status": "text!",
+    "pixel_token": "text!",
+    "gmail_id": "text?",
+    "rfc_message_id": "text!",
+    "delivery_source": "text!",
+    "native_compose_key": "text?",
+    "created_at": "timestamp with time zone!",
+    "sent_at": "timestamp with time zone?",
+    "archived_at": "timestamp with time zone?"
+  },
+  "glyph_settings": {
+    "owner_id": "text!",
+    "email_alerts": "boolean!",
+    "email_alerts_since": "timestamp with time zone?",
+    "alert_mailbox": "text?",
+    "notify_opens": "boolean!",
+    "notify_clicks": "boolean!",
+    "notify_replies": "boolean!",
+    "default_track_opens": "boolean!",
+    "default_track_clicks": "boolean!",
+    "tracking_base_url": "text!"
+  },
+  "glyph_system_events": {
+    "id": "text!",
+    "owner_id": "text!",
+    "event_type": "text!",
+    "session_fingerprint": "text!",
+    "occurred_at": "timestamp with time zone!"
+  },
+  "glyph_tracking_budgets": {
+    "message_id": "text!",
+    "kind": "text!",
+    "window_bucket": "integer!",
+    "window_count": "integer!",
+    "day_bucket": "integer!",
+    "day_count": "integer!",
+    "updated_at": "timestamp with time zone!"
+  }
+}

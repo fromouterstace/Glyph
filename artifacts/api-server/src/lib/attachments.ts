@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { db, glyphAttachments, glyphMessages } from '@workspace/db';
 import { ObjectStorageService } from './objectStorage';
 import {
@@ -37,7 +37,11 @@ export async function ownedAttachment(
     .select()
     .from(glyphAttachments)
     .where(
-      and(eq(glyphAttachments.ownerId, owner), eq(glyphAttachments.id, id)),
+      and(
+        eq(glyphAttachments.ownerId, owner),
+        eq(glyphAttachments.id, id),
+        isNull(glyphAttachments.retiredAt),
+      ),
     );
   if (!row) throw new ComposerError(404, 'Attachment not found.');
   return row;
@@ -51,6 +55,7 @@ export async function attachmentMetadata(tx: Tx, owner: string, ids: string[]) {
       and(
         eq(glyphAttachments.ownerId, owner),
         inArray(glyphAttachments.id, ids),
+        isNull(glyphAttachments.retiredAt),
       ),
     );
   if (rows.length !== ids.length || rows.some((row) => !row.generation))
@@ -77,20 +82,11 @@ export async function requestUpload(
         count: sql<number>`count(*)::int`,
       })
       .from(glyphAttachments)
-      .where(
-        and(
-          eq(glyphAttachments.ownerId, owner),
-          sql`not exists (
-        select 1 from ${glyphMessages}
-        where ${glyphMessages.ownerId} = ${owner}
-        and ${glyphMessages.attachments} @> jsonb_build_array(jsonb_build_object('id', ${glyphAttachments.id}))
-      )`,
-        ),
-      );
+      .where(eq(glyphAttachments.ownerId, owner));
     if (usage.bytes + input.size > 100 * 1024 * 1024 || usage.count >= 100)
       throw new ComposerError(
         409,
-        'The 100 MiB or 100-file staging limit was reached. Save drafts or remove unused uploads before adding more.',
+        'The 100 MiB or 100-file retention limit was reached. Stored attachments are preserved when removed.',
       );
     const [row] = await tx
       .insert(glyphAttachments)
@@ -114,9 +110,10 @@ export async function completeUpload(owner: string, id: string) {
     const row = await ownedAttachment(owner, id, tx);
     if (row.generation) return attachmentView(row);
     if (Number(metadata.size) !== row.size || !metadata.generation) {
-      await file.delete({ ignoreNotFound: true });
-      await tx.delete(glyphAttachments).where(eq(glyphAttachments.id, id));
-      // Return a committed rejection, not a throw that rolls back the cleanup.
+      await tx
+        .update(glyphAttachments)
+        .set({ retiredAt: new Date() })
+        .where(eq(glyphAttachments.id, id));
       return null;
     }
     const [saved] = await tx
@@ -151,9 +148,9 @@ export async function readAttachment(owner: string, id: string) {
     );
   }
 }
-export async function deleteUnusedAttachment(owner: string, id: string) {
+export async function retireUnusedAttachment(owner: string, id: string) {
   return withComposerLock(owner, async (tx) => {
-    const row = await ownedAttachment(owner, id, tx);
+    await ownedAttachment(owner, id, tx);
     const [used] = await tx
       .select({ id: glyphMessages.id })
       .from(glyphMessages)
@@ -167,15 +164,11 @@ export async function deleteUnusedAttachment(owner: string, id: string) {
     if (used)
       throw new ComposerError(
         409,
-        'Remove this attachment from saved drafts before deleting its file.',
+        'Remove this attachment from saved drafts before retiring it.',
       );
-    try {
-      const file = await storage.getObjectEntityFile(row.objectPath);
-      await file.delete({ ignoreNotFound: true });
-    } catch (error) {
-      if (!(error instanceof Error) || error.name !== 'ObjectNotFoundError')
-        throw error;
-    }
-    await tx.delete(glyphAttachments).where(eq(glyphAttachments.id, id));
+    await tx
+      .update(glyphAttachments)
+      .set({ retiredAt: new Date() })
+      .where(eq(glyphAttachments.id, id));
   });
 }

@@ -1,0 +1,16 @@
+{
+  "version": 4,
+  "phase": "expand",
+  "reason": "Retain removed drafts, superseded tracking links, and retired attachment records without physical deletion.",
+  "compatibility": "Only nullable archived_at and retired_at columns are added. Existing app instances ignore them; new readers filter archived resources and new writers retire resources with updates. Old versions may not honor retirement state, so deploy only after reviewing the exact Publish diff and compatibility.",
+  "recovery": "All existing rows and object bytes remain unchanged. Roll back application code without removing the new nullable columns. No production schema, grants, rows, or backup restoration is authorized or changed by this review.",
+  "schema": {
+    "lib/db/src/schema/glyph-attachments.ts": "6edd814bbfe4c12e2be7f3c0b4d95429f6928cdf8a22275af4773304214ae830",
+    "lib/db/src/schema/glyph-contacts.ts": "8b467d8cdadae3a6addc010b4367f2451bf4c8313f736c194e09a8db92358197",
+    "lib/db/src/schema/glyph-gmail.ts": "b1c5b54b114fb0943fc94edbfd9c2ea0565f65176dfd33e6d54de9966057c363",
+    "lib/db/src/schema/glyph-system.ts": "2122e4d97147fdf2e837af1c1acf85a760d134587e6abee9c4d1f9977c735c91",
+    "lib/db/src/schema/glyph.ts": "f3bc5273c0a07d7ed5cce7a439eb8061eb280cf485e2725fd514f36d3db9b778",
+    "lib/db/src/schema/index.ts": "d9a05921b40c5f87d75fec66df855ad8f05eea1e6c2dd43c0c7205a8fdca1149"
+  },
+  "planSha256": "7a2b0be66a321692e7e4d01130f3f10965e07c70243c35b642e50a5d3227c992"
+}

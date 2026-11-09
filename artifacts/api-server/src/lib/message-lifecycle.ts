@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import {
   db,
@@ -23,6 +23,7 @@ export async function claimDraftForSend(
         and(
           eq(glyphMessages.id, snapshot.id),
           eq(glyphMessages.ownerId, snapshot.ownerId),
+          isNull(glyphMessages.archivedAt),
           eq(glyphMessages.deliverySource, 'web'),
           eq(glyphMessages.status, 'draft'),
           eq(glyphMessages.recipientEmail, snapshot.recipientEmail),
@@ -40,8 +41,29 @@ export async function claimDraftForSend(
       )
       .returning({ id: glyphMessages.id });
     if (!updated.length) return false;
-    await tx.delete(glyphLinks).where(eq(glyphLinks.messageId, snapshot.id));
-    if (links.length) await tx.insert(glyphLinks).values(links);
+    const reused = new Set(links.map((link) => link.id));
+    const oldLinks = await tx
+      .select({ id: glyphLinks.id })
+      .from(glyphLinks)
+      .where(
+        and(
+          eq(glyphLinks.messageId, snapshot.id),
+          isNull(glyphLinks.retiredAt),
+        ),
+      );
+    const oldIds = new Set(oldLinks.map((link) => link.id));
+    const activeLinks = [
+      eq(glyphLinks.messageId, snapshot.id),
+      isNull(glyphLinks.retiredAt),
+    ];
+    if (reused.size)
+      activeLinks.push(notInArray(glyphLinks.id, Array.from(reused)));
+    await tx
+      .update(glyphLinks)
+      .set({ retiredAt: new Date() })
+      .where(and(...activeLinks));
+    const insertLinks = links.filter((link) => !oldIds.has(link.id));
+    if (insertLinks.length) await tx.insert(glyphLinks).values(insertLinks);
     return true;
   });
 }
@@ -72,6 +94,7 @@ export async function confirmSentMessage(
         and(
           eq(glyphMessages.id, message.id),
           eq(glyphMessages.ownerId, message.ownerId),
+          isNull(glyphMessages.archivedAt),
           inArray(glyphMessages.status, confirmation.expectedStatuses),
         ),
       )

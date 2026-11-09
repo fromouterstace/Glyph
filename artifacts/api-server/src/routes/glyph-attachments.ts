@@ -3,7 +3,7 @@ import { getAuth } from '@clerk/express';
 import { RequestAttachmentUploadBody } from '@workspace/api-zod';
 import {
   completeUpload,
-  deleteUnusedAttachment,
+  retireUnusedAttachment,
   readAttachment,
   requestUpload,
 } from '../lib/attachments';
@@ -46,7 +46,7 @@ router.get('/glyph/attachments/:id', async (req, res) => {
     .send(file.content);
 });
 router.delete('/glyph/attachments/:id', async (req, res) => {
-  await deleteUnusedAttachment(getAuth(req).userId!, String(req.params.id));
+  await retireUnusedAttachment(getAuth(req).userId!, String(req.params.id));
   res.status(204).end();
 });
 export default router;
