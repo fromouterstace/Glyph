@@ -13,7 +13,6 @@ import {
   Menu,
   X,
   Users,
-  KeyRound,
 } from 'lucide-react';
 import {
   useListActivity,
@@ -31,7 +30,6 @@ import { GlyphMark } from '@/components/bits';
 import { useToast } from '@/hooks/use-toast';
 import { PUBLISHED_GLYPH_ORIGIN } from '@/lib/tracking-origin';
 import { LabelImportController } from '@/components/label-import';
-import { useApprovalAccess } from '@/lib/database-approvals';
 
 function SystemSessionRecorder() {
   const { isLoaded, isSignedIn, sessionId } = useAuth();
@@ -124,39 +122,27 @@ const nav = [
   { href: '/settings', label: 'Settings', icon: Settings2 },
 ];
 
-function useVisibleNav(isSignedIn: boolean, userId: string | undefined) {
-  const systemAccess = useGetSystemAccess({
-    query: {
-      enabled: isSignedIn,
-      retry: false,
-      staleTime: 60_000,
-      queryKey: [...getGetSystemAccessQueryKey(), userId ?? 'signed-out'],
-    },
-  });
-  const approvalAccess = useApprovalAccess();
-  const extra = [];
-  if (systemAccess.data?.isSystemAdmin)
-    extra.push({ href: '/system', label: 'System', icon: ShieldCheck });
-  if (isSignedIn && approvalAccess.data?.canApprove)
-    extra.push({
-      href: '/database-approvals',
-      label: 'Approvals',
-      icon: KeyRound,
-    });
-  return [...nav, ...extra];
-}
-
 export function Shell({ children }: { children: ReactNode }) {
   const [loc] = useLocation();
   const { isSignedIn } = useSession();
   const { signOut } = useClerk();
   const { user } = useUser();
+  const systemAccess = useGetSystemAccess({
+    query: {
+      enabled: isSignedIn,
+      retry: false,
+      staleTime: 60_000,
+      queryKey: [...getGetSystemAccessQueryKey(), user?.id ?? 'signed-out'],
+    },
+  });
   const poll = usePoll();
   const { data: ov } = useGetOverview({
     query: { refetchInterval: poll, queryKey: getGetOverviewQueryKey() },
   });
   const readOnly = ov?.readOnly ?? !isSignedIn;
-  const visibleNav = useVisibleNav(isSignedIn, user?.id);
+  const visibleNav = systemAccess.data?.isSystemAdmin
+    ? [...nav, { href: '/system', label: 'System', icon: ShieldCheck }]
+    : nav;
 
   const side = (
     <div className="flex h-full flex-col">

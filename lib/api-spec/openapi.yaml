@@ -11,72 +11,6 @@ tags:
   - name: health
     description: Health operations
 paths:
-  /glyph/database-approvals/access:
-    get:
-      operationId: getDatabaseApprovalAccess
-      responses:
-        '200':
-          description: Server-verified designated approver access
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/DatabaseApprovalAccess' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-  /glyph/database-approvals:
-    get:
-      operationId: listDatabaseApprovals
-      parameters:
-        - in: query
-          name: offset
-          schema: { type: integer, minimum: 0, maximum: 1000000, default: 0 }
-      responses:
-        '200':
-          description: Retained approval records; approval never executes SQL
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/DatabaseApprovalPage' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-    post:
-      operationId: createDatabaseApproval
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/DatabaseApprovalInput' }
-      responses:
-        '201':
-          description: Immutable operation request, expiring after one hour
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/DatabaseApproval' }
-        '400': { description: Invalid operation request }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-  /glyph/database-approvals/{id}/action:
-    post:
-      operationId: actOnDatabaseApproval
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string, format: uuid }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/DatabaseApprovalActionInput' }
-      responses:
-        '200':
-          description: Approval, revocation or single-use authorization claim; no SQL is executed
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/DatabaseApproval' }
-        '400': { description: Invalid action }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { description: Request not found }
-        '409':
-          { description: 'Expired, revoked, consumed or mismatched request' }
   /glyph/contacts:
     get:
       operationId: listContacts
@@ -563,80 +497,6 @@ components:
             properties:
               error: { type: string }
   schemas:
-    DatabaseApprovalAccess:
-      type: object
-      required: [canApprove, slot]
-      properties:
-        canApprove: { type: boolean }
-        slot: { type: [string, 'null'], enum: [first, second, null] }
-    DatabaseApprovalInput:
-      type: object
-      required: [operation, target, planSha256, reason]
-      properties:
-        operation:
-          type: string
-          enum: [delete_rows, truncate_table, drop_object, change_privileges]
-        target:
-          {
-            type: string,
-            minLength: 1,
-            maxLength: 200,
-            pattern: '^[a-zA-Z0-9_.:-]+$',
-          }
-        planSha256: { type: string, pattern: '^[a-f0-9]{64}$' }
-        reason: { type: string, minLength: 10, maxLength: 2000 }
-    DatabaseApprovalActionInput:
-      type: object
-      additionalProperties: false
-      required: [action, digest]
-      properties:
-        action: { type: string, enum: [approve, revoke, consume] }
-        digest: { type: string, pattern: '^[a-f0-9]{64}$' }
-    DatabaseApproval:
-      allOf:
-        - $ref: '#/components/schemas/DatabaseApprovalInput'
-        - type: object
-          required:
-            [
-              id,
-              digest,
-              environment,
-              requestedBy,
-              createdAt,
-              expiresAt,
-              firstApprovedAt,
-              secondApprovedAt,
-              revokedAt,
-              consumedAt,
-              status,
-            ]
-          properties:
-            id: { type: string }
-            digest: { type: string }
-            environment: { type: string, enum: [development, production] }
-            requestedBy: { type: string }
-            createdAt: { type: string, format: date-time }
-            expiresAt: { type: string, format: date-time }
-            firstApprovedAt: { type: [string, 'null'], format: date-time }
-            secondApprovedAt: { type: [string, 'null'], format: date-time }
-            revokedAt: { type: [string, 'null'], format: date-time }
-            consumedAt: { type: [string, 'null'], format: date-time }
-            status:
-              {
-                type: string,
-                enum: [pending, approved, expired, revoked, consumed],
-              }
-    DatabaseApprovalPage:
-      type: object
-      required: [items, hasMore, offset]
-      properties:
-        items:
-          {
-            type: array,
-            items: { $ref: '#/components/schemas/DatabaseApproval' },
-          }
-        hasMore: { type: boolean }
-        offset: { type: integer }
     Contact:
       type: object
       required: [id, firstName, lastName, email, emailSuffix, createdAt]
@@ -942,37 +802,12 @@ components:
         uploadUrl: { type: string }
     MessageDetail:
       type: object
-      required: [message, links, diagnostics]
+      required: [message, links]
       properties:
         message: { $ref: '#/components/schemas/Message' }
-        diagnostics: { $ref: '#/components/schemas/PixelDiagnostics' }
         links:
           type: array
           items: { $ref: '#/components/schemas/TrackedLink' }
-    PixelDiagnostics:
-      type: object
-      required: [preparedTrackingOrigin, pixelOutcomes]
-      properties:
-        preparedTrackingOrigin: { type: [string, 'null'] }
-        pixelOutcomes:
-          type: array
-          items: { $ref: '#/components/schemas/PixelOutcome' }
-    PixelOutcome:
-      type: object
-      required: [outcome, requests]
-      properties:
-        outcome:
-          type: string
-          enum:
-            - recorded
-            - sender_compose_ignored
-            - tracking_disabled
-            - send_not_confirmed
-            - unknown_token
-            - event_budget_exceeded
-            - native_reconciliation_budget_exceeded
-            - native_reconciliation_failed
-        requests: { type: [integer, 'null'], minimum: 0 }
     Pagination:
       type: object
       required: [limit, offset, total, hasMore]

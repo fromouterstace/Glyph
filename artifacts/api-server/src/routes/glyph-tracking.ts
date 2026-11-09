@@ -15,11 +15,6 @@ import { logSafeError } from '../lib/logger';
 import { consumeTrackingBudget } from '../lib/tracking-budget';
 import { wantsEmailAlert } from '../lib/alert-policy';
 
-import {
-  recordPixelDiagnostic,
-  type PixelOutcome,
-} from '../lib/pixel-diagnostics';
-
 const router = Router();
 
 export async function recordSignal(
@@ -83,8 +78,8 @@ export async function recordSignal(
 async function recordOpen(
   message: typeof glyphMessages.$inferSelect | undefined,
   agent: string,
-): Promise<PixelOutcome> {
-  if (!message) return 'unknown_token';
+) {
+  if (!message) return 'unknown_pixel';
   if (!message.trackOpens) return 'tracking_disabled';
   if (!['sent', 'sending', 'uncertain'].includes(message.status))
     return 'send_not_confirmed';
@@ -120,10 +115,7 @@ async function reconcileNativeDraft(
 
 async function processPixelRequest(req: Request): Promise<void> {
   const token = String(req.params.token).replace(/\.gif$/, '');
-  if (!/^[a-f0-9]{48}$/.test(token)) {
-    await recordPixelDiagnostic(null, 'unknown_token');
-    return;
-  }
+  if (!/^[a-f0-9]{48}$/.test(token)) return;
   const [selected] = await db
     .select()
     .from(glyphMessages)
@@ -142,7 +134,6 @@ async function processPixelRequest(req: Request): Promise<void> {
     message.status === 'draft' &&
     composeReferrer
   ) {
-    await recordPixelDiagnostic(message.id, 'sender_compose_ignored');
     req.log.info(
       { messageId: message.id, outcome: 'sender_compose_ignored' },
       'Tracking pixel request',
@@ -151,10 +142,6 @@ async function processPixelRequest(req: Request): Promise<void> {
   }
   const reconciliation = await reconcileNativeDraft(message, req);
   if (reconciliation.limited) {
-    await recordPixelDiagnostic(
-      message!.id,
-      'native_reconciliation_budget_exceeded',
-    );
     req.log.info(
       {
         messageId: message?.id ?? null,
@@ -164,15 +151,9 @@ async function processPixelRequest(req: Request): Promise<void> {
     );
     return;
   }
-  if (reconciliation.failed) {
-    await recordPixelDiagnostic(message!.id, 'native_reconciliation_failed');
-    return;
-  }
+  if (reconciliation.failed) return;
   message = reconciliation.message;
   const outcome = await recordOpen(message, req.get('user-agent') ?? '');
-  // Recorded is attempted only after the numeric event commits. Telemetry
-  // failure or sampling must never roll back a real pixel load.
-  await recordPixelDiagnostic(message?.id ?? null, outcome);
   req.log.info(
     {
       messageId: message?.id ?? null,

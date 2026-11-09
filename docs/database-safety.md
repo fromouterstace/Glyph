@@ -110,10 +110,8 @@ statements. The alert delivery expansion does not run DDL or backfill at startup
 
 Sent-message tokens and historical events must remain resolvable. Deleting a
 message cascades to links, events, and tracking budgets; treat this as intentional
-data deletion, not cleanup. The application archives the authenticated owner's
-unsent web drafts/failed messages instead of physically deleting their rows.
-It also retires obsolete links, OAuth states and attachments without erasing
-their metadata; retired attachment bytes remain stored and count toward quota.
+data deletion, not cleanup. Application message deletion currently restricts
+deletion to the authenticated owner's unsent web drafts/failed messages.
 Attachments live in App Storage: a PostgreSQL restore alone cannot restore
 deleted attachment bytes or their exact object generations.
 

@@ -8,145 +8,6 @@
 import * as zod from 'zod';
 
 
-export const GetDatabaseApprovalAccessResponse = zod.object({
-  "canApprove": zod.boolean(),
-  "slot": zod.union([zod.literal('first'),zod.literal('second'),zod.literal(null)]).nullable()
-})
-
-
-export const listDatabaseApprovalsQueryOffsetDefault = 0;
-export const listDatabaseApprovalsQueryOffsetMin = 0;
-export const listDatabaseApprovalsQueryOffsetMax = 1000000;
-
-
-
-export const ListDatabaseApprovalsQueryParams = zod.object({
-  "offset": zod.coerce.number().int().min(listDatabaseApprovalsQueryOffsetMin).max(listDatabaseApprovalsQueryOffsetMax).default(listDatabaseApprovalsQueryOffsetDefault)
-})
-
-export const listDatabaseApprovalsResponseItemsItemOneTargetMax = 200;
-
-
-export const listDatabaseApprovalsResponseItemsItemOneTargetRegExp = new RegExp('^[a-zA-Z0-9_.:-]+$');
-export const listDatabaseApprovalsResponseItemsItemOnePlanSha256RegExp = new RegExp('^[a-f0-9]{64}$');
-export const listDatabaseApprovalsResponseItemsItemOneReasonMin = 10;
-export const listDatabaseApprovalsResponseItemsItemOneReasonMax = 2000;
-
-
-
-export const ListDatabaseApprovalsResponse = zod.object({
-  "items": zod.array(zod.object({
-  "operation": zod.enum(['delete_rows', 'truncate_table', 'drop_object', 'change_privileges']),
-  "target": zod.string().min(1).max(listDatabaseApprovalsResponseItemsItemOneTargetMax).regex(listDatabaseApprovalsResponseItemsItemOneTargetRegExp),
-  "planSha256": zod.string().regex(listDatabaseApprovalsResponseItemsItemOnePlanSha256RegExp),
-  "reason": zod.string().min(listDatabaseApprovalsResponseItemsItemOneReasonMin).max(listDatabaseApprovalsResponseItemsItemOneReasonMax)
-}).and(zod.object({
-  "id": zod.string(),
-  "digest": zod.string(),
-  "environment": zod.enum(['development', 'production']),
-  "requestedBy": zod.string(),
-  "createdAt": zod.coerce.date(),
-  "expiresAt": zod.coerce.date(),
-  "firstApprovedAt": zod.coerce.date().nullable(),
-  "secondApprovedAt": zod.coerce.date().nullable(),
-  "revokedAt": zod.coerce.date().nullable(),
-  "consumedAt": zod.coerce.date().nullable(),
-  "status": zod.enum(['pending', 'approved', 'expired', 'revoked', 'consumed'])
-}))),
-  "hasMore": zod.boolean(),
-  "offset": zod.int()
-})
-
-
-export const createDatabaseApprovalBodyTargetMax = 200;
-
-
-export const createDatabaseApprovalBodyTargetRegExp = new RegExp('^[a-zA-Z0-9_.:-]+$');
-export const createDatabaseApprovalBodyPlanSha256RegExp = new RegExp('^[a-f0-9]{64}$');
-export const createDatabaseApprovalBodyReasonMin = 10;
-export const createDatabaseApprovalBodyReasonMax = 2000;
-
-
-
-export const CreateDatabaseApprovalBody = zod.object({
-  "operation": zod.enum(['delete_rows', 'truncate_table', 'drop_object', 'change_privileges']),
-  "target": zod.string().min(1).max(createDatabaseApprovalBodyTargetMax).regex(createDatabaseApprovalBodyTargetRegExp),
-  "planSha256": zod.string().regex(createDatabaseApprovalBodyPlanSha256RegExp),
-  "reason": zod.string().min(createDatabaseApprovalBodyReasonMin).max(createDatabaseApprovalBodyReasonMax)
-})
-
-export const createDatabaseApprovalResponseOneTargetMax = 200;
-
-
-export const createDatabaseApprovalResponseOneTargetRegExp = new RegExp('^[a-zA-Z0-9_.:-]+$');
-export const createDatabaseApprovalResponseOnePlanSha256RegExp = new RegExp('^[a-f0-9]{64}$');
-export const createDatabaseApprovalResponseOneReasonMin = 10;
-export const createDatabaseApprovalResponseOneReasonMax = 2000;
-
-
-
-export const CreateDatabaseApprovalResponse = zod.object({
-  "operation": zod.enum(['delete_rows', 'truncate_table', 'drop_object', 'change_privileges']),
-  "target": zod.string().min(1).max(createDatabaseApprovalResponseOneTargetMax).regex(createDatabaseApprovalResponseOneTargetRegExp),
-  "planSha256": zod.string().regex(createDatabaseApprovalResponseOnePlanSha256RegExp),
-  "reason": zod.string().min(createDatabaseApprovalResponseOneReasonMin).max(createDatabaseApprovalResponseOneReasonMax)
-}).and(zod.object({
-  "id": zod.string(),
-  "digest": zod.string(),
-  "environment": zod.enum(['development', 'production']),
-  "requestedBy": zod.string(),
-  "createdAt": zod.coerce.date(),
-  "expiresAt": zod.coerce.date(),
-  "firstApprovedAt": zod.coerce.date().nullable(),
-  "secondApprovedAt": zod.coerce.date().nullable(),
-  "revokedAt": zod.coerce.date().nullable(),
-  "consumedAt": zod.coerce.date().nullable(),
-  "status": zod.enum(['pending', 'approved', 'expired', 'revoked', 'consumed'])
-}))
-
-
-export const ActOnDatabaseApprovalParams = zod.object({
-  "id": zod.uuid()
-})
-
-export const actOnDatabaseApprovalBodyDigestRegExp = new RegExp('^[a-f0-9]{64}$');
-
-
-export const ActOnDatabaseApprovalBody = zod.object({
-  "action": zod.enum(['approve', 'revoke', 'consume']),
-  "digest": zod.string().regex(actOnDatabaseApprovalBodyDigestRegExp)
-})
-
-export const actOnDatabaseApprovalResponseOneTargetMax = 200;
-
-
-export const actOnDatabaseApprovalResponseOneTargetRegExp = new RegExp('^[a-zA-Z0-9_.:-]+$');
-export const actOnDatabaseApprovalResponseOnePlanSha256RegExp = new RegExp('^[a-f0-9]{64}$');
-export const actOnDatabaseApprovalResponseOneReasonMin = 10;
-export const actOnDatabaseApprovalResponseOneReasonMax = 2000;
-
-
-
-export const ActOnDatabaseApprovalResponse = zod.object({
-  "operation": zod.enum(['delete_rows', 'truncate_table', 'drop_object', 'change_privileges']),
-  "target": zod.string().min(1).max(actOnDatabaseApprovalResponseOneTargetMax).regex(actOnDatabaseApprovalResponseOneTargetRegExp),
-  "planSha256": zod.string().regex(actOnDatabaseApprovalResponseOnePlanSha256RegExp),
-  "reason": zod.string().min(actOnDatabaseApprovalResponseOneReasonMin).max(actOnDatabaseApprovalResponseOneReasonMax)
-}).and(zod.object({
-  "id": zod.string(),
-  "digest": zod.string(),
-  "environment": zod.enum(['development', 'production']),
-  "requestedBy": zod.string(),
-  "createdAt": zod.coerce.date(),
-  "expiresAt": zod.coerce.date(),
-  "firstApprovedAt": zod.coerce.date().nullable(),
-  "secondApprovedAt": zod.coerce.date().nullable(),
-  "revokedAt": zod.coerce.date().nullable(),
-  "consumedAt": zod.coerce.date().nullable(),
-  "status": zod.enum(['pending', 'approved', 'expired', 'revoked', 'consumed'])
-}))
-
-
 export const listContactsQueryOffsetDefault = 0;
 export const listContactsQueryOffsetMin = 0;
 export const listContactsQueryOffsetMax = 1000000;
@@ -544,10 +405,6 @@ export const GetMessageParams = zod.object({
   "id": zod.coerce.string()
 })
 
-export const getMessageResponseDiagnosticsPixelOutcomesItemRequestsMin = 0;
-
-
-
 export const GetMessageResponse = zod.object({
   "message": zod.object({
   "id": zod.string(),
@@ -575,13 +432,6 @@ export const GetMessageResponse = zod.object({
   "replies": zod.int(),
   "lastActivityAt": zod.string().nullable(),
   "deliverySource": zod.enum(['web', 'gmail', 'import']).optional()
-}),
-  "diagnostics": zod.object({
-  "preparedTrackingOrigin": zod.string().nullable(),
-  "pixelOutcomes": zod.array(zod.object({
-  "outcome": zod.enum(['recorded', 'sender_compose_ignored', 'tracking_disabled', 'send_not_confirmed', 'unknown_token', 'event_budget_exceeded', 'native_reconciliation_budget_exceeded', 'native_reconciliation_failed']),
-  "requests": zod.int().min(getMessageResponseDiagnosticsPixelOutcomesItemRequestsMin).nullable()
-}))
 }),
   "links": zod.array(zod.object({
   "id": zod.string(),

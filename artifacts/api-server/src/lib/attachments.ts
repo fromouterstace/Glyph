@@ -157,7 +157,6 @@ export async function retireUnusedAttachment(owner: string, id: string) {
       .where(
         and(
           eq(glyphMessages.ownerId, owner),
-          isNull(glyphMessages.archivedAt),
           sql`${glyphMessages.attachments} @> ${JSON.stringify([{ id }])}::jsonb`,
         ),
       )

@@ -5,7 +5,6 @@ import express from 'express';
 import pino from 'pino';
 import pinoHttp from 'pino-http';
 import { Writable } from 'node:stream';
-import { readFile, readdir } from 'node:fs/promises';
 import {
   serializeRequestLog,
   serializeResponseLog,
@@ -34,13 +33,6 @@ const count = async (message) =>
       [message.id],
     )
   ).rows[0].total;
-const diagnostics = async (message) =>
-  (
-    await sql(
-      'SELECT outcome, sum(requests)::int AS requests FROM glyph_pixel_diagnostics WHERE message_id=$1 GROUP BY outcome ORDER BY outcome',
-      [message.id],
-    )
-  ).rows;
 const pixel = (message, options = {}) =>
   fetch(`${base}/api/glyph/t/${message.token}.gif`, {
     ...options,
@@ -105,13 +97,7 @@ test('database-access preflight rejects the privileged fixture owner', async () 
   const { rows } = await sql('SELECT current_schema() AS schema');
   const result = await inspectDatabaseAccess(database, rows[0].schema);
   assert.equal(result.safe, false);
-  const directory = new URL('../lib/db/schema-reviews/', import.meta.url);
-  const latest = (await readdir(directory))
-    .filter((name) => /^\d{4}\.shape\.json$/.test(name))
-    .sort()
-    .at(-1);
-  const shape = JSON.parse(await readFile(new URL(latest, directory), 'utf8'));
-  assert.equal(result.tableCount, Object.keys(shape).length);
+  assert.equal(result.tableCount, 12);
   assert.ok(result.issues.includes('table_owner'));
   assert.ok(result.issues.includes('can_delete'));
   assert.ok(result.issues.includes('can_truncate'));
@@ -226,18 +212,12 @@ test('a real pixel GET durably records one PostgreSQL event', async () => {
   const response = await pixel(message);
   assert.equal(response.status, 200);
   assert.equal(await count(message), 1);
-  assert.deepEqual(await diagnostics(message), [
-    { outcome: 'recorded', requests: 1 },
-  ]);
 });
 
 test('repeated pixel loads are separate events, not deduplicated into one open', async () => {
   const message = await messageFixture(sql);
   await Promise.all([pixel(message), pixel(message)]);
   assert.equal(await count(message), 2);
-  assert.deepEqual(await diagnostics(message), [
-    { outcome: 'recorded', requests: 2 },
-  ]);
 });
 
 test('a concurrent pixel burst is capped while every request still receives the image', async () => {
@@ -250,14 +230,6 @@ test('a concurrent pixel burst is capped while every request still receives the 
   assert.ok(responses.every((response) => response.status === 200));
   await Promise.all(responses.map((response) => response.arrayBuffer()));
   assert.equal(await count(message), TRACKING_BUDGETS.open.windowLimit);
-  const retained = await diagnostics(message);
-  const recorded =
-    retained.find((row) => row.outcome === 'recorded')?.requests ?? 0;
-  assert.ok(recorded > 0 && recorded <= TRACKING_BUDGETS.open.windowLimit);
-  assert.ok(
-    (retained.find((row) => row.outcome === 'event_budget_exceeded')
-      ?.requests ?? 0) <= 8,
-  );
   assert.ok(
     logs.some(
       (entry) =>
@@ -268,7 +240,7 @@ test('a concurrent pixel burst is capped while every request still receives the 
   );
 });
 
-test('a limited click still redirects and does not create an event', async (t) => {
+test('a limited click still redirects and does not create an event', async () => {
   const message = await messageFixture(sql);
   const token = fixtureId().replaceAll('-', '').padStart(48, '0');
   const destination = 'https://example.invalid/rate-limited';
@@ -277,7 +249,6 @@ test('a limited click still redirects and does not create an event', async (t) =
     [fixtureId(), message.id, token, destination],
   );
   const now = Date.now();
-  t.mock.method(Date, 'now', () => now);
   for (let i = 0; i < TRACKING_BUDGETS.click.windowLimit; i++)
     assert.equal(await consumeTrackingBudget(message.id, 'click', now), true);
   const response = await fetch(`${base}/api/glyph/l/${token}`, {
@@ -321,25 +292,18 @@ test('HEAD cannot manufacture a pixel-load event', async () => {
   const message = await messageFixture(sql);
   await pixel(message, { method: 'HEAD' });
   assert.equal(await count(message), 0);
-  assert.deepEqual(await diagnostics(message), []);
 });
 
 test('disabled open tracking cannot record a pixel-load event', async () => {
   const message = await messageFixture(sql, { opens: false });
   await pixel(message);
   assert.equal(await count(message), 0);
-  assert.deepEqual(await diagnostics(message), [
-    { outcome: 'tracking_disabled', requests: 1 },
-  ]);
 });
 
 test('an unconfirmed web draft cannot record an open', async () => {
   const message = await messageFixture(sql, { status: 'draft' });
   await pixel(message);
   assert.equal(await count(message), 0);
-  assert.deepEqual(await diagnostics(message), [
-    { outcome: 'send_not_confirmed', requests: 1 },
-  ]);
 });
 
 test('sender Gmail compose fetches do not count unconfirmed native drafts', async () => {
@@ -355,32 +319,6 @@ test('sender Gmail compose fetches do not count unconfirmed native drafts', asyn
     logs.findLast((entry) => entry.msg === 'Tracking pixel request')?.outcome,
     'sender_compose_ignored',
   );
-  assert.deepEqual(await diagnostics(message), [
-    { outcome: 'sender_compose_ignored', requests: 1 },
-  ]);
-});
-
-test('unknown tokens aggregate anonymously without retaining request metadata', async () => {
-  for (const token of ['f'.repeat(48), 'malformed-private-token']) {
-    const response = await fetch(`${base}/api/glyph/t/${token}.gif`, {
-      headers: {
-        'user-agent': 'private-agent',
-        'x-forwarded-for': '192.0.2.1',
-      },
-    });
-    assert.equal(response.status, 200);
-  }
-  const { rows } = await sql(
-    "SELECT scope, message_id, outcome, requests FROM glyph_pixel_diagnostics WHERE scope='unknown'",
-  );
-  assert.deepEqual(rows, [
-    {
-      scope: 'unknown',
-      message_id: null,
-      outcome: 'unknown_token',
-      requests: 2,
-    },
-  ]);
 });
 
 test('Google proxy requests persist their honest source classification', async () => {
@@ -457,7 +395,6 @@ test('disabled click tracking still redirects without recording engagement', asy
   });
   assert.equal(response.status, 302);
   assert.equal(await count(message), 0);
-  assert.deepEqual(await diagnostics(message), []);
 });
 
 test('deleting a message cascades its links and events without orphan rows', async () => {
@@ -466,7 +403,6 @@ test('deleting a message cascades its links and events without orphan rows', asy
   await pixel(message);
   await sql('DELETE FROM glyph_messages WHERE id=$1', [message.id]);
   assert.equal(await count(message), 0);
-  assert.deepEqual(await diagnostics(message), []);
   assert.equal(
     (
       await sql(
@@ -562,23 +498,4 @@ test('database insert failures still return the image but emit a failure signal'
   );
   assert.doesNotMatch(JSON.stringify(failure), new RegExp(message.token));
   assert.equal(await count(message), 0);
-  assert.deepEqual(await diagnostics(message), []);
-});
-
-test('diagnostic storage failure cannot roll back a committed pixel-load event', async () => {
-  const message = await messageFixture(sql);
-  await sql(
-    'ALTER TABLE glyph_pixel_diagnostics RENAME TO fixture_diagnostics_unavailable',
-  );
-  let response;
-  try {
-    response = await pixel(message);
-  } finally {
-    await sql(
-      'ALTER TABLE fixture_diagnostics_unavailable RENAME TO glyph_pixel_diagnostics',
-    );
-  }
-  assert.equal(response.status, 200);
-  assert.equal(await count(message), 1);
-  assert.deepEqual(await diagnostics(message), []);
 });

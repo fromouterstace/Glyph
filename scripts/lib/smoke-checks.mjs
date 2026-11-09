@@ -24,13 +24,10 @@ export const pages = [
   '/contacts',
   '/contacts/smoke-missing-contact',
   '/system',
-  '/database-approvals',
   '/sign-in',
   '/sign-up',
 ];
 const protectedReads = [
-  '/database-approvals/access',
-  '/database-approvals',
   '/overview',
   '/messages',
   '/activity',
@@ -116,24 +113,6 @@ export async function runSmoke({
       'Missing anonymous-access error',
     );
     result.done();
-  }
-  for (const path of [
-    '/database-approvals',
-    '/database-approvals/00000000-0000-4000-8000-000000000000/action',
-  ]) {
-    const response = await fetchImpl(new URL(`/api/glyph${path}`, origin), {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: '{}',
-      redirect: 'manual',
-      signal: AbortSignal.timeout(5_000),
-    });
-    assert.equal(
-      response.status,
-      401,
-      `${path}: signed-out approval mutation must be blocked`,
-    );
-    assert.ok((await response.json()).error);
   }
   // Invalid tokens cannot create events or navigate to a customer destination.
   const pixel = await read('/api/glyph/t/smoke-invalid-token.gif', 200);

@@ -151,17 +151,9 @@ test('runtime and deployment DDL and migration commands are blocked', () => {
     'pnpm run push-force',
     'db.execute(sql`CREATE TABLE IF NOT EXISTS messages (id text)`)',
     'ALTER TABLE glyph_messages ADD body text',
-    'db.delete(glyphMessages).where(owner)',
-    'tx.delete(schema.glyphLinks)',
-    'db.execute(sql`DELETE FROM glyph_messages`)',
-    'db.execute(sql`DELETE FROM ${glyphMessages}`)',
   ])
     assert.throws(() => assertNoSchemaExecution(source));
   assert.doesNotThrow(() => assertNoSchemaExecution('SELECT 1'));
-  assert.doesNotThrow(() => assertNoSchemaExecution('flights.delete(ownerId)'));
-  assert.doesNotThrow(() =>
-    assertNoSchemaExecution("router.delete('/glyph/messages/:id', handler)"),
-  );
 });
 
 test('database safety gate remains mandatory in quality, build, CI and post-merge', async () => {

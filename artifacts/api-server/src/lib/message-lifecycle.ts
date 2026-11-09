@@ -12,17 +12,13 @@ import {
 export async function claimDraftForSend(
   snapshot: GlyphMessage,
   links: (typeof glyphLinks.$inferInsert)[],
-  preparedTrackingOrigin?: string,
 ) {
   if (links.some((link) => link.messageId !== snapshot.id))
     throw new Error('Tracking links must belong to the claimed draft');
   return db.transaction(async (tx) => {
     const updated = await tx
       .update(glyphMessages)
-      .set({
-        status: 'sending',
-        ...(preparedTrackingOrigin ? { preparedTrackingOrigin } : {}),
-      })
+      .set({ status: 'sending' })
       .where(
         and(
           eq(glyphMessages.id, snapshot.id),

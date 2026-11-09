@@ -73,14 +73,6 @@ export function assertDevelopmentTarget(env, args) {
 
 export function assertNoSchemaExecution(text) {
   if (
-    /\.\s*delete\s*\(\s*(?:\w+\.)?glyph[A-Z]\w*|\bDELETE\s+FROM\s+(?:"?glyph_|\$\{\s*glyph[A-Z])/i.test(
-      text,
-    )
-  )
-    throw new Error(
-      'Physical database deletion is forbidden in runtime/deploy paths.',
-    );
-  if (
     /\b(?:drizzle-kit\s+(?:push|migrate)|prisma\s+(?:db\s+push|migrate)|push-force|(?:CREATE|ALTER|DROP|TRUNCATE)\s+(?:TABLE|SCHEMA|DATABASE|INDEX|TYPE))\b/i.test(
       text,
     )

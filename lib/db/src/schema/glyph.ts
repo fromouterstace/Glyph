@@ -40,7 +40,6 @@ export const glyphMessages = pgTable(
     rfcMessageId: text('rfc_message_id').notNull(),
     deliverySource: text('delivery_source').notNull().default('web'),
     nativeComposeKey: text('native_compose_key'),
-    preparedTrackingOrigin: text('prepared_tracking_origin'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -112,33 +111,6 @@ export const glyphTrackingBudgets = pgTable(
     check(
       'glyph_tracking_budgets_counts_check',
       sql`${t.windowCount} >= 1 and ${t.dayCount} >= 1`,
-    ),
-  ],
-);
-
-// Daily aggregates contain no token, IP, referrer, or user-agent data.
-export const glyphPixelDiagnostics = pgTable(
-  'glyph_pixel_diagnostics',
-  {
-    scope: text('scope').notNull(),
-    messageId: text('message_id').references(() => glyphMessages.id, {
-      onDelete: 'cascade',
-    }),
-    day: timestamp('day', { withTimezone: true }).notNull(),
-    outcome: text('outcome').notNull(),
-    requests: integer('requests').notNull().default(1),
-  },
-  (t) => [
-    primaryKey({ columns: [t.scope, t.day, t.outcome] }),
-    index('glyph_pixel_diagnostics_message_idx').on(t.messageId),
-    check('glyph_pixel_diagnostics_count_check', sql`${t.requests} > 0`),
-    check(
-      'glyph_pixel_diagnostics_outcome_check',
-      sql`${t.outcome} in ('recorded', 'sender_compose_ignored', 'tracking_disabled', 'send_not_confirmed', 'unknown_token', 'event_budget_exceeded', 'native_reconciliation_budget_exceeded', 'native_reconciliation_failed')`,
-    ),
-    check(
-      'glyph_pixel_diagnostics_scope_check',
-      sql`(${t.messageId} is null and ${t.scope} = 'unknown' and ${t.outcome} = 'unknown_token') or (${t.messageId} is not null and ${t.scope} = ${t.messageId} and ${t.outcome} <> 'unknown_token')`,
     ),
   ],
 );

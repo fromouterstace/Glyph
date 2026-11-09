@@ -5,8 +5,6 @@ import { resolve } from 'node:path';
 // silently pass after one of them is deleted or excluded from discovery.
 export const composerSuites = {
   ui: [
-    'artifacts/glyph/tests/database-approvals-page.test.tsx',
-    'artifacts/glyph/tests/database-approval-card.test.tsx',
     'artifacts/glyph/tests/label-import.test.tsx',
     'artifacts/glyph/tests/contact-profile.test.tsx',
     'artifacts/glyph/tests/contact-navigation.test.tsx',
@@ -24,9 +22,6 @@ export const composerSuites = {
     'artifacts/glyph/tests/composer-delivery.test.tsx',
   ],
   integration: [
-    'scripts/tests/database-approvals-access.integration.test.mjs',
-    'scripts/tests/database-approvals-actions.integration.test.mjs',
-    'scripts/tests/database-approvals-integrity.integration.test.mjs',
     'scripts/tests/contact-detail.integration.test.mjs',
     'scripts/tests/gmail-label-import.integration.test.mjs',
     'scripts/tests/gmail-oauth.integration.test.mjs',

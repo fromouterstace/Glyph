@@ -69,8 +69,6 @@ import {
   confirmSentMessage,
 } from '../lib/message-lifecycle';
 
-import { messagePixelDiagnostics } from '../lib/pixel-diagnostics';
-
 const router = Router();
 const userId = (req: Request) => getAuth(req).userId;
 async function settingsFor(ownerId: string | null) {
@@ -169,22 +167,17 @@ router.get('/glyph/messages/:id', async (req, res): Promise<void> => {
     res.status(404).json({ error: 'Email not found' });
     return;
   }
-  const [summary, links, clicksByUrl, pixelOutcomes] = await Promise.all([
+  const [summary, links, clicksByUrl] = await Promise.all([
     messageSignalSummary(id),
     db
       .select()
       .from(glyphLinks)
       .where(and(eq(glyphLinks.messageId, id), isNull(glyphLinks.retiredAt))),
     messageLinkClickCounts(id),
-    messagePixelDiagnostics(id),
   ]);
   res.json(
     GetMessageResponse.parse({
       message: publicMessage(message, summary),
-      diagnostics: {
-        preparedTrackingOrigin: message.preparedTrackingOrigin,
-        pixelOutcomes,
-      },
       links: links.map((l) => ({
         id: l.id,
         url: l.url,
@@ -414,7 +407,7 @@ router.post('/glyph/messages/:id/send', async (req, res): Promise<void> => {
     attachments,
     rfcMessageId: message.rfcMessageId,
   });
-  const claimed = await claimDraftForSend(message, links, base);
+  const claimed = await claimDraftForSend(message, links);
   if (!claimed) {
     res.status(409).json({
       error:
