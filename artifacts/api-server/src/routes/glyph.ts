@@ -286,6 +286,7 @@ router.patch('/glyph/messages/:id', async (req, res): Promise<void> => {
         and(
           eq(glyphMessages.id, id),
           eq(glyphMessages.ownerId, ownerId),
+          isNull(glyphMessages.archivedAt),
           inArray(glyphMessages.status, ['draft', 'failed']),
         ),
       )

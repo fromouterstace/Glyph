@@ -101,7 +101,12 @@ test('the permission preflight CLI fails closed without printing connection deta
     ['exec', 'tsx', 'check-database-access.mjs'],
     {
       cwd: fileURLToPath(new URL('.', import.meta.url)),
-      env: { ...process.env, DATABASE_URL: '' },
+      env: {
+        ...process.env,
+        DATABASE_URL: '',
+        GLYPH_RUNTIME_DATABASE_URL: '',
+        GLYPH_REQUIRE_RESTRICTED_DATABASE: '0',
+      },
       encoding: 'utf8',
       timeout: 15_000,
     },
@@ -110,4 +115,53 @@ test('the permission preflight CLI fails closed without printing connection deta
   const output = result.stdout + result.stderr;
   assert.match(output, /database_access_check_failed/);
   assert.doesNotMatch(output, /DATABASE_URL must|postgresql:\/\//);
+});
+
+test('connection selection and fixture isolation fail closed without connecting', () => {
+  const fallback = 'postgresql://fixture:fixture@127.0.0.1:1/fallback';
+  const runtime = 'postgresql://fixture:fixture@127.0.0.1:1/runtime';
+  for (const [overrides, expected, status] of [
+    [{ GLYPH_RUNTIME_DATABASE_URL: runtime }, runtime, 0],
+    [{}, fallback, 0],
+    [{ GLYPH_REQUIRE_RESTRICTED_DATABASE: '1' }, fallback, 1],
+    [
+      { GLYPH_DATABASE_TESTS: '1', GLYPH_RUNTIME_DATABASE_URL: runtime },
+      runtime,
+      1,
+    ],
+  ]) {
+    const env = {
+      ...process.env,
+      NODE_ENV: 'test',
+      DATABASE_URL: fallback,
+      GLYPH_REQUIRE_RESTRICTED_DATABASE: '0',
+      GLYPH_DATABASE_TESTS: '0',
+    };
+    delete env.GLYPH_RUNTIME_DATABASE_URL;
+    Object.assign(env, overrides);
+    const result = spawnSync(
+      'pnpm',
+      [
+        'exec',
+        'tsx',
+        '-e',
+        `import('@workspace/db').then(async m => {
+          console.log(m.pool.options.connectionString === ${JSON.stringify(expected)});
+          await m.pool.end();
+        }).catch(() => { console.error('CONFIG_REJECTED'); process.exitCode = 1; });`,
+      ],
+      {
+        cwd: fileURLToPath(new URL('.', import.meta.url)),
+        env,
+        encoding: 'utf8',
+        timeout: 15_000,
+      },
+    );
+    assert.equal(result.status, status, result.stderr);
+    assert.match(
+      result.stdout + result.stderr,
+      status ? /CONFIG_REJECTED/ : /true/,
+    );
+    assert.doesNotMatch(result.stdout + result.stderr, /postgresql:\/\//);
+  }
 });

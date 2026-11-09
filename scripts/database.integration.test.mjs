@@ -240,7 +240,9 @@ test('a concurrent pixel burst is capped while every request still receives the 
   );
 });
 
-test('a limited click still redirects and does not create an event', async () => {
+test('a limited click still redirects and does not create an event', async (t) => {
+  // The request and the prefilled budget must use the same fixed window.
+  t.mock.method(Date, 'now', () => Date.UTC(2026, 0, 1, 12));
   const message = await messageFixture(sql);
   const token = fixtureId().replaceAll('-', '').padStart(48, '0');
   const destination = 'https://example.invalid/rate-limited';

@@ -300,6 +300,14 @@ test('states expire, denied grants are single-use, and partial scopes or a misma
 
 test('tokens are encrypted at rest and authenticated to their owner; status never exposes credentials', async () => {
   const owner = await connect(account());
+  const retained = await h.sql(
+    'SELECT encrypted_verifier, expires_at, claimed_at FROM glyph_gmail_oauth_states WHERE owner_id=$1',
+    [owner],
+  );
+  expect(retained.rows).toHaveLength(1);
+  expect(retained.rows[0].encrypted_verifier).toBe('');
+  expect(new Date(retained.rows[0].expires_at).getTime()).toBe(0);
+  expect(retained.rows[0].claimed_at).not.toBeNull();
   const other = account();
   const [{ encrypted_tokens: encrypted }] = (
     await h.sql(

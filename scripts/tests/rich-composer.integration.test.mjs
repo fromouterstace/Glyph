@@ -185,7 +185,12 @@ test('oversized or mismatched actual uploads are rejected and cleaned up', async
       })
     ).status,
   ).toBe(400);
-  expect(store.files.has(path)).toBe(true);
+  expect(store.files.has(path)).toBe(false);
+  const rejected = await h.sql(
+    'SELECT retired_at FROM glyph_attachments WHERE id=$1',
+    [pending.attachment.id],
+  );
+  expect(rejected.rows[0].retired_at).not.toBeNull();
   expect(
     (await h.request(`/attachments/${pending.attachment.id}`, { user: owner }))
       .status,
@@ -193,7 +198,7 @@ test('oversized or mismatched actual uploads are rejected and cleaned up', async
 });
 test('referenced files cannot be retired; removed attachment records and bytes are retained', async () => {
   const user = h.identity();
-  const { attachment } = await upload(user);
+  const { attachment, uploadUrl } = await upload(user);
   const message = await (
     await h.request('/messages', {
       user,
@@ -233,10 +238,36 @@ test('referenced files cannot be retired; removed attachment records and bytes a
       ])
     ).rows[0].retired_at,
   ).not.toBeNull();
-  expect(store.files.size).toBeGreaterThan(0);
+  const path = new URL(uploadUrl).pathname.replace('/fixture', '');
+  expect(store.files.has(path)).toBe(true);
   expect(
     (await h.request(`/attachments/${attachment.id}`, { user })).status,
   ).toBe(404);
+});
+
+test('retired attachment records still count toward the owner retention quota', async () => {
+  const user = h.identity();
+  await h.sql(
+    `INSERT INTO glyph_attachments
+      (id, owner_id, name, size, content_type, object_path, retired_at)
+      SELECT $1 || i::text, $1, 'retained.txt', 1, 'text/plain',
+        '/fixture/retained-' || $1 || i::text, now()
+      FROM generate_series(1, 100) i`,
+    [user],
+  );
+  const denied = await h.request('/attachments', {
+    user,
+    method: 'POST',
+    body: { name: 'new.txt', size: 3, contentType: 'text/plain' },
+  });
+  expect(denied.status).toBe(409);
+  expect((await denied.json()).error).toContain('retention limit');
+  const other = await h.request('/attachments', {
+    user: h.identity(),
+    method: 'POST',
+    body: { name: 'other.txt', size: 3, contentType: 'text/plain' },
+  });
+  expect(other.status).toBe(201);
 });
 test('rich formatting and exact attachment bytes reach the Gmail MIME request, not real Gmail', async () => {
   const user = h.identity();

@@ -78,7 +78,7 @@ export async function requestUpload(
   return withComposerLock(owner, async (tx) => {
     const [usage] = await tx
       .select({
-        bytes: sql<number>`coalesce(sum(${glyphAttachments.size}), 0)::int`,
+        bytes: sql<number>`coalesce(sum(${glyphAttachments.size}), 0)::float8`,
         count: sql<number>`count(*)::int`,
       })
       .from(glyphAttachments)
@@ -114,6 +114,9 @@ export async function completeUpload(owner: string, id: string) {
         .update(glyphAttachments)
         .set({ retiredAt: new Date() })
         .where(eq(glyphAttachments.id, id));
+      // The metadata is retained, but invalid upload bytes are not valid
+      // user attachments and must not accumulate outside the upload budget.
+      await file.delete({ ignoreNotFound: true });
       return null;
     }
     const [saved] = await tx
@@ -164,7 +167,7 @@ export async function retireUnusedAttachment(owner: string, id: string) {
     if (used)
       throw new ComposerError(
         409,
-        'Remove this attachment from saved drafts before retiring it.',
+        'This attachment is retained by a saved or archived draft and cannot be retired.',
       );
     await tx
       .update(glyphAttachments)

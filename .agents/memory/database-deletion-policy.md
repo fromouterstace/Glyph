@@ -15,3 +15,14 @@ transitions, Gmail sync progress and tracking budgets.
 states. Follow the exact authorization policy in
 `docs/database-deletion-protection.md`; never equate lint or permission-test
 success with an activated production lock.
+
+A restricted pool alone does not establish least privilege if an owner-level
+connection is still available to the same web process.
+
+**Why:** The managed database credential can remain injected independently of an
+application-specific connection override. Checking the selected role does not
+prove that other privileged credentials are absent.
+
+**How to apply:** Verify the deployed process's credential boundary through the
+supported administrative process before claiming production least privilege.
+Do not print connection values or treat configuration support as provisioning.

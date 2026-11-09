@@ -47,27 +47,55 @@ Its tests run in normal quality/CI, but the actual runtime permission check is
 **not yet a mandatory publishing gate**. Neither passing CI nor publishing the
 current code activates the requested deletion lock.
 
+## Retained-state conversion in the workspace
+
+The additive review adds nullable archive/retirement timestamps. Development
+has received this expansion; production has not been changed by this work.
+
+- Removing an unsent web draft archives its row. Active message, activity and
+  contact readers omit it; stale edits and send claims cannot modify/send it.
+- Superseded tracking links retain their rows but become inaccessible. Unchanged
+  active links keep their tokens; an existing link ID cannot change destination
+  or token during a send claim.
+- OAuth cancellation and consumption expire retained state records and clear
+  their encrypted verifier. Existing replay/session/expiry checks still apply.
+- Removed valid attachments retain metadata and bytes, but cannot be downloaded
+  or attached again through normal routes. Rejected malformed uploads retain
+  retired metadata; their invalid bytes are cleaned up, not preserved as valid
+  attachments. This prevents oversized rejected uploads accumulating.
+- The 100-file/100-MiB attachment budget counts all retained owner metadata,
+  including retired and saved attachments. Removing a valid attachment no longer
+  frees this budget. No automatic purge or unreviewed quota bypass exists.
+
+**Why:** retaining database rows must not silently reactivate archived resources,
+lose legitimate attachment bytes, or create an unlimited rejected-upload store.
+
+## Runtime connection support, not provisioning
+
+The pool supports `GLYPH_RUNTIME_DATABASE_URL` as a separate connection override.
+`GLYPH_REQUIRE_RESTRICTED_DATABASE=1` refuses startup if that override is missing.
+Presence of a URL does not prove its privileges: the permission preflight must
+still inspect the actual connection. Database fixtures reject a configured
+runtime override so an integration test cannot accidentally select it.
+
+Neither setting provisions a PostgreSQL role or removes other credentials from
+the process. In particular, a privileged managed `DATABASE_URL` remaining in the
+web environment would still be a credential-exposure boundary to resolve.
+No restricted runtime credential has been installed and the requirement flag
+has not been enabled for production.
+
 ## Prerequisites before activation
 
-1. Replace physical deletion in normal operation with explicit retained-state
-   transitions:
-   - Draft removal in `routes/glyph.ts`.
-   - Link replacement in `lib/message-lifecycle.ts` and `routes/glyph-native.ts`.
-   - OAuth state cleanup/consumption in `lib/gmail-oauth.ts`.
-   - Attachment metadata and object cleanup in `lib/attachments.ts`.
-     Retired links and attachments must become inaccessible, archived drafts must
-     leave active views, and expired/consumed OAuth states must stay unusable.
-     Do not silently ignore a denied DELETE or break sending/reconnection.
-2. Provision a separate non-owner, non-BYPASSRLS runtime login through an
+1. Provision a separate non-owner, non-BYPASSRLS runtime login through an
    authorized database administrator. Keep schema-owner/maintenance credentials
    out of the web process. Inspect inherited memberships, PUBLIC grants, schema
    ownership, defaults for newly created tables and callable privileged routines.
-3. Verify the restricted connection with the catalog preflight and the actual
+2. Verify the restricted connection with the catalog preflight and the actual
    app journeys above. Only then make the deployed runtime preflight mandatory.
-4. Implement and test the two-identity operation-specific approval workflow
+3. Implement and test the two-identity operation-specific approval workflow
    before offering any protected-operation exception. Keep execution separate
    from the ordinary runtime credential and preserve an audit record.
-5. Verify production enforcement independently. Do not infer it from the
+4. Verify production enforcement independently. Do not infer it from the
    development role, an isolated test role, a schema lint pass or Publish.
 
 Replit's documented Publish process transfers supported schema objects but not
@@ -88,5 +116,7 @@ Reference:
 - `pnpm check:database-access` returned nonzero with `safe: false` for the current
   privileged development connection, as required. This is a detected blocker,
   not a successful production enforcement check.
-- No application records, persistent role grants or production schema/
-  permissions were changed. The temporary test role and grants were rolled back.
+- The development expansion adds only three nullable timestamp columns.
+  No customer rows were physically deleted, no persistent role grants were
+  changed, and no production schema/permissions were changed. The temporary test
+  role and grants were rolled back.

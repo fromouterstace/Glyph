@@ -33,6 +33,7 @@ export const composerSuites = {
     'scripts/tests/web-recipients.integration.test.mjs',
     'scripts/tests/composer-origin.integration.test.mjs',
     'scripts/tests/message-lifecycle.integration.test.mjs',
+    'scripts/tests/retained-state.integration.test.mjs',
     'scripts/tests/owner-isolation.integration.test.mjs',
     'scripts/tests/connector-failures.integration.test.mjs',
   ],

@@ -4,6 +4,15 @@ import * as schema from './schema';
 
 const { Pool } = pg;
 
+if (
+  process.env.GLYPH_DATABASE_TESTS === '1' &&
+  process.env.GLYPH_RUNTIME_DATABASE_URL
+) {
+  throw new Error(
+    'Database fixtures cannot use a configured application runtime connection.',
+  );
+}
+
 const databaseUrl =
   process.env.GLYPH_RUNTIME_DATABASE_URL ?? process.env.DATABASE_URL;
 

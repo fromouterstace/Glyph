@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, test } from 'vitest';
-import { and, eq, isNull } from 'drizzle-orm';
 import { db, glyphLinks, glyphMessages } from '@workspace/db';
 import { messageFixture, fixtureId } from '../lib/database-fixture.mjs';
 import { serviceHarness } from './helpers/service-harness.mjs';
@@ -56,13 +55,12 @@ test('deleting an unsent draft archives it without erasing it or exposing it in 
 test('replaced tracked links are retired, while unchanged links keep their token', async () => {
   const message = await messageFixture(h.sql, {
     ownerId: h.identity(),
-    deliverySource: 'web',
+    source: 'web',
     status: 'draft',
   });
-  const [snapshot] = await db
-    .select()
-    .from(glyphMessages)
-    .where(eq(glyphMessages.id, message.id));
+  const snapshot = (await db.select().from(glyphMessages)).find(
+    (row) => row.id === message.id,
+  );
   const makeLink = (url) => ({
     id: fixtureId(),
     messageId: message.id,
@@ -78,10 +76,9 @@ test('replaced tracked links are retired, while unchanged links keep their token
   ]);
   expect(await claimDraftForSend(snapshot, [replacement])).toBe(true);
 
-  const rows = await db
-    .select()
-    .from(glyphLinks)
-    .where(eq(glyphLinks.messageId, message.id));
+  const rows = (await db.select().from(glyphLinks)).filter(
+    (row) => row.messageId === message.id,
+  );
   expect(rows).toHaveLength(2);
   expect(rows.find((row) => row.id === original.id).retiredAt).not.toBeNull();
   expect(rows.find((row) => row.id === replacement.id).retiredAt).toBeNull();
@@ -90,11 +87,77 @@ test('replaced tracked links are retired, while unchanged links keep their token
     message.id,
   ]);
   expect(await claimDraftForSend(snapshot, [replacement])).toBe(true);
-  const active = await db
-    .select()
-    .from(glyphLinks)
-    .where(
-      and(eq(glyphLinks.messageId, message.id), isNull(glyphLinks.retiredAt)),
-    );
+  const active = (
+    await h.sql(
+      'SELECT id FROM glyph_links WHERE message_id=$1 AND retired_at IS NULL',
+      [message.id],
+    )
+  ).rows;
   expect(active.map((row) => row.id)).toEqual([replacement.id]);
+  expect(
+    (await h.request(`/l/${original.token}`, { redirect: 'manual' })).status,
+  ).toBe(404);
+  expect(
+    (await h.request(`/l/${replacement.token}`, { redirect: 'manual' })).status,
+  ).toBe(302);
+});
+
+test('archiving a draft prevents a stale snapshot from being sent', async () => {
+  const message = await messageFixture(h.sql, {
+    ownerId: h.identity(),
+    status: 'draft',
+  });
+  const snapshot = (await db.select().from(glyphMessages)).find(
+    (row) => row.id === message.id,
+  );
+  await h.sql('UPDATE glyph_messages SET archived_at=now() WHERE id=$1', [
+    message.id,
+  ]);
+  expect(await claimDraftForSend(snapshot, [])).toBe(false);
+  expect(
+    (
+      await h.request(`/messages/${message.id}/send`, {
+        user: message.ownerId,
+        method: 'POST',
+      })
+    ).status,
+  ).toBe(404);
+  const state = await h.sql('SELECT status FROM glyph_messages WHERE id=$1', [
+    message.id,
+  ]);
+  expect(state.rows[0].status).toBe('draft');
+});
+
+test('a reused link ID cannot silently change destination or token', async () => {
+  const message = await messageFixture(h.sql, {
+    status: 'draft',
+    ownerId: h.identity(),
+  });
+  const snapshot = (await db.select().from(glyphMessages)).find(
+    (row) => row.id === message.id,
+  );
+  const link = {
+    id: fixtureId(),
+    messageId: message.id,
+    token: fixtureId().replaceAll('-', '').padEnd(48, '0'),
+    url: 'https://example.invalid/original',
+  };
+  await db.insert(glyphLinks).values(link);
+  await expect(
+    claimDraftForSend(snapshot, [
+      {
+        ...link,
+        url: 'https://example.invalid/changed',
+      },
+    ]),
+  ).rejects.toThrow('immutable');
+  const state = await h.sql('SELECT status FROM glyph_messages WHERE id=$1', [
+    message.id,
+  ]);
+  expect(state.rows[0].status).toBe('draft');
+  const stored = await h.sql(
+    'SELECT url, retired_at FROM glyph_links WHERE id=$1',
+    [link.id],
+  );
+  expect(stored.rows[0]).toEqual({ url: link.url, retired_at: null });
 });

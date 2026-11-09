@@ -43,7 +43,7 @@ export async function claimDraftForSend(
     if (!updated.length) return false;
     const reused = new Set(links.map((link) => link.id));
     const oldLinks = await tx
-      .select({ id: glyphLinks.id })
+      .select()
       .from(glyphLinks)
       .where(
         and(
@@ -51,6 +51,11 @@ export async function claimDraftForSend(
           isNull(glyphLinks.retiredAt),
         ),
       );
+    for (const link of links) {
+      const old = oldLinks.find((candidate) => candidate.id === link.id);
+      if (old && (old.token !== link.token || old.url !== link.url))
+        throw new Error('Existing tracking links are immutable.');
+    }
     const oldIds = new Set(oldLinks.map((link) => link.id));
     const activeLinks = [
       eq(glyphLinks.messageId, snapshot.id),
