@@ -11,6 +11,7 @@ import {
   getGetLabelImportQueryKey,
   getListContactsQueryKey,
   getSyncLabelImportMutationKey,
+  useGetGmailAuthorization,
   useGetLabelImport,
   useSyncLabelImport,
   type LabelImportStatus,
@@ -64,12 +65,23 @@ function errStatus(err: unknown) {
 export function importProblem(
   status: LabelImportStatus | undefined,
   err: unknown,
+  connected?: boolean,
 ): { kind: 'connection' | 'label' | 'error'; text: string } | null {
   const code = errStatus(err);
-  if (code === 401 || code === 403)
+  if (code === 401)
+    return {
+      kind: 'error',
+      text: 'Your Glyph session could not be verified. Sign in again, then retry the import.',
+    };
+  if (connected === false)
     return {
       kind: 'connection',
       text: 'Connect your Gmail account to import labeled messages and contacts.',
+    };
+  if (code === 403)
+    return {
+      kind: 'error',
+      text: 'Gmail import was denied. Review your mailbox permissions on the Gmail page, then retry.',
     };
   if (status?.status === 'label_missing')
     return {
@@ -173,6 +185,9 @@ function useLastSyncError() {
 }
 
 export function LabelImportPanel() {
+  const authorization = useGetGmailAuthorization({
+    query: { refetchOnMount: 'always', refetchInterval: AUTO_IMPORT_MS },
+  });
   const status = useGetLabelImport({
     query: { queryKey: getGetLabelImportQueryKey() },
   });
@@ -182,7 +197,13 @@ export function LabelImportPanel() {
     useIsMutating({ mutationKey: getSyncLabelImportMutationKey() }) > 0;
   const lastError = useLastSyncError();
   const s = status.data;
-  const problem = importProblem(s, lastError ?? status.error);
+  const problem = importProblem(
+    s,
+    lastError ?? status.error,
+    authorization.isError || authorization.isFetching
+      ? undefined
+      : authorization.data?.connected,
+  );
   const syncing = running || s?.status === 'syncing';
 
   const retry = () => {
