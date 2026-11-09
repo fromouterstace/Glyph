@@ -64,8 +64,45 @@ GLYPH_REQUIRE_RESTRICTED_DATABASE=1 pnpm check:database-access
 
 No separate production login, password, grant or enforcement environment setting
 was created by this implementation. No maintenance credential is loaded into a
-new privileged web executor. Protected-operation exceptions remain unavailable;
-the two-person approval workflow is still an open requirement.
+new privileged web executor. Protected-operation execution remains unavailable;
+the in-app workflow below records approvals but does not perform exceptions.
+
+## In-app approval records
+
+The user chose to place the approval interaction **inside Glyph**, not an external
+release workflow. `/database-approvals` and its navigation entry are available
+only to the two designated accounts above. Server-side checks fetch verified
+addresses from Clerk on every request. One Clerk account holding both designated
+addresses is rejected; request creation is not an approval.
+
+Requests contain an immutable operation (`delete_rows`, `truncate_table`,
+`drop_object` or `change_privileges`), exact target, plan SHA-256, reason,
+server-assigned requester/environment and one-hour expiry. The server hashes
+all immutable attributes, including the unique request ID and timestamps.
+Actions must submit that exact digest; altered metadata or a different server
+environment is rejected. There is no SQL-text field, edit endpoint or global
+unlock. A changed plan needs a new request and two new approvals.
+
+Each distinct verified account can sign only its own slot. Either can revoke a
+live request. A transaction locks the row before acting; consumption revalidates
+both stored signers and succeeds only once, before expiry. PostgreSQL checks
+backstop valid operations/environments, hashes, identity/timestamp pairs, distinct
+signers, lifetime and consumption prerequisites. Revocation and consumption
+retain actor IDs and timestamps; records are never deleted by this workflow.
+Identity-provider errors fail closed.
+
+**Consumption is only a retained authorization record, not execution.** The UI
+requires confirmation for revocation/consumption and explicitly states that it
+does not run SQL, change privileges, establish backup recoverability or restrict
+owner SQL consoles/Publish. An actual protected-operation executor is not built
+or authorized by this feature. The ordinary runtime role must remain restricted
+even when an approval record exists.
+
+The API returns private/no-store responses, requires signed-in sessions, blocks
+non-designated readers, enforces same-origin mutations, strictly validates
+request bodies and bounds list pages to 50. UI queries are keyed by Clerk user,
+poll for the other approver's changes and never automatically retry mutations.
+Request fields survive polling and failed submissions.
 
 Selecting the restricted pool does not prove administrative credentials are
 absent from the container. Verify the published runtime's credential separation
@@ -118,9 +155,10 @@ current code activates the requested deletion lock.
 3. Verify the restricted connection with the catalog preflight and actual app
    journeys above. Enable the restricted-mode flag only with the verified runtime
    secret available; the API then makes the runtime preflight mandatory.
-4. Implement and test the two-identity operation-specific approval workflow
-   before offering any protected-operation exception. Keep execution separate
-   from the ordinary runtime credential and preserve an audit record.
+4. Verify the in-app approval-record workflow on the deployed build before
+   relying on it. Protected-operation execution remains a separate, unimplemented
+   boundary; do not offer an exception until that executor has independent
+   authorization, recovery evidence and a durable audit record.
 5. Verify production enforcement independently. Do not infer it from the
    development role, an isolated test role, a schema lint pass or Publish.
 
@@ -135,19 +173,23 @@ Reference:
 
 ## Verification recorded
 
-- The PostgreSQL run passed 25 tests, including actual denied DELETE, TRUNCATE
+- The PostgreSQL run passed 27 tests, including actual denied DELETE, TRUNCATE
   and DROP operations under the isolated restricted role.
 - `pnpm check` passed schema safety, lint, formatting, TypeScript, critical-source
   coverage, mandatory discovery, contracts, UI tests and test-layer line budgets.
-- Focused retained-state/OAuth verification passed 19 service tests. The focused
-  retained-state/composer run passed 12 tests; the nine process shutdown/recovery
-  tests passed. Final added service cases also passed ESLint and Prettier.
+- The full integration gate passed 136 service tests (including the 14 approval
+  access/action/integrity cases) and nine process shutdown/recovery tests.
+  The UI gate passed 103 tests, including approval-form/action/denial coverage.
+  These are automated component/API tests, not a live two-account browser trial.
+- The separate HTTP gate passed 36 tests. Smoke includes approval document
+  delivery and signed-out approval reads/writes. The production web artifact
+  passed its document-header, asset, route and extension-download checks.
 - The API artifact rebuilt and restarted successfully. Development HTTPS smoke
   returned 200 for liveness/readiness and 401 for signed-out message/contact reads.
 - `pnpm check:database-access` returned nonzero with `safe: false` for the current
   privileged development connection, as required. This is a detected blocker,
   not a successful production enforcement check.
-- The three additive columns were applied to development only. Existing
+- The retention columns and new approval table were applied to development only. Existing
   application records were not removed; test writes used isolated schemas.
   No persistent role grants, production schema/permissions or production
   credentials were changed. The temporary permission-test role was rolled back.

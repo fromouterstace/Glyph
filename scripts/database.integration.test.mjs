@@ -5,6 +5,7 @@ import express from 'express';
 import pino from 'pino';
 import pinoHttp from 'pino-http';
 import { Writable } from 'node:stream';
+import { readFile, readdir } from 'node:fs/promises';
 import {
   serializeRequestLog,
   serializeResponseLog,
@@ -104,7 +105,13 @@ test('database-access preflight rejects the privileged fixture owner', async () 
   const { rows } = await sql('SELECT current_schema() AS schema');
   const result = await inspectDatabaseAccess(database, rows[0].schema);
   assert.equal(result.safe, false);
-  assert.equal(result.tableCount, 12);
+  const directory = new URL('../lib/db/schema-reviews/', import.meta.url);
+  const latest = (await readdir(directory))
+    .filter((name) => /^\d{4}\.shape\.json$/.test(name))
+    .sort()
+    .at(-1);
+  const shape = JSON.parse(await readFile(new URL(latest, directory), 'utf8'));
+  assert.equal(result.tableCount, Object.keys(shape).length);
   assert.ok(result.issues.includes('table_owner'));
   assert.ok(result.issues.includes('can_delete'));
   assert.ok(result.issues.includes('can_truncate'));

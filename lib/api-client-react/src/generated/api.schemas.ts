@@ -5,6 +5,108 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+/**
+ * @nullable
+ */
+export type DatabaseApprovalAccessSlot = typeof DatabaseApprovalAccessSlot[keyof typeof DatabaseApprovalAccessSlot] | null;
+
+
+export const DatabaseApprovalAccessSlot = {
+  first: 'first',
+  second: 'second',
+} as const;
+
+export interface DatabaseApprovalAccess {
+  canApprove: boolean;
+  /** @nullable */
+  slot: DatabaseApprovalAccessSlot;
+}
+
+export type DatabaseApprovalInputOperation = typeof DatabaseApprovalInputOperation[keyof typeof DatabaseApprovalInputOperation];
+
+
+export const DatabaseApprovalInputOperation = {
+  delete_rows: 'delete_rows',
+  truncate_table: 'truncate_table',
+  drop_object: 'drop_object',
+  change_privileges: 'change_privileges',
+} as const;
+
+export interface DatabaseApprovalInput {
+  operation: DatabaseApprovalInputOperation;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     * @pattern ^[a-zA-Z0-9_.:-]+$
+     */
+  target: string;
+  /** @pattern ^[a-f0-9]{64}$ */
+  planSha256: string;
+  /**
+     * @minLength 10
+     * @maxLength 2000
+     */
+  reason: string;
+}
+
+export type DatabaseApprovalActionInputAction = typeof DatabaseApprovalActionInputAction[keyof typeof DatabaseApprovalActionInputAction];
+
+
+export const DatabaseApprovalActionInputAction = {
+  approve: 'approve',
+  revoke: 'revoke',
+  consume: 'consume',
+} as const;
+
+export interface DatabaseApprovalActionInput {
+  action: DatabaseApprovalActionInputAction;
+  /** @pattern ^[a-f0-9]{64}$ */
+  digest: string;
+}
+
+export type DatabaseApprovalEnvironment = typeof DatabaseApprovalEnvironment[keyof typeof DatabaseApprovalEnvironment];
+
+
+export const DatabaseApprovalEnvironment = {
+  development: 'development',
+  production: 'production',
+} as const;
+
+export type DatabaseApprovalStatus = typeof DatabaseApprovalStatus[keyof typeof DatabaseApprovalStatus];
+
+
+export const DatabaseApprovalStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  expired: 'expired',
+  revoked: 'revoked',
+  consumed: 'consumed',
+} as const;
+
+export type DatabaseApproval = DatabaseApprovalInput & ({
+  id: string;
+  digest: string;
+  environment: DatabaseApprovalEnvironment;
+  requestedBy: string;
+  createdAt: string;
+  expiresAt: string;
+  /** @nullable */
+  firstApprovedAt: string | null;
+  /** @nullable */
+  secondApprovedAt: string | null;
+  /** @nullable */
+  revokedAt: string | null;
+  /** @nullable */
+  consumedAt: string | null;
+  status: DatabaseApprovalStatus;
+});
+
+export interface DatabaseApprovalPage {
+  items: DatabaseApproval[];
+  hasMore: boolean;
+  offset: number;
+}
+
 export interface Contact {
   id: string;
   firstName: string;
@@ -489,6 +591,14 @@ export type UnauthorizedResponse = {
 
 export type ForbiddenResponse = {
   error: string;
+};
+
+export type ListDatabaseApprovalsParams = {
+  /**
+   * @minimum 0
+   * @maximum 1000000
+   */
+  offset?: number;
 };
 
 export type ListContactsParams = {

@@ -1,5 +1,22 @@
 # Glyph testing canon and regression gates
 
+## Protected-operation approval coverage
+
+Approval regression coverage is mandatory in unit/service/UI discovery. The
+policy unit suite covers verified designation, ambiguous identities, immutable
+digest inputs and terminal-state precedence. Three isolated PostgreSQL/API
+suites cover authentication/session/origin boundaries, strict inputs, expiry,
+both accounts, idempotent signing, revocation, signer revalidation, digest and
+environment mismatch, database constraints and competing single-use claims.
+UI suites cover access denial, scoped query keys, create/action errors, digest
+binding, confirmation and consumed-not-executed language. Keep the established
+50/100/150/200 per-test-function budgets; do not weaken them to add coverage.
+
+Readiness parses every approval column and checks its primary key and safety
+constraints. HTTPS smoke includes the page and unauthenticated approval reads
+and mutations. None of these tests proves production privilege provisioning,
+backup restoration, two independent human operators or owner-console control.
+
 ## Database change safety
 
 `pnpm check:database` runs before quality/build and in post-merge. CI additionally

@@ -16,6 +16,17 @@ states. Follow the exact authorization policy in
 `docs/database-deletion-protection.md`; never equate lint or permission-test
 success with an activated production lock.
 
+## Approval location
+
+The two designated users approve protected changes inside Glyph, rather than
+through an external administrator workflow.
+
+**Why:** The user explicitly chose “Inside Glyph.”
+
+**How to apply:** Keep the approval interaction in the product. Distinguish
+approval records and single-use claims from actual SQL execution and external
+administrative enforcement; never imply that an approval page locks owner access.
+
 ## Managed production boundary
 
 Replit Publish does not transfer PostgreSQL role grants, functions or triggers.

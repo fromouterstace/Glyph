@@ -35,6 +35,11 @@ import type {
   Connection,
   ContactDetail,
   ContactPage,
+  DatabaseApproval,
+  DatabaseApprovalAccess,
+  DatabaseApprovalActionInput,
+  DatabaseApprovalInput,
+  DatabaseApprovalPage,
   DisconnectGmail200,
   ForbiddenResponse,
   GetContactDetailParams,
@@ -43,6 +48,7 @@ import type {
   LabelImportStatus,
   ListActivityParams,
   ListContactsParams,
+  ListDatabaseApprovalsParams,
   ListMessagesParams,
   Message,
   MessageDetail,
@@ -86,6 +92,368 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetDatabaseApprovalAccessUrl = () => {
+
+
+
+
+  return `/api/glyph/database-approvals/access`
+}
+
+export const getDatabaseApprovalAccess = async ( options?: Parameters<typeof customFetch>[1]): Promise<DatabaseApprovalAccess> => {
+
+  return customFetch<DatabaseApprovalAccess>(getGetDatabaseApprovalAccessUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDatabaseApprovalAccessQueryKey = () => {
+    return [
+    `/api/glyph/database-approvals/access`
+    ] as const;
+    }
+
+
+export const getGetDatabaseApprovalAccessQueryOptions = <TData = Awaited<ReturnType<typeof getDatabaseApprovalAccess>>, TError = ErrorType<UnauthorizedResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDatabaseApprovalAccess>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDatabaseApprovalAccessQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDatabaseApprovalAccess>>> = ({ signal }) => getDatabaseApprovalAccess({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDatabaseApprovalAccess>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetDatabaseApprovalAccessQueryResult = NonNullable<Awaited<ReturnType<typeof getDatabaseApprovalAccess>>>
+export type GetDatabaseApprovalAccessQueryError = ErrorType<UnauthorizedResponse>
+
+
+export function useGetDatabaseApprovalAccess<TData = Awaited<ReturnType<typeof getDatabaseApprovalAccess>>, TError = ErrorType<UnauthorizedResponse>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDatabaseApprovalAccess>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDatabaseApprovalAccess>>,
+          TError,
+          Awaited<ReturnType<typeof getDatabaseApprovalAccess>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDatabaseApprovalAccess<TData = Awaited<ReturnType<typeof getDatabaseApprovalAccess>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDatabaseApprovalAccess>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDatabaseApprovalAccess>>,
+          TError,
+          Awaited<ReturnType<typeof getDatabaseApprovalAccess>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDatabaseApprovalAccess<TData = Awaited<ReturnType<typeof getDatabaseApprovalAccess>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDatabaseApprovalAccess>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetDatabaseApprovalAccess<TData = Awaited<ReturnType<typeof getDatabaseApprovalAccess>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDatabaseApprovalAccess>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetDatabaseApprovalAccessQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListDatabaseApprovalsUrl = (params?: ListDatabaseApprovalsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/glyph/database-approvals?${stringifiedParams}` : `/api/glyph/database-approvals`
+}
+
+export const listDatabaseApprovals = async (params?: ListDatabaseApprovalsParams, options?: Parameters<typeof customFetch>[1]): Promise<DatabaseApprovalPage> => {
+
+  return customFetch<DatabaseApprovalPage>(getListDatabaseApprovalsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListDatabaseApprovalsQueryKey = (params?: ListDatabaseApprovalsParams,) => {
+    return [
+    `/api/glyph/database-approvals`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListDatabaseApprovalsQueryOptions = <TData = Awaited<ReturnType<typeof listDatabaseApprovals>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse>>(params?: ListDatabaseApprovalsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDatabaseApprovals>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDatabaseApprovalsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDatabaseApprovals>>> = ({ signal }) => listDatabaseApprovals(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDatabaseApprovals>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListDatabaseApprovalsQueryResult = NonNullable<Awaited<ReturnType<typeof listDatabaseApprovals>>>
+export type ListDatabaseApprovalsQueryError = ErrorType<UnauthorizedResponse | ForbiddenResponse>
+
+
+export function useListDatabaseApprovals<TData = Awaited<ReturnType<typeof listDatabaseApprovals>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse>>(
+ params: undefined |  ListDatabaseApprovalsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDatabaseApprovals>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDatabaseApprovals>>,
+          TError,
+          Awaited<ReturnType<typeof listDatabaseApprovals>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListDatabaseApprovals<TData = Awaited<ReturnType<typeof listDatabaseApprovals>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse>>(
+ params?: ListDatabaseApprovalsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDatabaseApprovals>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDatabaseApprovals>>,
+          TError,
+          Awaited<ReturnType<typeof listDatabaseApprovals>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListDatabaseApprovals<TData = Awaited<ReturnType<typeof listDatabaseApprovals>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse>>(
+ params?: ListDatabaseApprovalsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDatabaseApprovals>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListDatabaseApprovals<TData = Awaited<ReturnType<typeof listDatabaseApprovals>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse>>(
+ params?: ListDatabaseApprovalsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDatabaseApprovals>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListDatabaseApprovalsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateDatabaseApprovalUrl = () => {
+
+
+
+
+  return `/api/glyph/database-approvals`
+}
+
+export const createDatabaseApproval = async (databaseApprovalInput: DatabaseApprovalInput, options?: Parameters<typeof customFetch>[1]): Promise<DatabaseApproval> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<DatabaseApproval>(getCreateDatabaseApprovalUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(databaseApprovalInput)
+  }
+);}
+
+
+
+
+
+export const getCreateDatabaseApprovalMutationKey = () => ['createDatabaseApproval'] as const;
+
+export const getCreateDatabaseApprovalMutationOptions = <TError = ErrorType<void | UnauthorizedResponse | ForbiddenResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDatabaseApproval>>, TError,CreateDatabaseApprovalMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createDatabaseApproval>>, TError,CreateDatabaseApprovalMutationVariables, TContext> => {
+
+const mutationKey = getCreateDatabaseApprovalMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDatabaseApproval>>, CreateDatabaseApprovalMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createDatabaseApproval(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateDatabaseApprovalMutationResult = NonNullable<Awaited<ReturnType<typeof createDatabaseApproval>>>
+    export type CreateDatabaseApprovalMutationBody = BodyType<DatabaseApprovalInput>
+    export type CreateDatabaseApprovalMutationError = ErrorType<void | UnauthorizedResponse | ForbiddenResponse>
+    export type CreateDatabaseApprovalMutationVariables = {data: BodyType<DatabaseApprovalInput>}
+
+    export const useCreateDatabaseApproval = <TError = ErrorType<void | UnauthorizedResponse | ForbiddenResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDatabaseApproval>>, TError,CreateDatabaseApprovalMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createDatabaseApproval>>,
+        TError,
+        CreateDatabaseApprovalMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateDatabaseApprovalMutationOptions(options), queryClient);
+    }
+
+export const getActOnDatabaseApprovalUrl = (id: string,) => {
+
+
+
+
+  return `/api/glyph/database-approvals/${id}/action`
+}
+
+export const actOnDatabaseApproval = async (id: string,
+    databaseApprovalActionInput: DatabaseApprovalActionInput, options?: Parameters<typeof customFetch>[1]): Promise<DatabaseApproval> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<DatabaseApproval>(getActOnDatabaseApprovalUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(databaseApprovalActionInput)
+  }
+);}
+
+
+
+
+
+export const getActOnDatabaseApprovalMutationKey = () => ['actOnDatabaseApproval'] as const;
+
+export const getActOnDatabaseApprovalMutationOptions = <TError = ErrorType<void | UnauthorizedResponse | ForbiddenResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof actOnDatabaseApproval>>, TError,ActOnDatabaseApprovalMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof actOnDatabaseApproval>>, TError,ActOnDatabaseApprovalMutationVariables, TContext> => {
+
+const mutationKey = getActOnDatabaseApprovalMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof actOnDatabaseApproval>>, ActOnDatabaseApprovalMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  actOnDatabaseApproval(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ActOnDatabaseApprovalMutationResult = NonNullable<Awaited<ReturnType<typeof actOnDatabaseApproval>>>
+    export type ActOnDatabaseApprovalMutationBody = BodyType<DatabaseApprovalActionInput>
+    export type ActOnDatabaseApprovalMutationError = ErrorType<void | UnauthorizedResponse | ForbiddenResponse>
+    export type ActOnDatabaseApprovalMutationVariables = {id: string;data: BodyType<DatabaseApprovalActionInput>}
+
+    export const useActOnDatabaseApproval = <TError = ErrorType<void | UnauthorizedResponse | ForbiddenResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof actOnDatabaseApproval>>, TError,ActOnDatabaseApprovalMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof actOnDatabaseApproval>>,
+        TError,
+        ActOnDatabaseApprovalMutationVariables,
+        TContext
+      > => {
+      return useMutation(getActOnDatabaseApprovalMutationOptions(options), queryClient);
+    }
 
 export const getListContactsUrl = (params?: ListContactsParams,) => {
   const normalizedParams = new URLSearchParams();

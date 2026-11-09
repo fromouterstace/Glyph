@@ -21,3 +21,4 @@ export * from './glyph';
 export * from './glyph-system';
 export * from './glyph-gmail';
 export * from './glyph-contacts';
+export * from './glyph-database-approvals';

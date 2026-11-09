@@ -28,7 +28,12 @@ const probeSql = `SELECT m.id, m.owner_id, m.recipient_email, m.recipient_name,
   imports.owner_id, imports.mailbox_identity, imports.page_token, imports.status, imports.last_synced_at,
   d.id, d.owner_id, d.message_id, d.event_id, d.type, d.consent_at,
   d.mailbox, d.status, d.rfc_message_id, d.gmail_id, d.created_at, d.updated_at,
-  pd.scope, pd.message_id, pd.day, pd.outcome, pd.requests
+  pd.scope, pd.message_id, pd.day, pd.outcome, pd.requests,
+  approvals.id, approvals.operation, approvals.target, approvals.plan_sha256,
+  approvals.reason, approvals.digest, approvals.environment, approvals.requested_by,
+  approvals.created_at, approvals.expires_at, approvals.first_user_id,
+  approvals.first_approved_at, approvals.second_user_id, approvals.second_approved_at,
+  approvals.revoked_at, approvals.revoked_by, approvals.consumed_at, approvals.consumed_by
   FROM glyph_messages m LEFT JOIN glyph_events e ON false
   LEFT JOIN glyph_links l ON false LEFT JOIN glyph_system_events s ON false
   LEFT JOIN glyph_gmail_connections g ON false
@@ -39,7 +44,8 @@ const probeSql = `SELECT m.id, m.owner_id, m.recipient_email, m.recipient_name,
   LEFT JOIN glyph_contacts contacts ON false
   LEFT JOIN glyph_label_imports imports ON false
   LEFT JOIN glyph_deliveries d ON false
-  LEFT JOIN glyph_pixel_diagnostics pd ON false LIMIT 0`;
+  LEFT JOIN glyph_pixel_diagnostics pd ON false
+  LEFT JOIN glyph_database_approvals approvals ON false LIMIT 0`;
 
 // A schema can contain every required column and still have lost the database
 // constraints that protect idempotency and prevent orphan activity. Inspect
@@ -47,6 +53,15 @@ const probeSql = `SELECT m.id, m.owner_id, m.recipient_email, m.recipient_name,
 // Delivery SQL and Drizzle fixtures use different generated constraint names;
 // check those key columns and reference semantics instead of name aliases.
 const integritySql = `SELECT required.name FROM (VALUES
+  ('primary', 'glyph_database_approvals_pkey', 'glyph_database_approvals', '', ''),
+  ('check', 'glyph_database_approvals_operation_check', 'glyph_database_approvals', '', ''),
+  ('check', 'glyph_database_approvals_environment_check', 'glyph_database_approvals', '', ''),
+  ('check', 'glyph_database_approvals_digest_check', 'glyph_database_approvals', '', ''),
+  ('check', 'glyph_database_approvals_identity_check', 'glyph_database_approvals', '', ''),
+  ('check', 'glyph_database_approvals_lifetime_check', 'glyph_database_approvals', '', ''),
+  ('check', 'glyph_database_approvals_input_check', 'glyph_database_approvals', '', ''),
+  ('check', 'glyph_database_approvals_signing_time_check', 'glyph_database_approvals', '', ''),
+  ('check', 'glyph_database_approvals_consumption_check', 'glyph_database_approvals', '', ''),
   ('primary', 'glyph_messages_pkey', 'glyph_messages', '', ''),
   ('primary', 'glyph_contacts_pkey', 'glyph_contacts', '', ''),
   ('primary', 'glyph_label_imports_pkey', 'glyph_label_imports', '', ''),

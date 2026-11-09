@@ -34,6 +34,7 @@ const ActivityPage = lazy(() => import('@/pages/activity'));
 const SettingsPage = lazy(() => import('@/pages/settings'));
 const GmailPage = lazy(() => import('@/pages/gmail'));
 const SystemPage = lazy(() => import('@/pages/system'));
+const DatabaseApprovalsPage = lazy(() => import('@/pages/database-approvals'));
 const ContactsPage = lazy(() => import('@/pages/contacts'));
 const ContactDetailPage = lazy(() => import('@/pages/contact-detail'));
 
@@ -257,6 +258,7 @@ const ActivityRoute = wrap(ActivityPage);
 const SettingsRoute = wrap(SettingsPage);
 const GmailRoute = wrap(GmailPage);
 const SystemRoute = wrap(SystemPage);
+const DatabaseApprovalsRoute = wrap(DatabaseApprovalsPage);
 const ContactsRoute = wrap(ContactsPage);
 const ContactDetailRoute = wrap(ContactDetailPage);
 
@@ -308,6 +310,10 @@ function ClerkProviderWithRoutes() {
               <Route path="/settings" component={SettingsRoute} />
               <Route path="/gmail" component={GmailRoute} />
               <Route path="/system" component={SystemRoute} />
+              <Route
+                path="/database-approvals"
+                component={DatabaseApprovalsRoute}
+              />
               <Route path="/sign-in/*?" component={SignInPage} />
               <Route path="/sign-up/*?" component={SignUpPage} />
               <Route component={NotFound} />

@@ -1,4 +1,5 @@
 export const criticalModules = [
+  'database-approval-policy',
   'native-verification',
   'reply-matching',
   'tracking-origin',
@@ -22,6 +23,7 @@ export const criticalModules = [
 // Discovery is a separate invariant from coverage percentages: absent tests
 // must not silently reduce the suite that produces a green report.
 export const requiredUnitSuites = [
+  'test-database-approval-policy.mjs',
   'test-database-safety.mjs',
   'test-database-access.mjs',
   'test-document-security.mjs',
