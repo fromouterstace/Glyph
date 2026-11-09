@@ -8,6 +8,7 @@ export const criticalModules = [
   'request-log',
   'message-presentation',
   'database-readiness',
+  'database-access',
   'composer-policy',
   'email-html',
   'mime-message',
@@ -22,6 +23,7 @@ export const criticalModules = [
 // must not silently reduce the suite that produces a green report.
 export const requiredUnitSuites = [
   'test-database-safety.mjs',
+  'test-database-access.mjs',
   'test-document-security.mjs',
   'test-published-smoke.mjs',
   'test-built-assets.mjs',

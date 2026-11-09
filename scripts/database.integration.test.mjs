@@ -19,6 +19,8 @@ import {
   TRACKING_BUDGETS,
 } from '../artifacts/api-server/src/lib/tracking-budget.ts';
 import { createReadinessProbe } from '../artifacts/api-server/src/lib/database-readiness.ts';
+import { inspectDatabaseAccess } from '../artifacts/api-server/src/lib/database-access.ts';
+import { withRestrictedWriter } from './lib/restricted-database-fixture.mjs';
 
 let database, server, base;
 const logs = [];
@@ -89,6 +91,47 @@ after(async () => {
       server.close((error) => (error ? reject(error) : resolve())),
     );
   if (database) await database.close();
+});
+
+test('database-access preflight rejects the privileged fixture owner', async () => {
+  const { rows } = await sql('SELECT current_schema() AS schema');
+  const result = await inspectDatabaseAccess(database, rows[0].schema);
+  assert.equal(result.safe, false);
+  assert.equal(result.tableCount, 12);
+  assert.ok(result.issues.includes('table_owner'));
+  assert.ok(result.issues.includes('can_delete'));
+  assert.ok(result.issues.includes('can_truncate'));
+});
+
+test('a restricted PostgreSQL writer can update but cannot delete, truncate or drop', async () => {
+  await withRestrictedWriter(database, async (client, schema) => {
+    assert.equal((await inspectDatabaseAccess(client, schema)).safe, true);
+    await client.query(
+      `INSERT INTO glyph_contacts
+       (id,owner_id,first_name,last_name,email,email_suffix)
+       VALUES ('access-fixture','fixture-owner','Before','','fixture@example.invalid','example.invalid')`,
+    );
+    await client.query(
+      "UPDATE glyph_contacts SET first_name='After' WHERE id='access-fixture'",
+    );
+    const result = await client.query(
+      "SELECT first_name FROM glyph_contacts WHERE id='access-fixture'",
+    );
+    assert.deepEqual(result.rows, [{ first_name: 'After' }]);
+    for (const statement of [
+      "DELETE FROM glyph_contacts WHERE id='access-fixture'",
+      'TRUNCATE glyph_contacts',
+      'DROP TABLE glyph_contacts',
+    ]) {
+      await client.query('SAVEPOINT denied_operation');
+      await assert.rejects(client.query(statement), { code: '42501' });
+      await client.query('ROLLBACK TO SAVEPOINT denied_operation');
+    }
+    const retained = await client.query(
+      "SELECT count(*)::int AS total FROM glyph_contacts WHERE id='access-fixture'",
+    );
+    assert.equal(retained.rows[0].total, 1);
+  });
 });
 
 test('database readiness covers every current application table and delivery invariant', async () => {

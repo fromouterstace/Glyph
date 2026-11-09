@@ -1,5 +1,14 @@
 # Database safety canon, guardrails, and release safetyrails
 
+## Approved deletion policy
+
+Normal application updates remain allowed. Physical deletion, truncation,
+dropping objects and destructive schema changes require protection and both
+designated approvers for any exception. See
+[deletion protection](database-deletion-protection.md) for the exact policy,
+permission preflight, proven isolated-role tests and outstanding activation
+prerequisites. This policy is **not yet enforced on the deployed database**.
+
 ## Scope and supported production path
 
 Glyph uses PostgreSQL with Drizzle, not Prisma. Replit manages this project's
