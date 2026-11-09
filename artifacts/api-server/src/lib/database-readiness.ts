@@ -8,13 +8,26 @@ interface ProbeResult {
 }
 
 // Parse critical relations without scanning rows or exposing account data.
-const probeSql = `SELECT m.id, m.body_html, m.attachments, e.id, l.id,
-  s.id, g.owner_id, g.encrypted_tokens, g.reply_identity, o.state_hash,
-  a.id, a.owner_id, a.object_path, a.generation, a.size, a.content_type,
-  pref.owner_id, pref.notify_opens, pref.notify_clicks, pref.notify_replies,
-  b.message_id, b.kind, b.window_bucket, b.window_count, b.day_bucket, b.day_count,
-  contacts.owner_id, contacts.first_name, contacts.last_name, contacts.email, contacts.email_suffix,
-  imports.owner_id, imports.mailbox_identity, imports.page_token, imports.status, imports.last_synced_at
+const probeSql = `SELECT m.id, m.owner_id, m.recipient_email, m.recipient_name,
+  m.to_emails, m.cc_emails, m.bcc_emails, m.subject, m.body, m.body_html,
+  m.attachments, m.track_opens, m.track_clicks, m.status, m.pixel_token,
+  m.gmail_id, m.rfc_message_id, m.delivery_source, m.native_compose_key,
+  m.created_at, m.sent_at,
+  e.id, e.message_id, e.type, e.url, e.automated, e.source, e.read, e.fingerprint, e.occurred_at,
+  l.id, l.message_id, l.token, l.url,
+  s.id, s.owner_id, s.event_type, s.session_fingerprint, s.occurred_at,
+  g.owner_id, g.id, g.email, g.generation, g.reply_identity, g.encrypted_tokens, g.updated_at,
+  o.state_hash, o.owner_id, o.session_hash, o.origin, o.encrypted_verifier, o.claimed_at, o.expires_at,
+  a.id, a.owner_id, a.name, a.size, a.content_type, a.object_path, a.generation, a.created_at,
+  pref.owner_id, pref.email_alerts, pref.email_alerts_since, pref.alert_mailbox,
+  pref.notify_opens, pref.notify_clicks, pref.notify_replies,
+  pref.default_track_opens, pref.default_track_clicks, pref.tracking_base_url,
+  b.message_id, b.kind, b.window_bucket, b.window_count, b.day_bucket, b.day_count, b.updated_at,
+  contacts.id, contacts.owner_id, contacts.first_name, contacts.last_name,
+  contacts.email, contacts.email_suffix, contacts.created_at,
+  imports.owner_id, imports.mailbox_identity, imports.page_token, imports.status, imports.last_synced_at,
+  d.id, d.owner_id, d.message_id, d.event_id, d.type, d.consent_at,
+  d.mailbox, d.status, d.rfc_message_id, d.gmail_id, d.created_at, d.updated_at
   FROM glyph_messages m LEFT JOIN glyph_events e ON false
   LEFT JOIN glyph_links l ON false LEFT JOIN glyph_system_events s ON false
   LEFT JOIN glyph_gmail_connections g ON false
@@ -23,35 +36,41 @@ const probeSql = `SELECT m.id, m.body_html, m.attachments, e.id, l.id,
   LEFT JOIN glyph_settings pref ON false
   LEFT JOIN glyph_tracking_budgets b ON false
   LEFT JOIN glyph_contacts contacts ON false
-  LEFT JOIN glyph_label_imports imports ON false LIMIT 0`;
+  LEFT JOIN glyph_label_imports imports ON false
+  LEFT JOIN glyph_deliveries d ON false LIMIT 0`;
 
 // A schema can contain every required column and still have lost the database
 // constraints that protect idempotency and prevent orphan activity. Inspect
 // PostgreSQL catalogs only; never expose constraint names/details publicly.
 const integritySql = `SELECT required.name FROM (VALUES
-  ('primary', 'glyph_messages_pkey', 'glyph_messages', ''),
-  ('primary', 'glyph_contacts_pkey', 'glyph_contacts', ''),
-  ('primary', 'glyph_label_imports_pkey', 'glyph_label_imports', ''),
-  ('index', 'glyph_contacts_owner_email_idx', 'glyph_contacts', ''),
-  ('primary', 'glyph_events_pkey', 'glyph_events', ''),
-  ('primary', 'glyph_links_pkey', 'glyph_links', ''),
-  ('primary', 'glyph_settings_pkey', 'glyph_settings', ''),
-  ('primary', 'glyph_system_events_pkey', 'glyph_system_events', ''),
-  ('primary', 'glyph_attachments_pkey', 'glyph_attachments', ''),
-  ('primary', 'glyph_gmail_connections_pkey', 'glyph_gmail_connections', ''),
-  ('primary', 'glyph_gmail_oauth_states_pkey', 'glyph_gmail_oauth_states', ''),
-  ('primary', 'glyph_tracking_budgets_message_id_kind_pk', 'glyph_tracking_budgets', ''),
-  ('index', 'glyph_messages_pixel_token_unique', 'glyph_messages', ''),
-  ('index', 'glyph_events_fingerprint_unique', 'glyph_events', ''),
-  ('index', 'glyph_links_token_unique', 'glyph_links', ''),
-  ('index', 'glyph_native_compose_idx', 'glyph_messages', ''),
-  ('index', 'glyph_gmail_connections_email_idx', 'glyph_gmail_connections', ''),
-  ('foreign', 'glyph_events_message_id_glyph_messages_id_fk', 'glyph_events', 'c'),
-  ('foreign', 'glyph_links_message_id_glyph_messages_id_fk', 'glyph_links', 'c'),
-  ('foreign', 'glyph_tracking_budgets_message_id_glyph_messages_id_fk', 'glyph_tracking_budgets', 'c'),
-  ('check', 'glyph_tracking_budgets_kind_check', 'glyph_tracking_budgets', ''),
-  ('check', 'glyph_tracking_budgets_counts_check', 'glyph_tracking_budgets', '')
-) AS required(kind, name, table_name, expected)
+  ('primary', 'glyph_messages_pkey', 'glyph_messages', '', ''),
+  ('primary', 'glyph_contacts_pkey', 'glyph_contacts', '', ''),
+  ('primary', 'glyph_label_imports_pkey', 'glyph_label_imports', '', ''),
+  ('index', 'glyph_contacts_owner_email_idx', 'glyph_contacts', '', ''),
+  ('primary', 'glyph_events_pkey', 'glyph_events', '', ''),
+  ('primary', 'glyph_links_pkey', 'glyph_links', '', ''),
+  ('primary', 'glyph_settings_pkey', 'glyph_settings', '', ''),
+  ('primary', 'glyph_system_events_pkey', 'glyph_system_events', '', ''),
+  ('primary', 'glyph_attachments_pkey', 'glyph_attachments', '', ''),
+  ('primary', 'glyph_gmail_connections_pkey', 'glyph_gmail_connections', '', ''),
+  ('primary', 'glyph_gmail_oauth_states_pkey', 'glyph_gmail_oauth_states', '', ''),
+  ('primary', 'glyph_deliveries_pkey', 'glyph_deliveries', '', ''),
+  ('primary', 'glyph_tracking_budgets_message_id_kind_pk', 'glyph_tracking_budgets', '', ''),
+  ('index', 'glyph_messages_pixel_token_unique', 'glyph_messages', '', ''),
+  ('index', 'glyph_events_fingerprint_unique', 'glyph_events', '', ''),
+  ('index', 'glyph_links_token_unique', 'glyph_links', '', ''),
+  ('index', 'glyph_native_compose_idx', 'glyph_messages', '', ''),
+  ('index', 'glyph_gmail_connections_email_idx', 'glyph_gmail_connections', '', ''),
+  ('index', 'glyph_delivery_signal_idx', 'glyph_deliveries', '', ''),
+  ('index', 'glyph_deliveries_rfc_message_id_key', 'glyph_deliveries', '', ''),
+  ('foreign', 'glyph_events_message_id_glyph_messages_id_fk', 'glyph_events', 'c', 'glyph_messages'),
+  ('foreign', 'glyph_links_message_id_glyph_messages_id_fk', 'glyph_links', 'c', 'glyph_messages'),
+  ('foreign', 'glyph_tracking_budgets_message_id_glyph_messages_id_fk', 'glyph_tracking_budgets', 'c', 'glyph_messages'),
+  ('foreign', 'glyph_deliveries_message_id_fkey', 'glyph_deliveries', 'c', 'glyph_messages'),
+  ('foreign', 'glyph_deliveries_event_id_fkey', 'glyph_deliveries', 'c', 'glyph_events'),
+  ('check', 'glyph_tracking_budgets_kind_check', 'glyph_tracking_budgets', '', ''),
+  ('check', 'glyph_tracking_budgets_counts_check', 'glyph_tracking_budgets', '', '')
+) AS required(kind, name, table_name, expected, reference_table)
 WHERE CASE required.kind
   WHEN 'primary' THEN NOT EXISTS (
     SELECT 1 FROM pg_constraint c
@@ -83,7 +102,7 @@ WHERE CASE required.kind
     WHERE ns.nspname = current_schema()
       AND c.conname = required.name
       AND tbl.relname = required.table_name
-      AND ref.relname = 'glyph_messages'
+      AND ref.relname = required.reference_table
       AND ref.relnamespace = tbl.relnamespace
       AND c.contype = 'f'
       AND c.confdeltype = required.expected

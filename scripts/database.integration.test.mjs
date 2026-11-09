@@ -18,6 +18,7 @@ import {
   consumeTrackingBudget,
   TRACKING_BUDGETS,
 } from '../artifacts/api-server/src/lib/tracking-budget.ts';
+import { createReadinessProbe } from '../artifacts/api-server/src/lib/database-readiness.ts';
 
 let database, server, base;
 const logs = [];
@@ -38,6 +39,8 @@ const pixel = (message, options = {}) =>
       ...options.headers,
     },
   });
+const isDatabaseReady = () =>
+  createReadinessProbe(() => database.connect(), { cacheMs: 0 })();
 
 before(async () => {
   database = await isolatedDatabase();
@@ -86,6 +89,61 @@ after(async () => {
       server.close((error) => (error ? reject(error) : resolve())),
     );
   if (database) await database.close();
+});
+
+test('database readiness covers every current application table and delivery invariant', async () => {
+  assert.equal(await isDatabaseReady(), true);
+});
+
+test('database readiness fails closed when delivery storage or constraints are missing', async () => {
+  const missingBoundaries = [
+    {
+      label: 'delivery table',
+      remove: 'ALTER TABLE glyph_deliveries RENAME TO fixture_missing_deliveries',
+      restore: 'ALTER TABLE fixture_missing_deliveries RENAME TO glyph_deliveries',
+    },
+    {
+      label: 'event relationship',
+      remove: 'ALTER TABLE glyph_deliveries DROP CONSTRAINT glyph_deliveries_event_id_fkey',
+      restore:
+        'ALTER TABLE glyph_deliveries ADD CONSTRAINT glyph_deliveries_event_id_fkey FOREIGN KEY (event_id) REFERENCES glyph_events(id) ON DELETE CASCADE',
+    },
+    {
+      label: 'message relationship',
+      remove:
+        'ALTER TABLE glyph_deliveries DROP CONSTRAINT glyph_deliveries_message_id_fkey',
+      restore:
+        'ALTER TABLE glyph_deliveries ADD CONSTRAINT glyph_deliveries_message_id_fkey FOREIGN KEY (message_id) REFERENCES glyph_messages(id) ON DELETE CASCADE',
+    },
+    {
+      label: 'delivery idempotency',
+      remove:
+        'ALTER TABLE glyph_deliveries DROP CONSTRAINT glyph_deliveries_rfc_message_id_key',
+      restore:
+        'ALTER TABLE glyph_deliveries ADD CONSTRAINT glyph_deliveries_rfc_message_id_key UNIQUE (rfc_message_id)',
+    },
+    {
+      label: 'delivery primary key',
+      remove: 'ALTER TABLE glyph_deliveries DROP CONSTRAINT glyph_deliveries_pkey',
+      restore:
+        'ALTER TABLE glyph_deliveries ADD CONSTRAINT glyph_deliveries_pkey PRIMARY KEY (id)',
+    },
+    {
+      label: 'delivery signal uniqueness',
+      remove: 'DROP INDEX glyph_delivery_signal_idx',
+      restore:
+        'CREATE UNIQUE INDEX glyph_delivery_signal_idx ON glyph_deliveries (message_id, type)',
+    },
+  ];
+
+  for (const boundary of missingBoundaries) {
+    await sql(boundary.remove);
+    try {
+      assert.equal(await isDatabaseReady(), false, boundary.label);
+    } finally {
+      await sql(boundary.restore);
+    }
+  }
 });
 
 test('a real pixel GET durably records one PostgreSQL event', async () => {

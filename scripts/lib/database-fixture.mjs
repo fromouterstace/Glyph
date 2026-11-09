@@ -52,7 +52,11 @@ export async function isolatedDatabase() {
     // Export uses explicit public references for foreign keys. Retarget only
     // this generated DDL, never the application's schema or connection string.
     await pool.query(ddl.replaceAll('"public".', `"${schema}".`));
-    return { query: pool.query.bind(pool), close };
+    return {
+      query: pool.query.bind(pool),
+      connect: pool.connect.bind(pool),
+      close,
+    };
   } catch (error) {
     await close();
     throw error;

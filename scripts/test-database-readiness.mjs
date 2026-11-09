@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile, readdir } from 'node:fs/promises';
 import FakeTimers from '@sinonjs/fake-timers';
 import { createReadinessProbe } from '../artifacts/api-server/src/lib/database-readiness.ts';
 
@@ -15,9 +16,14 @@ function assertProbeQuery(text) {
       'glyph_tracking_budgets',
       'glyph_contacts',
       'glyph_label_imports',
+      'glyph_deliveries',
       'm.body_html',
       'm.attachments',
       'a.generation',
+      'd.event_id',
+      'd.rfc_message_id',
+      'o.expires_at',
+      'g.generation',
     ])
       assert.ok(text.includes(column), `missing ${column}`);
     return;
@@ -34,22 +40,55 @@ function assertProbeQuery(text) {
     'glyph_attachments_pkey',
     'glyph_gmail_connections_pkey',
     'glyph_gmail_oauth_states_pkey',
+    'glyph_deliveries_pkey',
     'glyph_tracking_budgets_message_id_kind_pk',
     'glyph_messages_pixel_token_unique',
     'glyph_events_fingerprint_unique',
     'glyph_links_token_unique',
     'glyph_native_compose_idx',
     'glyph_gmail_connections_email_idx',
+    'glyph_delivery_signal_idx',
+    'glyph_deliveries_rfc_message_id_key',
     'glyph_events_message_id_glyph_messages_id_fk',
     'glyph_links_message_id_glyph_messages_id_fk',
     'glyph_tracking_budgets_message_id_glyph_messages_id_fk',
+    'glyph_deliveries_message_id_fkey',
+    'glyph_deliveries_event_id_fkey',
     'glyph_tracking_budgets_kind_check',
     'glyph_tracking_budgets_counts_check',
     'c.confdeltype = required.expected',
-    "ref.relname = 'glyph_messages'",
+    'ref.relname = required.reference_table',
   ])
     assert.ok(text.includes(constraint), `missing ${constraint}`);
 }
+
+test('readiness references every table in the latest reviewed schema inventory', async () => {
+  const reviewDir = new URL('../lib/db/schema-reviews/', import.meta.url);
+  const files = (await readdir(reviewDir))
+    .filter((file) => /^\d{4}\.shape\.json$/.test(file))
+    .sort();
+  const latest = files.at(-1);
+  assert.ok(latest, 'no reviewed database shape is available');
+  const shape = JSON.parse(
+    await readFile(new URL(latest, reviewDir), 'utf8'),
+  );
+  let schemaQuery = '';
+  const probe = createReadinessProbe(
+    async () => ({
+      query: async ({ text }) => {
+        if (text.includes('LIMIT 0')) schemaQuery = text;
+        return { rows: [] };
+      },
+      release: () => {},
+    }),
+    { cacheMs: 0 },
+  );
+
+  assert.equal(await probe(), true);
+  for (const table of Object.keys(shape)) {
+    assert.ok(schemaQuery.includes(table), `readiness omits ${table}`);
+  }
+});
 
 test('database readiness checks critical schema, coalesces callers and briefly caches results', async () => {
   let calls = 0;
