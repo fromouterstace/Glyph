@@ -298,6 +298,34 @@ test('states expire, denied grants are single-use, and partial scopes or a misma
   ).toHaveLength(0);
 });
 
+test('OAuth completion retains an inert state and new authorization does not erase history', async () => {
+  const owner = await connect(account());
+  const completed = (
+    await h.sql(
+      'SELECT claimed_at, expires_at, encrypted_verifier FROM glyph_gmail_oauth_states WHERE owner_id=$1',
+      [owner],
+    )
+  ).rows;
+  expect(completed).toHaveLength(1);
+  expect(completed[0].claimed_at).not.toBeNull();
+  expect(new Date(completed[0].expires_at).getTime()).toBe(0);
+  expect(completed[0].encrypted_verifier).toBe('');
+  await start(owner);
+  const retained = (
+    await h.sql(
+      'SELECT expires_at, encrypted_verifier FROM glyph_gmail_oauth_states WHERE owner_id=$1',
+      [owner],
+    )
+  ).rows;
+  expect(retained).toHaveLength(2);
+  expect(retained.filter((row) => row.encrypted_verifier === '')).toHaveLength(
+    1,
+  );
+  expect(
+    retained.filter((row) => new Date(row.expires_at).getTime() > Date.now()),
+  ).toHaveLength(1);
+});
+
 test('tokens are encrypted at rest and authenticated to their owner; status never exposes credentials', async () => {
   const owner = await connect(account());
   const other = account();

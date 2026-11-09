@@ -240,7 +240,7 @@ test('a concurrent pixel burst is capped while every request still receives the 
   );
 });
 
-test('a limited click still redirects and does not create an event', async () => {
+test('a limited click still redirects and does not create an event', async (t) => {
   const message = await messageFixture(sql);
   const token = fixtureId().replaceAll('-', '').padStart(48, '0');
   const destination = 'https://example.invalid/rate-limited';
@@ -249,6 +249,7 @@ test('a limited click still redirects and does not create an event', async () =>
     [fixtureId(), message.id, token, destination],
   );
   const now = Date.now();
+  t.mock.method(Date, 'now', () => now);
   for (let i = 0; i < TRACKING_BUDGETS.click.windowLimit; i++)
     assert.equal(await consumeTrackingBudget(message.id, 'click', now), true);
   const response = await fetch(`${base}/api/glyph/l/${token}`, {
