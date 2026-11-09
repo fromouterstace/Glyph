@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 export const composerSuites = {
   ui: [
     'artifacts/glyph/tests/label-import.test.tsx',
+    'artifacts/glyph/tests/contact-profile.test.tsx',
     'artifacts/glyph/tests/auth-form.test.tsx',
     'artifacts/glyph/tests/auth-gate.test.tsx',
     'artifacts/glyph/tests/protected-page.test.tsx',
@@ -20,6 +21,7 @@ export const composerSuites = {
     'artifacts/glyph/tests/composer-delivery.test.tsx',
   ],
   integration: [
+    'scripts/tests/contact-detail.integration.test.mjs',
     'scripts/tests/gmail-label-import.integration.test.mjs',
     'scripts/tests/gmail-oauth.integration.test.mjs',
     'scripts/tests/mailbox-identity.integration.test.mjs',

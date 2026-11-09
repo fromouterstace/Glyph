@@ -33,9 +33,11 @@ import type {
   BeginGmailAuthorization200,
   CompleteGmailAuthorizationParams,
   Connection,
+  ContactDetail,
   ContactPage,
   DisconnectGmail200,
   ForbiddenResponse,
+  GetContactDetailParams,
   GmailAuthorization,
   HealthStatus,
   LabelImportStatus,
@@ -175,6 +177,116 @@ export function useListContacts<TData = Awaited<ReturnType<typeof listContacts>>
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getListContactsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetContactDetailUrl = (id: string,
+    params?: GetContactDetailParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/glyph/contacts/${id}?${stringifiedParams}` : `/api/glyph/contacts/${id}`
+}
+
+export const getContactDetail = async (id: string,
+    params?: GetContactDetailParams, options?: Parameters<typeof customFetch>[1]): Promise<ContactDetail> => {
+
+  return customFetch<ContactDetail>(getGetContactDetailUrl(id,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetContactDetailQueryKey = (id: string,
+    params?: GetContactDetailParams,) => {
+    return [
+    `/api/glyph/contacts/${id}`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetContactDetailQueryOptions = <TData = Awaited<ReturnType<typeof getContactDetail>>, TError = ErrorType<UnauthorizedResponse | void>>(id: string,
+    params?: GetContactDetailParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getContactDetail>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetContactDetailQueryKey(id,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getContactDetail>>> = ({ signal }) => getContactDetail(id,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getContactDetail>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetContactDetailQueryResult = NonNullable<Awaited<ReturnType<typeof getContactDetail>>>
+export type GetContactDetailQueryError = ErrorType<UnauthorizedResponse | void>
+
+
+export function useGetContactDetail<TData = Awaited<ReturnType<typeof getContactDetail>>, TError = ErrorType<UnauthorizedResponse | void>>(
+ id: string,
+    params: undefined |  GetContactDetailParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getContactDetail>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getContactDetail>>,
+          TError,
+          Awaited<ReturnType<typeof getContactDetail>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetContactDetail<TData = Awaited<ReturnType<typeof getContactDetail>>, TError = ErrorType<UnauthorizedResponse | void>>(
+ id: string,
+    params?: GetContactDetailParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getContactDetail>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getContactDetail>>,
+          TError,
+          Awaited<ReturnType<typeof getContactDetail>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetContactDetail<TData = Awaited<ReturnType<typeof getContactDetail>>, TError = ErrorType<UnauthorizedResponse | void>>(
+ id: string,
+    params?: GetContactDetailParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getContactDetail>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetContactDetail<TData = Awaited<ReturnType<typeof getContactDetail>>, TError = ErrorType<UnauthorizedResponse | void>>(
+ id: string,
+    params?: GetContactDetailParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getContactDetail>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetContactDetailQueryOptions(id,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

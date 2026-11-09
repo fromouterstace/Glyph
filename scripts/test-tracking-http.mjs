@@ -74,6 +74,7 @@ for (const [method, path] of [
   ['GET', '/messages/fake-id'],
   ['GET', '/activity'],
   ['GET', '/contacts'],
+  ['GET', '/contacts/missing-contact'],
   ['GET', '/label-import'],
   ['POST', '/label-import'],
   ['GET', '/settings'],

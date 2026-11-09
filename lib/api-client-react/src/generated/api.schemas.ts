@@ -21,6 +21,84 @@ export interface ContactPage {
   limit: number;
 }
 
+export type ContactMessageDeliverySource = typeof ContactMessageDeliverySource[keyof typeof ContactMessageDeliverySource];
+
+
+export const ContactMessageDeliverySource = {
+  web: 'web',
+  gmail: 'gmail',
+  import: 'import',
+} as const;
+
+export type ContactMessageStatus = typeof ContactMessageStatus[keyof typeof ContactMessageStatus];
+
+
+export const ContactMessageStatus = {
+  draft: 'draft',
+  sending: 'sending',
+  sent: 'sent',
+  failed: 'failed',
+  uncertain: 'uncertain',
+} as const;
+
+export interface ContactMessage {
+  id: string;
+  subject: string;
+  /** @maxLength 240 */
+  excerpt: string;
+  /** @nullable */
+  sentAt: string | null;
+  createdAt: string;
+  deliverySource: ContactMessageDeliverySource;
+  status: ContactMessageStatus;
+  trackOpens: boolean;
+  trackClicks: boolean;
+}
+
+export type ContactEventType = typeof ContactEventType[keyof typeof ContactEventType];
+
+
+export const ContactEventType = {
+  sent: 'sent',
+  open: 'open',
+  click: 'click',
+  reply: 'reply',
+} as const;
+
+export interface ContactEvent {
+  id: string;
+  messageId: string;
+  subject: string;
+  type: ContactEventType;
+  occurredAt: string;
+  /** @nullable */
+  url: string | null;
+  automated: boolean;
+  source: string;
+}
+
+export interface ContactDetail {
+  contact: Contact;
+  /** @nullable */
+  lastCommunicationAt: string | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  daysSinceLastCommunication: number | null;
+  totalMessages: number;
+  messages: ContactMessage[];
+  messageOffset: number;
+  messageLimit: number;
+  totalEvents: number;
+  events: ContactEvent[];
+  eventOffset: number;
+  eventLimit: number;
+  pixelLoads: number;
+  linkRequests: number;
+  replies: number;
+}
+
 export type LabelImportStatusStatus = typeof LabelImportStatusStatus[keyof typeof LabelImportStatusStatus];
 
 
@@ -391,6 +469,19 @@ export type ListContactsParams = {
   offset?: number;
   /** @maxLength 200 */
   search?: string;
+};
+
+export type GetContactDetailParams = {
+  /**
+   * @minimum 0
+   * @maximum 1000000
+   */
+  messageOffset?: number;
+  /**
+   * @minimum 0
+   * @maximum 1000000
+   */
+  eventOffset?: number;
 };
 
 export type ListMessagesParams = {

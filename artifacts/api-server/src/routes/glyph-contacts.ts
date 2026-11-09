@@ -6,12 +6,39 @@ import {
   ListContactsQueryParams,
   ListContactsResponse,
   GetLabelImportResponse,
+  GetContactDetailQueryParams,
+  GetContactDetailResponse,
+  GetContactDetailParams,
 } from '@workspace/api-zod';
 import { labelImportStatus, syncLabelImport } from '../lib/gmail-label-import';
 import { logSafeError } from '../lib/logger';
+import { contactDetail } from '../lib/contact-detail';
 
 // Mounted after glyphRouter's shared authenticated/same-origin/mailbox boundary.
 const router = Router();
+router.get('/glyph/contacts/:id', async (req, res) => {
+  const path = GetContactDetailParams.safeParse(req.params);
+  if (!path.success) {
+    res.status(404).json({ error: 'Contact not found.' });
+    return;
+  }
+  const parsed = GetContactDetailQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid correspondence pagination.' });
+    return;
+  }
+  const data = await contactDetail(
+    getAuth(req).userId!,
+    path.data.id,
+    parsed.data.messageOffset ?? 0,
+    parsed.data.eventOffset ?? 0,
+  );
+  if (!data) {
+    res.status(404).json({ error: 'Contact not found.' });
+    return;
+  }
+  res.json(GetContactDetailResponse.parse(data));
+});
 router.get('/glyph/contacts', async (req, res) => {
   const parsed = ListContactsQueryParams.safeParse(req.query);
   if (!parsed.success) {

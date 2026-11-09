@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { keepPreviousData } from '@tanstack/react-query';
+import { Link } from 'wouter';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import {
   getListContactsQueryKey,
@@ -123,29 +124,32 @@ export default function ContactsPage() {
               {data.contacts.map((c) => {
                 const name = `${c.firstName} ${c.lastName}`.trim();
                 return (
-                  <li
-                    key={c.id}
-                    data-testid={`row-contact-${c.id}`}
-                    className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-0.5 px-4 py-3 md:grid-cols-[1.4fr_1.6fr_1fr_0.8fr] md:gap-4"
-                  >
-                    <div className="row-span-2 flex min-w-0 items-center gap-3 md:row-span-1">
-                      <Avatar name={name} email={c.email} />
-                      <span className="hidden truncate text-sm font-medium md:inline">
-                        {name || '—'}
+                  <li key={c.id} data-testid={`row-contact-${c.id}`}>
+                    <Link
+                      href={`/contacts/${c.id}`}
+                      data-testid={`link-contact-${c.id}`}
+                      aria-label={`Open ${name || c.email}`}
+                      className="grid outline-none hover:bg-secondary/60 focus-visible:bg-secondary/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring grid-cols-[auto_1fr] items-center gap-x-3 gap-y-0.5 px-4 py-3 md:grid-cols-[1.4fr_1.6fr_1fr_0.8fr] md:gap-4"
+                    >
+                      <div className="row-span-2 flex min-w-0 items-center gap-3 md:row-span-1">
+                        <Avatar name={name} email={c.email} />
+                        <span className="hidden truncate text-sm font-medium md:inline">
+                          {name || '—'}
+                        </span>
+                      </div>
+                      <span className="truncate text-sm font-medium md:hidden">
+                        {name || c.email}
                       </span>
-                    </div>
-                    <span className="truncate text-sm font-medium md:hidden">
-                      {name || c.email}
-                    </span>
-                    <span className="truncate text-xs text-muted-foreground md:text-sm md:text-foreground/80">
-                      {c.email}
-                    </span>
-                    <span className="hidden font-mono text-xs text-muted-foreground md:inline">
-                      {c.emailSuffix}
-                    </span>
-                    <span className="hidden text-right font-mono text-[11px] text-muted-foreground md:inline">
-                      {stamp(c.createdAt)}
-                    </span>
+                      <span className="truncate text-xs text-muted-foreground md:text-sm md:text-foreground/80">
+                        {c.email}
+                      </span>
+                      <span className="hidden font-mono text-xs text-muted-foreground md:inline">
+                        {c.emailSuffix}
+                      </span>
+                      <span className="hidden text-right font-mono text-[11px] text-muted-foreground md:inline">
+                        {stamp(c.createdAt)}
+                      </span>
+                    </Link>
                   </li>
                 );
               })}

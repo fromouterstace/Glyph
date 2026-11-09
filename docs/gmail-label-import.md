@@ -28,6 +28,26 @@ Create that label in Gmail and apply it to the correspondence to import.
 - Removing the label, deleting a Gmail message, disconnecting, a missing label
   or a provider failure never deletes already imported messages or contacts.
 
+## Contact profiles
+
+Contact rows open protected `/contacts/:id` profiles. Profiles match owned stored
+messages through their primary correspondent or To/Cc/Bcc addresses, without
+crossing account boundaries. Correspondence and signal histories have separate,
+stable SQL pagination. Full message bodies remain available through the existing
+Emails detail route.
+
+Profiles show actual recorded pixel loads, link requests, destination URLs,
+source/automation classifications and timestamps. These are message-level
+signals, not proof of individual engagement, and imported correspondence has no
+retroactive tracking history. Shared-thread replies may be from another original
+participant.
+
+Days since last communication uses the latest stored sent/received email
+timestamp or recorded sent/reply event on a related message. It never uses contact
+creation, draft creation, pixel loads or clicks. No known communication means a
+null timestamp/age, not zero days. This is stored correspondence only; it does not
+silently ingest a contact's entire unlabeled Gmail history.
+
 ## Automatic scheduling and recovery
 
 The signed-in app starts an import and retries every 60 seconds, with no

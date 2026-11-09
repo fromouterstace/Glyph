@@ -28,6 +28,34 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/ContactPage' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /glyph/contacts/{id}:
+    get:
+      operationId: getContactDetail
+      parameters:
+        - {
+            in: path,
+            name: id,
+            required: true,
+            schema: { type: string, maxLength: 200 },
+          }
+        - {
+            in: query,
+            name: messageOffset,
+            schema: { type: integer, minimum: 0, maximum: 1000000, default: 0 },
+          }
+        - {
+            in: query,
+            name: eventOffset,
+            schema: { type: integer, minimum: 0, maximum: 1000000, default: 0 },
+          }
+      responses:
+        '200':
+          description: Owner-scoped correspondence and message-level signals, not verified individual engagement
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContactDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Contact not found for this owner }
   /glyph/label-import:
     get:
       operationId: getLabelImport
@@ -488,6 +516,83 @@ components:
         total: { type: integer }
         offset: { type: integer }
         limit: { type: integer }
+    ContactMessage:
+      type: object
+      required:
+        [
+          id,
+          subject,
+          excerpt,
+          sentAt,
+          createdAt,
+          deliverySource,
+          status,
+          trackOpens,
+          trackClicks,
+        ]
+      properties:
+        id: { type: string }
+        subject: { type: string }
+        excerpt: { type: string, maxLength: 240 }
+        sentAt: { type: [string, 'null'], format: date-time }
+        createdAt: { type: string, format: date-time }
+        deliverySource: { type: string, enum: [web, gmail, import] }
+        status:
+          { type: string, enum: [draft, sending, sent, failed, uncertain] }
+        trackOpens: { type: boolean }
+        trackClicks: { type: boolean }
+    ContactEvent:
+      type: object
+      required:
+        [id, messageId, subject, type, occurredAt, url, automated, source]
+      properties:
+        id: { type: string }
+        messageId: { type: string }
+        subject: { type: string }
+        type: { type: string, enum: [sent, open, click, reply] }
+        occurredAt: { type: string, format: date-time }
+        url: { type: [string, 'null'] }
+        automated: { type: boolean }
+        source: { type: string }
+    ContactDetail:
+      type: object
+      required:
+        [
+          contact,
+          lastCommunicationAt,
+          daysSinceLastCommunication,
+          totalMessages,
+          messages,
+          messageOffset,
+          messageLimit,
+          totalEvents,
+          events,
+          eventOffset,
+          eventLimit,
+          pixelLoads,
+          linkRequests,
+          replies,
+        ]
+      properties:
+        contact: { $ref: '#/components/schemas/Contact' }
+        lastCommunicationAt: { type: [string, 'null'], format: date-time }
+        daysSinceLastCommunication: { type: [integer, 'null'], minimum: 0 }
+        totalMessages: { type: integer }
+        messages:
+          {
+            type: array,
+            items: { $ref: '#/components/schemas/ContactMessage' },
+          }
+        messageOffset: { type: integer }
+        messageLimit: { type: integer }
+        totalEvents: { type: integer }
+        events:
+          { type: array, items: { $ref: '#/components/schemas/ContactEvent' } }
+        eventOffset: { type: integer }
+        eventLimit: { type: integer }
+        pixelLoads: { type: integer }
+        linkRequests: { type: integer }
+        replies: { type: integer }
     LabelImportStatus:
       type: object
       required: [status, lastSyncedAt]

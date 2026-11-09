@@ -36,6 +36,79 @@ export const ListContactsResponse = zod.object({
 })
 
 
+export const getContactDetailPathIdMax = 200;
+
+
+
+export const GetContactDetailParams = zod.object({
+  "id": zod.coerce.string().max(getContactDetailPathIdMax)
+})
+
+export const getContactDetailQueryMessageOffsetDefault = 0;
+export const getContactDetailQueryMessageOffsetMin = 0;
+export const getContactDetailQueryMessageOffsetMax = 1000000;
+
+export const getContactDetailQueryEventOffsetDefault = 0;
+export const getContactDetailQueryEventOffsetMin = 0;
+export const getContactDetailQueryEventOffsetMax = 1000000;
+
+
+
+export const GetContactDetailQueryParams = zod.object({
+  "messageOffset": zod.coerce.number().int().min(getContactDetailQueryMessageOffsetMin).max(getContactDetailQueryMessageOffsetMax).default(getContactDetailQueryMessageOffsetDefault),
+  "eventOffset": zod.coerce.number().int().min(getContactDetailQueryEventOffsetMin).max(getContactDetailQueryEventOffsetMax).default(getContactDetailQueryEventOffsetDefault)
+})
+
+export const getContactDetailResponseDaysSinceLastCommunicationMin = 0;
+
+export const getContactDetailResponseMessagesItemExcerptMax = 240;
+
+
+
+export const GetContactDetailResponse = zod.object({
+  "contact": zod.object({
+  "id": zod.string(),
+  "firstName": zod.string(),
+  "lastName": zod.string(),
+  "email": zod.string(),
+  "emailSuffix": zod.string(),
+  "createdAt": zod.coerce.date()
+}),
+  "lastCommunicationAt": zod.coerce.date().nullable(),
+  "daysSinceLastCommunication": zod.int().min(getContactDetailResponseDaysSinceLastCommunicationMin).nullable(),
+  "totalMessages": zod.int(),
+  "messages": zod.array(zod.object({
+  "id": zod.string(),
+  "subject": zod.string(),
+  "excerpt": zod.string().max(getContactDetailResponseMessagesItemExcerptMax),
+  "sentAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "deliverySource": zod.enum(['web', 'gmail', 'import']),
+  "status": zod.enum(['draft', 'sending', 'sent', 'failed', 'uncertain']),
+  "trackOpens": zod.boolean(),
+  "trackClicks": zod.boolean()
+})),
+  "messageOffset": zod.int(),
+  "messageLimit": zod.int(),
+  "totalEvents": zod.int(),
+  "events": zod.array(zod.object({
+  "id": zod.string(),
+  "messageId": zod.string(),
+  "subject": zod.string(),
+  "type": zod.enum(['sent', 'open', 'click', 'reply']),
+  "occurredAt": zod.coerce.date(),
+  "url": zod.string().nullable(),
+  "automated": zod.boolean(),
+  "source": zod.string()
+})),
+  "eventOffset": zod.int(),
+  "eventLimit": zod.int(),
+  "pixelLoads": zod.int(),
+  "linkRequests": zod.int(),
+  "replies": zod.int()
+})
+
+
 export const GetLabelImportResponse = zod.object({
   "status": zod.enum(['pending', 'syncing', 'synced', 'label_missing', 'error']),
   "lastSyncedAt": zod.coerce.date().nullable()

@@ -35,6 +35,7 @@ const SettingsPage = lazy(() => import('@/pages/settings'));
 const GmailPage = lazy(() => import('@/pages/gmail'));
 const SystemPage = lazy(() => import('@/pages/system'));
 const ContactsPage = lazy(() => import('@/pages/contacts'));
+const ContactDetailPage = lazy(() => import('@/pages/contact-detail'));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -257,6 +258,7 @@ const SettingsRoute = wrap(SettingsPage);
 const GmailRoute = wrap(GmailPage);
 const SystemRoute = wrap(SystemPage);
 const ContactsRoute = wrap(ContactsPage);
+const ContactDetailRoute = wrap(ContactDetailPage);
 
 function RoutedErrorBoundary({ children }: { children: ReactNode }) {
   const [location] = useLocation();
@@ -301,6 +303,7 @@ function ClerkProviderWithRoutes() {
               <Route path="/emails" component={EmailsRoute} />
               <Route path="/emails/:id" component={EmailsRoute} />
               <Route path="/contacts" component={ContactsRoute} />
+              <Route path="/contacts/:id" component={ContactDetailRoute} />
               <Route path="/activity" component={ActivityRoute} />
               <Route path="/settings" component={SettingsRoute} />
               <Route path="/gmail" component={GmailRoute} />

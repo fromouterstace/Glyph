@@ -20,6 +20,15 @@ Contacts page, not just manual tracking of newly composed messages.
 **How to apply:** Preserve per-user mailbox and contact isolation. Do not
 interpret importing historical correspondence as retroactive tracking.
 
+Contacts must open a profile showing stored correspondence, recorded pixel/load
+and link-request timestamps/destinations, and days since last communication.
+
+**Why:** The user explicitly requested clicking a contact to see this history,
+not just a static contact directory.
+
+**How to apply:** Preserve the distinction between historical imported mail and
+recorded signals; shared-message events do not establish the contact's identity.
+
 ## Individual sending accounts
 
 Each user must be able to connect their own Gmail account, with sending, sync,
