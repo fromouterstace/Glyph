@@ -118,6 +118,87 @@ async function connect(owner) {
   return owner;
 }
 
+test('Glyph label import uses the real personal Gmail transport and stores owner-scoped contacts', async () => {
+  const owner = await connect(account());
+  mailboxResponse = (_user, target) => {
+    const path = new URL(target).pathname;
+    if (path.endsWith('/labels'))
+      return json({ labels: [{ id: 'glyph-label', name: 'Glyph' }] });
+    if (path.endsWith('/messages'))
+      return json({ messages: [{ id: 'personal-labeled-message' }] });
+    if (path.endsWith('/messages/personal-labeled-message'))
+      return json({
+        id: 'personal-labeled-message',
+        internalDate: String(edge.now),
+        labelIds: ['glyph-label'],
+        payload: {
+          mimeType: 'text/plain',
+          headers: [
+            { name: 'From', value: 'Grace Hopper <grace@example.invalid>' },
+            { name: 'To', value: accounts.get(owner) },
+            { name: 'Subject', value: 'Personal label import fixture' },
+          ],
+          body: { data: Buffer.from('Fixture text').toString('base64url') },
+        },
+      });
+    throw new Error('Unexpected personal Gmail import request');
+  };
+  const result = await h.request('/label-import', {
+    user: owner,
+    method: 'POST',
+  });
+  expect(result.status, await result.clone().text()).toBe(200);
+  expect(calls.some((call) => call.target.endsWith('/labels'))).toBe(true);
+  const contacts = await (await h.request('/contacts', { user: owner })).json();
+  expect(contacts.total).toBe(1);
+  expect(contacts.contacts[0]).toMatchObject({
+    firstName: 'Grace',
+    lastName: 'Hopper',
+    email: 'grace@example.invalid',
+    emailSuffix: 'example.invalid',
+  });
+  expect(
+    (await (await h.request('/contacts', { user: account() })).json()).total,
+  ).toBe(0);
+});
+
+test('personal label discovery keeps writes, unexpected paths and cross-owner access blocked', async () => {
+  const owner = await connect(account());
+  const [{ generation }] = (
+    await h.sql(
+      'SELECT generation FROM glyph_gmail_connections WHERE owner_id=$1',
+      [owner],
+    )
+  ).rows;
+  const { personalGmailRequest } =
+    await import('../../artifacts/api-server/src/lib/gmail-oauth-transport.ts');
+  const before = calls.length;
+  for (const [path, method] of [
+    ['/labels', 'POST'],
+    ['/labels', 'PATCH'],
+    ['/labels', 'DELETE'],
+    ['/labels/another-label', 'GET'],
+    ['/labels?unexpected=value', 'GET'],
+    ['/labels#fragment', 'GET'],
+    ['//attacker.invalid/labels', 'GET'],
+  ])
+    await expect(
+      personalGmailRequest(owner, generation, path, { method }),
+    ).rejects.toMatchObject({ status: 400 });
+  await expect(
+    personalGmailRequest(account(), generation, '/labels'),
+  ).rejects.toThrow();
+  expect(calls).toHaveLength(before);
+  mailboxResponse = () => json({ labels: [] });
+  expect(
+    await (
+      await personalGmailRequest(owner, generation, '/labels', {
+        method: 'GET',
+      })
+    ).json(),
+  ).toEqual({ labels: [] });
+});
+
 test('authorization is explicit, same-origin, session-bound and uses PKCE with only Gmail read/send scopes', async () => {
   const owner = account();
   expect((await h.request('/gmail/authorization')).status).toBe(401);

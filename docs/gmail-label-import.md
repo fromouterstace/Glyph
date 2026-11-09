@@ -58,6 +58,13 @@ anonymous rejection. Required suite discovery includes the parser, real
 PostgreSQL service tests and import UI contracts; critical-source coverage
 includes the parser. The test-layer 50/100/150/200-line limits still apply.
 
+At least one personal Gmail import contract must exercise the real owner-bound
+OAuth transport and PostgreSQL storage, mocking only Google's network responses.
+Adapter-only fixtures cannot verify outbound endpoint permissions. Label
+discovery permits the exact read-only `GET /labels` request; label writes and
+unrecognized paths stay blocked. A provider-contract regression must also check
+that one user's imported contacts remain unavailable to another user.
+
 Schema review `0003` is additive only. Development creates the two new tables;
 production must receive the expansion through the reviewed Replit Publish flow.
 No runtime DDL, production schema script, data overwrite or destructive reset is

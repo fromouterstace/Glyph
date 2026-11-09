@@ -8,6 +8,7 @@
 - [Database-backed activity](database-backed-activity.md) — persist actual message and engagement data in PostgreSQL; never substitute hardcoded sample records.
 - [Extension lifecycle](extension-lifecycle.md) — extension updates can invalidate open Gmail tabs; guard messaging and offer draft-safe manual recovery.
 - [Gmail read budgets](gmail-read-budgets.md) — mailbox readers share quotas; honor cooldowns, preserve partial progress, and never retry sends automatically.
+- [Gmail transport contracts](gmail-transport-contracts.md) — exercise the real owner-bound OAuth transport; adapter mocks can conceal blocked provider endpoints.
 - [Replit response-header scope](replit-response-headers.md) — static response-header config may not affect an Autoscale app's static artifact; verify published responses.
 - [Canonical Glyph origin](canonical-origin.md) — user chose glyph.rocks for determinism; aliases retain compatibility, not primary setup status.
 - [Readiness probe budgets](readiness-probe-budgets.md) — a timed-out pool acquisition can remain queued; do not accumulate replacement probes during an outage.

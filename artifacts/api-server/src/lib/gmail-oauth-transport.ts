@@ -109,8 +109,12 @@ export async function personalGmailRequest(
   path: string,
   init: RequestInit = {},
 ) {
+  // Label discovery is read-only. Do not expand this to label mutations or
+  // arbitrary Gmail paths when adding an importer endpoint.
+  const labelRead =
+    path === '/labels' && (init.method ?? 'GET').toUpperCase() === 'GET';
   if (
-    !/^\/(?:messages|profile)(?:[/?]|$)/.test(path) ||
+    (!labelRead && !/^\/(?:messages|profile)(?:[/?]|$)/.test(path)) ||
     path.includes('\\') ||
     path.includes('#')
   )
