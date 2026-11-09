@@ -42,6 +42,8 @@ const probeSql = `SELECT m.id, m.owner_id, m.recipient_email, m.recipient_name,
 // A schema can contain every required column and still have lost the database
 // constraints that protect idempotency and prevent orphan activity. Inspect
 // PostgreSQL catalogs only; never expose constraint names/details publicly.
+// Delivery SQL and Drizzle fixtures use different generated constraint names;
+// check those key columns and reference semantics instead of name aliases.
 const integritySql = `SELECT required.name FROM (VALUES
   ('primary', 'glyph_messages_pkey', 'glyph_messages', '', ''),
   ('primary', 'glyph_contacts_pkey', 'glyph_contacts', '', ''),
@@ -61,13 +63,13 @@ const integritySql = `SELECT required.name FROM (VALUES
   ('index', 'glyph_links_token_unique', 'glyph_links', '', ''),
   ('index', 'glyph_native_compose_idx', 'glyph_messages', '', ''),
   ('index', 'glyph_gmail_connections_email_idx', 'glyph_gmail_connections', '', ''),
-  ('index', 'glyph_delivery_signal_idx', 'glyph_deliveries', '', ''),
-  ('index', 'glyph_deliveries_rfc_message_id_key', 'glyph_deliveries', '', ''),
+  ('unique_columns', 'glyph_delivery_signal_idx', 'glyph_deliveries', 'message_id,type', ''),
+  ('unique_columns', 'glyph_deliveries_rfc_message_id_key', 'glyph_deliveries', 'rfc_message_id', ''),
   ('foreign', 'glyph_events_message_id_glyph_messages_id_fk', 'glyph_events', 'c', 'glyph_messages'),
   ('foreign', 'glyph_links_message_id_glyph_messages_id_fk', 'glyph_links', 'c', 'glyph_messages'),
   ('foreign', 'glyph_tracking_budgets_message_id_glyph_messages_id_fk', 'glyph_tracking_budgets', 'c', 'glyph_messages'),
-  ('foreign', 'glyph_deliveries_message_id_fkey', 'glyph_deliveries', 'c', 'glyph_messages'),
-  ('foreign', 'glyph_deliveries_event_id_fkey', 'glyph_deliveries', 'c', 'glyph_events'),
+  ('foreign_column', 'glyph_deliveries_message_id_fkey', 'glyph_deliveries', 'message_id', 'glyph_messages'),
+  ('foreign_column', 'glyph_deliveries_event_id_fkey', 'glyph_deliveries', 'event_id', 'glyph_events'),
   ('check', 'glyph_tracking_budgets_kind_check', 'glyph_tracking_budgets', '', ''),
   ('check', 'glyph_tracking_budgets_counts_check', 'glyph_tracking_budgets', '', '')
 ) AS required(kind, name, table_name, expected, reference_table)
@@ -107,6 +109,39 @@ WHERE CASE required.kind
       AND c.contype = 'f'
       AND c.confdeltype = required.expected
       AND c.convalidated
+  )
+  WHEN 'unique_columns' THEN NOT EXISTS (
+    SELECT 1 FROM pg_index i
+    JOIN pg_class tbl ON tbl.oid = i.indrelid
+    JOIN pg_namespace ns ON ns.oid = tbl.relnamespace
+    WHERE ns.nspname = current_schema()
+      AND tbl.relname = required.table_name
+      AND i.indisvalid AND i.indisready AND i.indisunique
+      AND i.indpred IS NULL AND i.indexprs IS NULL
+      AND ARRAY(
+        SELECT a.attname::text
+        FROM unnest(i.indkey::smallint[]) WITH ORDINALITY AS key(attnum, position)
+        JOIN pg_attribute a ON a.attrelid = tbl.oid AND a.attnum = key.attnum
+        WHERE key.position <= i.indnkeyatts
+        ORDER BY key.position
+      ) = string_to_array(required.expected, ',')
+  )
+  WHEN 'foreign_column' THEN NOT EXISTS (
+    SELECT 1 FROM pg_constraint c
+    JOIN pg_class tbl ON tbl.oid = c.conrelid
+    JOIN pg_namespace ns ON ns.oid = tbl.relnamespace
+    JOIN pg_class ref ON ref.oid = c.confrelid
+    JOIN pg_attribute local_column ON local_column.attrelid = tbl.oid
+      AND local_column.attname = required.expected AND NOT local_column.attisdropped
+    JOIN pg_attribute remote_column ON remote_column.attrelid = ref.oid
+      AND remote_column.attname = 'id' AND NOT remote_column.attisdropped
+    WHERE ns.nspname = current_schema()
+      AND tbl.relname = required.table_name
+      AND ref.relname = required.reference_table
+      AND ref.relnamespace = tbl.relnamespace
+      AND c.contype = 'f' AND c.confdeltype = 'c' AND c.convalidated
+      AND c.conkey = ARRAY[local_column.attnum]
+      AND c.confkey = ARRAY[remote_column.attnum]
   )
   WHEN 'check' THEN NOT EXISTS (
     SELECT 1 FROM pg_constraint c

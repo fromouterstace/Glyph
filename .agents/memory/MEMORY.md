@@ -15,3 +15,4 @@
 - [Rich composer storage](rich-composer-storage.md) — web formatting must survive drafts/MIME; private attachments pin finalized generations to prevent byte substitution.
 - [Google consent access](google-consent-access.md) — a Google Testing-mode audience restriction was confirmed; check consent access before changing app auth.
 - [Managed auth environments](managed-auth-environments.md) — verify missing mail in the right database; managed accounts-domain TLS and proxy auth are distinct.
+- [Database catalog semantics](database-catalog-semantics.md) — reviewed SQL and Drizzle fixtures can use different constraint names; verify key/reference semantics.

@@ -99,32 +99,36 @@ test('database readiness fails closed when delivery storage or constraints are m
   const missingBoundaries = [
     {
       label: 'delivery table',
-      remove: 'ALTER TABLE glyph_deliveries RENAME TO fixture_missing_deliveries',
-      restore: 'ALTER TABLE fixture_missing_deliveries RENAME TO glyph_deliveries',
+      remove:
+        'ALTER TABLE glyph_deliveries RENAME TO fixture_missing_deliveries',
+      restore:
+        'ALTER TABLE fixture_missing_deliveries RENAME TO glyph_deliveries',
     },
     {
       label: 'event relationship',
-      remove: 'ALTER TABLE glyph_deliveries DROP CONSTRAINT glyph_deliveries_event_id_fkey',
+      remove:
+        'ALTER TABLE glyph_deliveries DROP CONSTRAINT glyph_deliveries_event_id_glyph_events_id_fk',
       restore:
-        'ALTER TABLE glyph_deliveries ADD CONSTRAINT glyph_deliveries_event_id_fkey FOREIGN KEY (event_id) REFERENCES glyph_events(id) ON DELETE CASCADE',
+        'ALTER TABLE glyph_deliveries ADD CONSTRAINT glyph_deliveries_event_id_glyph_events_id_fk FOREIGN KEY (event_id) REFERENCES glyph_events(id) ON DELETE CASCADE',
     },
     {
       label: 'message relationship',
       remove:
-        'ALTER TABLE glyph_deliveries DROP CONSTRAINT glyph_deliveries_message_id_fkey',
+        'ALTER TABLE glyph_deliveries DROP CONSTRAINT glyph_deliveries_message_id_glyph_messages_id_fk',
       restore:
-        'ALTER TABLE glyph_deliveries ADD CONSTRAINT glyph_deliveries_message_id_fkey FOREIGN KEY (message_id) REFERENCES glyph_messages(id) ON DELETE CASCADE',
+        'ALTER TABLE glyph_deliveries ADD CONSTRAINT glyph_deliveries_message_id_glyph_messages_id_fk FOREIGN KEY (message_id) REFERENCES glyph_messages(id) ON DELETE CASCADE',
     },
     {
       label: 'delivery idempotency',
       remove:
-        'ALTER TABLE glyph_deliveries DROP CONSTRAINT glyph_deliveries_rfc_message_id_key',
+        'ALTER TABLE glyph_deliveries DROP CONSTRAINT glyph_deliveries_rfc_message_id_unique',
       restore:
-        'ALTER TABLE glyph_deliveries ADD CONSTRAINT glyph_deliveries_rfc_message_id_key UNIQUE (rfc_message_id)',
+        'ALTER TABLE glyph_deliveries ADD CONSTRAINT glyph_deliveries_rfc_message_id_unique UNIQUE (rfc_message_id)',
     },
     {
       label: 'delivery primary key',
-      remove: 'ALTER TABLE glyph_deliveries DROP CONSTRAINT glyph_deliveries_pkey',
+      remove:
+        'ALTER TABLE glyph_deliveries DROP CONSTRAINT glyph_deliveries_pkey',
       restore:
         'ALTER TABLE glyph_deliveries ADD CONSTRAINT glyph_deliveries_pkey PRIMARY KEY (id)',
     },
@@ -133,6 +137,20 @@ test('database readiness fails closed when delivery storage or constraints are m
       remove: 'DROP INDEX glyph_delivery_signal_idx',
       restore:
         'CREATE UNIQUE INDEX glyph_delivery_signal_idx ON glyph_deliveries (message_id, type)',
+    },
+    {
+      label: 'same-named index protecting the wrong columns',
+      remove:
+        'DROP INDEX glyph_delivery_signal_idx; CREATE UNIQUE INDEX glyph_delivery_signal_idx ON glyph_deliveries (id)',
+      restore:
+        'DROP INDEX glyph_delivery_signal_idx; CREATE UNIQUE INDEX glyph_delivery_signal_idx ON glyph_deliveries (message_id, type)',
+    },
+    {
+      label: 'same-named foreign key targeting the wrong parent',
+      remove:
+        'ALTER TABLE glyph_deliveries DROP CONSTRAINT glyph_deliveries_event_id_glyph_events_id_fk; ALTER TABLE glyph_deliveries ADD CONSTRAINT glyph_deliveries_event_id_glyph_events_id_fk FOREIGN KEY (event_id) REFERENCES glyph_messages(id) ON DELETE CASCADE',
+      restore:
+        'ALTER TABLE glyph_deliveries DROP CONSTRAINT glyph_deliveries_event_id_glyph_events_id_fk; ALTER TABLE glyph_deliveries ADD CONSTRAINT glyph_deliveries_event_id_glyph_events_id_fk FOREIGN KEY (event_id) REFERENCES glyph_events(id) ON DELETE CASCADE',
     },
   ];
 

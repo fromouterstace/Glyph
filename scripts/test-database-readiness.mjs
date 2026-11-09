@@ -28,6 +28,10 @@ function assertProbeQuery(text) {
       assert.ok(text.includes(column), `missing ${column}`);
     return;
   }
+  assertIntegrityQuery(text);
+}
+
+function assertIntegrityQuery(text) {
   assert.match(text, /pg_index/);
   assert.match(text, /i\.indpred IS NULL AND i\.indexprs IS NULL/);
   assert.match(text, /tbl\.relname = required\.table_name/);
@@ -62,16 +66,14 @@ function assertProbeQuery(text) {
     assert.ok(text.includes(constraint), `missing ${constraint}`);
 }
 
-test('readiness references every table in the latest reviewed schema inventory', async () => {
+test('readiness references every table and column in the reviewed schema inventory', async () => {
   const reviewDir = new URL('../lib/db/schema-reviews/', import.meta.url);
   const files = (await readdir(reviewDir))
     .filter((file) => /^\d{4}\.shape\.json$/.test(file))
     .sort();
   const latest = files.at(-1);
   assert.ok(latest, 'no reviewed database shape is available');
-  const shape = JSON.parse(
-    await readFile(new URL(latest, reviewDir), 'utf8'),
-  );
+  const shape = JSON.parse(await readFile(new URL(latest, reviewDir), 'utf8'));
   let schemaQuery = '';
   const probe = createReadinessProbe(
     async () => ({
@@ -85,8 +87,16 @@ test('readiness references every table in the latest reviewed schema inventory',
   );
 
   assert.equal(await probe(), true);
-  for (const table of Object.keys(shape)) {
-    assert.ok(schemaQuery.includes(table), `readiness omits ${table}`);
+  const aliases = new Map(
+    [...schemaQuery.matchAll(/\b(?:FROM|JOIN) (glyph_\w+) (\w+)/g)].map(
+      ([, table, alias]) => [table, alias],
+    ),
+  );
+  for (const [table, columns] of Object.entries(shape)) {
+    const alias = aliases.get(table);
+    assert.ok(alias, `readiness omits ${table}`);
+    for (const column of Object.keys(columns))
+      assert.match(schemaQuery, new RegExp(`\\b${alias}\\.${column}\\b`));
   }
 });
 

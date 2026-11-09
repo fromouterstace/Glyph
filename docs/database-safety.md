@@ -123,11 +123,23 @@ existing pooled queries; this audit does not apply that breaking schema change.
 Current DB-enforced integrity includes primary keys, unique pixel/link tokens,
 reply fingerprints, owner-scoped native-compose keys, cascading message→event/
 link/budget references and validated tracking-budget checks. The readiness probe
-now checks critical relations and columns, plus bounded catalog-only
-checks for primary keys, critical unique indexes, required cascading foreign
-keys and budget checks, without disclosing catalog data. The
+checks every table and column in the current reviewed inventory with a zero-row
+query, plus bounded catalog-only checks for primary keys, critical unique
+indexes, required cascading foreign keys and budget checks, without disclosing
+catalog data. Delivery deduplication keys and foreign references are checked by
+their columns, target and delete action, not generated constraint names. The
 existing `/api/readyz` smoke path exercises those checks in Preview and published
 smoke; an unhealthy database returns only `not_ready`.
+
+The unit gate compares the probe with the latest reviewed schema shape, so a new
+table or column cannot silently be omitted. Isolated PostgreSQL negative controls
+remove delivery storage/keys/references and replace same-named constraints with
+incorrect definitions; readiness must fail closed. These tests use only a
+guarded, temporary test schema. They never mutate application tables.
+
+Readiness is not a full semantic schema verifier: other name-based guards do not
+prove every check expression or key definition. Nor does a green probe establish
+backup recoverability, least-privilege credentials or workload performance.
 
 Other integrity boundaries remain application-enforced: message status,
 delivery source, event type/source, attachment size/shape, attachment JSON-to-

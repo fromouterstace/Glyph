@@ -80,3 +80,72 @@ enforcement scope and explicit limitations.
 - No existing development/production records or schemas were changed. Tests
   created and dropped temporary isolated schemas only. No schema push, backup
   export, restore, real mail or production publication was performed.
+
+## Follow-up audit of the current schema
+
+The earlier nine-table snapshot is historical. A fresh read-only catalog check
+found **12 public Glyph tables in both environments**, with RLS disabled on every
+one. Production and development delivery references both target messages/events
+with cascading deletes. The reviewed SQL and generated Drizzle fixtures assign
+different names to equivalent delivery foreign/unique constraints; names alone
+are not a reliable cross-environment contract.
+
+Aggregate-only checks in both environments returned zero for:
+
+- Sent messages missing their sent timestamp.
+- Orphan events, links or tracking budgets.
+- Delivery owners inconsistent with their message owner.
+- Delivery events inconsistent with their message.
+- Case-folded duplicate contacts within an owner.
+- Nonpositive attachment sizes and expired OAuth states.
+
+These are point-in-time results, not proof that the database prevents all such
+states. No addresses, message content or credential values were retrieved.
+
+### Coverage gap addressed
+
+The readiness probe omitted the delivery table even though account summaries
+query it. It could therefore report ready with broken alert-delivery storage.
+The probe now covers all 12 tables and the columns in the reviewed inventory.
+An inventory unit gate prevents later table/column omissions. Delivery primary,
+deduplication and cascading-reference requirements are included; generated-name
+differences are handled by checking key/reference semantics.
+
+Real PostgreSQL negative controls cover eight broken delivery-schema cases,
+including missing storage, primary/unique keys and references, plus a same-named
+unique index on the wrong columns and a foreign key to the wrong parent. Only
+temporary test schemas are changed. Existing readiness HTTP smoke consumes this
+stronger probe; no account data or catalog detail is exposed by it.
+
+### Remaining gaps and limits
+
+- Tenant isolation is still application-enforced, not database-enforced RLS.
+- Delivery owner/message/event consistency, enum-like values and attachment
+  ownership/shape still depend partly on application code. The aggregate checks
+  above found no current violations; they do not replace database constraints.
+- Remaining name-based readiness checks and the schema column-shape ledger are
+  not complete semantic verification of every constraint, default and index.
+- A global insert-only lock and two-person approval mechanism are not established
+  by the migration lint gate. The repository still has update/delete operations;
+  restricting these globally would affect normal sending, drafts and tracking.
+- Production least-privilege credentials, a verified backup restoration drill,
+  remote required-status/branch protection and continuous production database
+  monitoring are not established by this audit.
+- The checked-in GitHub workflow runs quality/build and database integration, but
+  does not run the separate HTTP-contract and smoke commands. The local release
+  aggregate does include them; remote enforcement remains a separate gap.
+
+### Current verification
+
+- `pnpm check` passed schema safety, lint, Prettier, TypeScript, source/coverage
+  inventories, unit/contract/UI suites and negative-control quality gates,
+  including the 50/100/150/200-line test-layer budgets.
+- `pnpm check:integration` passed 23 database tests, 114 service contracts and
+  nine process/shutdown/recovery tests.
+- `pnpm check:http` passed all 36 running-server HTTP contracts.
+- `pnpm check:smoke` passed, including the strengthened `/api/readyz` probe and
+  anonymous account-data rejection. The API rebuilt and restarted successfully.
+- The signed-out `/gmail` Preview still displays the sign-in wall.
+
+No production data, privileges or schema were changed. No migration was applied
+or publication performed.
