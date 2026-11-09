@@ -48,6 +48,11 @@ creation, draft creation, pixel loads or clicks. No known communication means a
 null timestamp/age, not zero days. This is stored correspondence only; it does not
 silently ingest a contact's entire unlabeled Gmail history.
 
+Contact navigation, cache identity, ownership, payload privacy and published
+asset checks are covered by the contact-profile section of
+[the testing canon](testing-canon.md#contact-navigation-and-profile-regression-protection).
+Passing public smoke does not prove an already-open tab loaded a new build.
+
 ## Automatic scheduling and recovery
 
 The signed-in app starts an import and retries every 60 seconds, with no

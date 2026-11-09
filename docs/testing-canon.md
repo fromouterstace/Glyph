@@ -155,6 +155,36 @@ Replit named validations expose the same commands without requiring GitHub.
 
 ## Risk-weighted coverage, not a promised defect percentage
 
+### Contact navigation and profile regression protection
+
+The contact directory must lead to a protected `/contacts/:id` page. The
+`contact-navigation` UI suite exercises actual Wouter links/routing, React Query,
+the generated API client and JSON/error responses; only network and external
+authentication boundaries are replaced. It verifies direct profile loads,
+independent pagination, A → B → A pagination resets, pending-request identity
+separation, finite polling configuration, refreshed counts, 404 handling and
+recovery after server errors. Keep it mandatory in the discovery inventory.
+
+The actual App route wiring has a separate source contract and negative controls
+for omitted routes/protection. This complements, not replaces, the existing
+sign-in-wall behavioral suite. PostgreSQL contact-profile integration tests
+cover cross-owner/anonymous rejection, exact case-insensitive primary/To/Cc/Bcc
+matching, duplicates, unrelated-event isolation, bounded/stable paging, Unicode
+excerpts, malformed offsets, payload privacy and honest communication dates.
+
+Published smoke requires both Contacts and contact-profile chunks to be
+reachable from the served JavaScript graph on **both** configured HTTPS origins.
+An HTML 200, an old entry with neither page reference, or an unreferenced file
+cannot satisfy that gate. Negative controls remove each required chunk, and
+unit-suite discovery itself is fail-closed. The production build also retains
+the independent protected-route chunk gate.
+
+These checks follow the 50/100/150/200-line budgets above. They do not establish
+a numerical defect probability, verify a human opening mail, refresh JavaScript
+in an already-open browser tab, or prove signed-in live browser behavior.
+After publishing, reload the production tab and verify contact navigation with
+controlled account access. Preserve unsaved drafts; do not force-reload tabs.
+
 ### Web-composer regression protection
 
 `pnpm check:composer` is a fail-closed **discovery inventory**, not a substitute

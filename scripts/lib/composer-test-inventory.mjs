@@ -7,6 +7,7 @@ export const composerSuites = {
   ui: [
     'artifacts/glyph/tests/label-import.test.tsx',
     'artifacts/glyph/tests/contact-profile.test.tsx',
+    'artifacts/glyph/tests/contact-navigation.test.tsx',
     'artifacts/glyph/tests/auth-form.test.tsx',
     'artifacts/glyph/tests/auth-gate.test.tsx',
     'artifacts/glyph/tests/protected-page.test.tsx',
@@ -45,6 +46,7 @@ export const requiredRunners = {
     'monitoring.contract.test.mjs',
     'casing.contract.test.mjs',
     'web-serving.contract.test.mjs',
+    'contact-navigation.contract.test.mjs',
   ],
   'test:integration': [
     'database.integration.test.mjs',

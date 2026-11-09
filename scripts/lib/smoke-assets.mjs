@@ -41,7 +41,13 @@ export function moduleAssets(source, parent) {
     .filter((url) => url.origin === parent.origin);
 }
 
-export async function checkSmokeAssets(entries, read) {
+export const CONTACT_FEATURE_CHUNKS = ['contacts', 'contact-detail'];
+
+export async function checkSmokeAssets(
+  entries,
+  read,
+  { requiredChunks = [] } = {},
+) {
   const pending = [...entries];
   const visited = new Set();
   let bytes = 0;
@@ -70,5 +76,14 @@ export async function checkSmokeAssets(entries, read) {
     if (!css && asset.pathname.endsWith('.js'))
       pending.push(...moduleAssets(source, asset));
     result.done();
+  }
+  for (const name of requiredChunks) {
+    assert.ok(
+      [...visited].some((href) => {
+        const file = new URL(href).pathname.split('/').at(-1);
+        return file?.startsWith(`${name}-`) && file.endsWith('.js');
+      }),
+      `Required feature chunk is missing from the served asset graph: ${name}`,
+    );
   }
 }

@@ -219,3 +219,58 @@ test('message and signal histories paginate independently with bounded stable pa
     next.events.some((e) => first.events.some((row) => row.id === e.id)),
   ).toBe(false);
 });
+
+test('contact history rejects malformed offsets and does not honor a forged owner query', async () => {
+  const owner = h.identity();
+  const id = await contact(owner);
+  for (const query of [
+    'messageOffset=1.5',
+    'eventOffset=NaN',
+    'messageOffset=Infinity',
+    'eventOffset=0&eventOffset=1',
+    'messageOffset=0%3BDROP%20TABLE',
+  ]) {
+    expect(
+      (await h.request(`/contacts/${id}?${query}`, { user: owner })).status,
+    ).toBe(400);
+  }
+  const foreign = await h.request(`/contacts/${id}?ownerId=${owner}`, {
+    user: h.identity(),
+  });
+  expect(foreign.status).toBe(404);
+});
+
+test('duplicate roles do not duplicate correspondence or expose message secrets or unrelated signals', async () => {
+  const owner = h.identity();
+  const id = await contact(owner);
+  const email = 'person@example.invalid';
+  const m = await message(owner, email, {
+    to: [email],
+    cc: [email],
+    bcc: [email],
+  });
+  const other = await message(owner, 'someone-else@example.invalid');
+  await event(other.id, 'open', 0);
+  await event(other.id, 'reply', 0);
+  await event(m.id, 'open', 2);
+  const response = await h.request(`/contacts/${id}`, { user: owner });
+  expect(response.status).toBe(200);
+  const data = await response.json();
+  expect(data).toMatchObject({
+    totalMessages: 1,
+    totalEvents: 1,
+    pixelLoads: 1,
+    replies: 0,
+  });
+  for (const field of [
+    'pixelToken',
+    'ownerId',
+    'body',
+    'bodyHtml',
+    'attachments',
+    'rfcMessageId',
+  ]) {
+    expect(data.messages[0]).not.toHaveProperty(field);
+  }
+  expect(data.events[0].messageId).toBe(m.id);
+});

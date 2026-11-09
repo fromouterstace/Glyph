@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { smokeOrigin, waitForHealth } from './health-probe.mjs';
-import { checkSmokeAssets, entryAssets } from './smoke-assets.mjs';
+import {
+  CONTACT_FEATURE_CHUNKS,
+  checkSmokeAssets,
+  entryAssets,
+} from './smoke-assets.mjs';
 import { assertExtensionArchive } from './extension-archive.mjs';
 import {
   assertDocumentSecurity,
@@ -39,7 +43,12 @@ const protectedReads = [
   '/attachments/00000000-0000-4000-8000-000000000000',
 ];
 
-export async function runSmoke({ base, fetchImpl = fetch, report = () => {} }) {
+export async function runSmoke({
+  base,
+  fetchImpl = fetch,
+  report = () => {},
+  requireContactChunks = false,
+}) {
   const origin = smokeOrigin(base);
   await waitForHealth({ base: origin, fetchImpl });
   const read = async (path, status) => {
@@ -82,7 +91,9 @@ export async function runSmoke({ base, fetchImpl = fetch, report = () => {} }) {
     result.done();
   }
   const assets = entryAssets(shell, origin);
-  await checkSmokeAssets(assets, read);
+  await checkSmokeAssets(assets, read, {
+    requiredChunks: requireContactChunks ? CONTACT_FEATURE_CHUNKS : [],
+  });
   const zip = await read('/glyph-extension.zip', 200);
   assert.equal(
     zip.body.subarray(0, 4).toString('hex'),

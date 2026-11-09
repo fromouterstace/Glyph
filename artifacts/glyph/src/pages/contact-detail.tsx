@@ -19,8 +19,6 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { errorText, usePoll } from '@/lib/glyph';
 
-type Offsets = { id: string; messageOffset: number; eventOffset: number };
-
 function BackLink() {
   return (
     <Link
@@ -123,17 +121,18 @@ export function ContactProfileView(props: {
 
 export default function ContactDetailPage() {
   const id = useParams<{ id: string }>().id ?? '';
+  return <ContactDetailLoader key={id} id={id} />;
+}
+
+function ContactDetailLoader({ id }: { id: string }) {
   const poll = usePoll();
-  const [state, setState] = useState<Offsets>({
-    id,
+  const [offsets, setOffsets] = useState({
     messageOffset: 0,
     eventOffset: 0,
   });
-  const cur =
-    state.id === id ? state : { id, messageOffset: 0, eventOffset: 0 };
   const params = {
-    messageOffset: cur.messageOffset,
-    eventOffset: cur.eventOffset,
+    messageOffset: offsets.messageOffset,
+    eventOffset: offsets.eventOffset,
   };
   const q = useGetContactDetail(id, params, {
     query: {
@@ -165,8 +164,12 @@ export default function ContactDetailPage() {
       <ContactProfileView
         detail={q.data}
         busy={q.isFetching}
-        onMessageOffset={(n) => setState({ ...cur, messageOffset: n })}
-        onEventOffset={(n) => setState({ ...cur, eventOffset: n })}
+        onMessageOffset={(n) =>
+          setOffsets((prev) => ({ ...prev, messageOffset: n }))
+        }
+        onEventOffset={(n) =>
+          setOffsets((prev) => ({ ...prev, eventOffset: n }))
+        }
       />
     );
   return (

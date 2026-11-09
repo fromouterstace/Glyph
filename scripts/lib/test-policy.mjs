@@ -43,6 +43,7 @@ export const requiredUnitSuites = [
   'test-rich-composer.mjs',
   'test-route-chunks.mjs',
   'test-smoke-assets.mjs',
+  'test-contact-smoke.mjs',
   'test-smoke-checks.mjs',
   'test-system-admin.mjs',
   'test-tracking-origin.mjs',

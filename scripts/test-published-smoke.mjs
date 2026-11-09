@@ -76,7 +76,10 @@ test('published checks report success only after every origin passes', async () 
   const rows = [];
   await runPublishedSmoke({
     origins,
-    smoke: async ({ report }) => report({ path: '/emails', status: 200 }),
+    smoke: async ({ report, requireContactChunks }) => {
+      assert.equal(requireContactChunks, true);
+      report({ path: '/emails', status: 200 });
+    },
     report: (row) => rows.push(row),
   });
   assert.deepEqual(

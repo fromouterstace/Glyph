@@ -45,6 +45,7 @@ export async function runPublishedSmoke({
     try {
       await smoke({
         base: origin,
+        requireContactChunks: true,
         report: (row) => report({ ...row, origin }),
       });
       report({ origin, outcome: 'passed', at: new Date().toISOString() });
