@@ -4,6 +4,13 @@ import { extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const defaultRoot = fileURLToPath(new URL('../dist/public/', import.meta.url));
+const publicRootFiles = new Set([
+  '/index.html',
+  '/favicon.svg',
+  '/logo.svg',
+  '/robots.txt',
+  '/glyph-extension.zip',
+]);
 
 // Production only. Vite still owns Preview, including Replit's preview iframe.
 export const documentHeaders = Object.freeze({
@@ -50,17 +57,27 @@ export function createProductionApp({
     }
     next();
   });
-  router.use(
-    express.static(directory, {
-      index: false,
-      redirect: false,
-      dotfiles: 'deny',
-      setHeaders(res, path) {
-        if (/[\\/]assets[\\/].+-[A-Za-z0-9_-]{8,}\.(?:js|css)$/.test(path))
-          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-      },
-    }),
-  );
+  const serveStatic = express.static(directory, {
+    index: false,
+    redirect: false,
+    dotfiles: 'deny',
+    setHeaders(res, path) {
+      if (/[\\/]assets[\\/].+-[A-Za-z0-9_-]{8,}\.(?:js|css)$/.test(path))
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    },
+  });
+  router.use((req, res, next) => {
+    const path = decodeURIComponent(req.path);
+    const asset =
+      /^\/assets\/.+\.(?:js|css|svg|png|jpe?g|gif|webp|avif|ico|woff2?|ttf|otf)$/i.test(
+        path,
+      );
+    if (!publicRootFiles.has(path) && !asset) {
+      next();
+      return;
+    }
+    serveStatic(req, res, next);
+  });
   router.use((req, res) => {
     if (!['GET', 'HEAD'].includes(req.method)) {
       res.status(405).set('Allow', 'GET, HEAD').end();

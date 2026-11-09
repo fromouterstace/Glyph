@@ -4,6 +4,7 @@ import {
   CONTACT_FEATURE_CHUNKS,
   checkSmokeAssets,
   entryAssets,
+  assertNoPublicSecrets,
 } from './smoke-assets.mjs';
 import { assertExtensionArchive } from './extension-archive.mjs';
 import {
@@ -27,6 +28,7 @@ export const pages = [
   '/sign-in',
   '/sign-up',
 ];
+export const sensitivePublicPaths = ['/.env', '/.git/config', '/package.json'];
 const protectedReads = [
   '/overview',
   '/messages',
@@ -43,6 +45,36 @@ const protectedReads = [
   '/attachments/00000000-0000-4000-8000-000000000000',
 ];
 
+async function checkSpoofedIdentity(read) {
+  const ownerHeaders = {
+    'x-user-id': 'smoke-invalid-owner',
+    'x-owner-id': 'smoke-invalid-owner',
+    'x-clerk-auth-user-id': 'smoke-invalid-owner',
+    'x-glyph-test-user': 'smoke-invalid-owner',
+  };
+  const bearer = { authorization: 'Bearer smoke-invalid-bearer' };
+  for (const headers of [
+    bearer,
+    ownerHeaders,
+    { ...bearer, ...ownerHeaders },
+  ]) {
+    for (const path of [
+      '/messages',
+      '/settings',
+      '/contacts',
+      '/system/summary',
+    ]) {
+      const result = await read(`/api/glyph${path}`, 401, { headers });
+      assert.match(
+        result.response.headers.get('content-type') ?? '',
+        /application\/json/i,
+      );
+      assert.ok(JSON.parse(result.body.toString()).error);
+      result.done();
+    }
+  }
+}
+
 export async function runSmoke({
   base,
   fetchImpl = fetch,
@@ -51,9 +83,10 @@ export async function runSmoke({
 }) {
   const origin = smokeOrigin(base);
   await waitForHealth({ base: origin, fetchImpl });
-  const read = async (path, status) => {
+  const read = async (path, status, options = {}) => {
     const started = Date.now();
     const response = await fetchImpl(new URL(path, origin), {
+      ...options,
       redirect: 'manual',
       signal: AbortSignal.timeout(5_000),
     });
@@ -64,6 +97,12 @@ export async function runSmoke({
       `${path}: unexpected redirect`,
     );
     const body = Buffer.from(await response.arrayBuffer());
+    if (
+      /text\/|javascript|json|ecmascript/i.test(
+        response.headers.get('content-type') ?? '',
+      )
+    )
+      assertNoPublicSecrets(body.toString(), path);
     return {
       response,
       body,
@@ -113,6 +152,15 @@ export async function runSmoke({
       'Missing anonymous-access error',
     );
     result.done();
+  }
+  await checkSpoofedIdentity(read);
+  if (origin.startsWith('https://')) {
+    for (const path of sensitivePublicPaths) {
+      for (const method of ['GET', 'HEAD']) {
+        const result = await read(path, 404, { method });
+        result.done();
+      }
+    }
   }
   // Invalid tokens cannot create events or navigate to a customer destination.
   const pixel = await read('/api/glyph/t/smoke-invalid-token.gif', 200);

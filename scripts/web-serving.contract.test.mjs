@@ -57,20 +57,45 @@ test('missing assets, API routes, source maps, hidden files and encoded traversa
     '/%2eenv',
     '/%2e%2e%2f.env',
     '/.git/config',
+    '/package.json',
+    '/assets/package.json',
+    '/server.mjs',
     '/missing.zip',
   ]) {
-    const response = await web.fetch(path);
-    assert.equal(response.status, 404, path);
-    assert.equal(response.headers.get('x-frame-options'), 'DENY');
-    assert.doesNotMatch(
-      await response.text(),
-      /id="root"|synthetic-private|synthetic.*source/,
-    );
+    for (const method of ['GET', 'HEAD']) {
+      const response = await web.fetch(path, { method });
+      assert.equal(response.status, 404, path);
+      assert.equal(response.headers.get('x-frame-options'), 'DENY');
+      assert.doesNotMatch(
+        await response.text(),
+        /id="root"|synthetic-private|synthetic.*source/,
+      );
+    }
   }
   assert.equal((await web.fetch('/%ZZ')).status, 400);
   const post = await web.fetch('/emails', { method: 'POST' });
   assert.equal(post.status, 405);
   assert.equal(post.headers.get('allow'), 'GET, HEAD');
+});
+
+test('unlisted extensionless files never replace the empty app shell', async (t) => {
+  const web = await productionWebFixture(t);
+  const response = await web.fetch('/credentials');
+  assert.equal(response.status, 200);
+  const body = await response.text();
+  assert.match(body, /id="root"/);
+  assert.doesNotMatch(body, /synthetic-private/);
+});
+
+test('allowlisted root resources remain available under an artifact prefix', async (t) => {
+  const web = await productionWebFixture(t, '/glyph/');
+  for (const path of ['favicon.svg', 'logo.svg', 'robots.txt', 'index.html']) {
+    for (const method of ['GET', 'HEAD']) {
+      const response = await web.fetch(`/glyph/${path}`, { method });
+      assert.equal(response.status, 200, path);
+      if (method === 'HEAD') assert.equal(await response.text(), '');
+    }
+  }
 });
 
 test('nonroot artifact paths work without serving the shell outside that prefix', async (t) => {

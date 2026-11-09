@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { pages, runSmoke } from './lib/smoke-checks.mjs';
+import { pages, runSmoke, sensitivePublicPaths } from './lib/smoke-checks.mjs';
 import { extensionZip } from './tests/helpers/extension-archive.mjs';
 
 const publishedHeaders = {
@@ -19,6 +19,10 @@ function fixture(overrides = new Map(), calls = [], published = false) {
     const { pathname } = new URL(input);
     calls.push(pathname);
     if (overrides.has(pathname)) return overrides.get(pathname)();
+    if (sensitivePublicPaths.includes(pathname))
+      return new Response(options.method === 'HEAD' ? null : 'Not found', {
+        status: 404,
+      });
     if (pathname === '/api/healthz') return Response.json({ status: 'ok' });
     if (pathname === '/api/readyz')
       return Response.json(
@@ -69,10 +73,91 @@ test('HTTPS smoke validates every document with GET and HEAD without skipping AP
       return baseFixture(input, options);
     },
   });
-  assert.deepEqual(heads, pages);
+  assert.deepEqual(heads, [...pages, ...sensitivePublicPaths]);
   assert.ok(calls.includes('/glyph-extension.zip'));
   assert.ok(calls.includes('/api/glyph/messages'));
 });
+
+for (const bypass of ['bearer', 'owner', 'combined']) {
+  test(`a ${bypass} authentication bypass fails smoke`, async () => {
+    const fetchFixture = fixture();
+    await assert.rejects(
+      runSmoke({
+        base: 'http://localhost',
+        fetchImpl: (input, options) => {
+          const headers = new Headers(options.headers);
+          const bearer = headers.has('authorization');
+          const owner = headers.has('x-user-id');
+          if (
+            new URL(input).pathname === '/api/glyph/messages' &&
+            (bypass === 'combined'
+              ? bearer && owner
+              : bypass === 'bearer'
+                ? bearer && !owner
+                : owner && !bearer)
+          )
+            return Response.json({ messages: [] });
+          return fetchFixture(input, options);
+        },
+      }),
+      /unexpected HTTP status/,
+    );
+  });
+}
+
+for (const path of sensitivePublicPaths) {
+  test(`an exposed ${path} fails published smoke`, async () => {
+    const overrides = new Map([
+      [path, () => new Response('synthetic configuration')],
+    ]);
+    await assert.rejects(
+      runSmoke({
+        base: 'https://glyph.example',
+        fetchImpl: fixture(overrides, [], true),
+      }),
+      /unexpected HTTP status/,
+    );
+  });
+}
+
+test('recognizable credentials in public HTML fail smoke without logging the value', async () => {
+  const synthetic = 'sk_' + 'live_' + 'x'.repeat(24);
+  const fetchFixture = fixture();
+  await assert.rejects(
+    runSmoke({
+      base: 'http://localhost',
+      fetchImpl: async (input, options) => {
+        const response = await fetchFixture(input, options);
+        if (new URL(input).pathname === '/settings')
+          return new Response(`<div id="root">${synthetic}</div>`, {
+            headers: { 'content-type': 'text/html' },
+          });
+        return response;
+      },
+    }),
+    (error) =>
+      error.message.includes('Clerk server key') &&
+      !error.message.includes(synthetic),
+  );
+});
+
+for (const name of ['background.js', '.env']) {
+  test(`a recognizable credential packaged in extension ${name} fails smoke`, async () => {
+    const synthetic = 'GOCSPX-' + 'x'.repeat(24);
+    const overrides = new Map([
+      [
+        '/glyph-extension.zip',
+        () => new Response(extensionZip({ [name]: synthetic })),
+      ],
+    ]);
+    await assert.rejects(
+      runSmoke({ base: 'http://localhost', fetchImpl: fixture(overrides) }),
+      (error) =>
+        error.message.includes('Google client secret') &&
+        !error.message.includes(synthetic),
+    );
+  });
+}
 
 test('a HEAD-only policy regression on a deep link fails complete HTTPS smoke', async () => {
   const baseFixture = fixture(new Map(), [], true);

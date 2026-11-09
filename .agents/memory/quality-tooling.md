@@ -70,3 +70,12 @@ documentation identifies GAESA as Google's routing cookie, not session data.
 
 **How to apply:** Distinguish that exact infrastructure cookie from application
 cookies in public-route smoke, and never include cookie values in diagnostics.
+
+Negative file-exposure tests must place real synthetic forbidden files in the
+served directory, not merely request paths whose files are absent.
+
+**Why:** A live 404 can mean only that the current build lacks the file. It does
+not prove the serving policy would refuse an accidentally packaged private file.
+
+**How to apply:** Pair read-only live probes with isolated existing-file fixtures
+and public-resource success controls before claiming a file-exposure boundary.

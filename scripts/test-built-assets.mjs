@@ -48,3 +48,20 @@ test('the built artifact gate rejects an invalid packaged extension', async (t) 
   await writeFile(join(directory, 'glyph-extension.zip'), Buffer.from('PK'));
   await assert.rejects(checkBuiltAssets(directory), /truncated/);
 });
+
+for (const file of ['index.html', 'assets/page.js', 'glyph-extension.zip']) {
+  test(`recognizable credentials in built ${file} fail without exposing them`, async (t) => {
+    const directory = await fixture(t);
+    const synthetic = 'sk_' + 'live_' + 'x'.repeat(24);
+    const bytes = file.endsWith('.zip')
+      ? extensionZip({ 'background.js': synthetic })
+      : synthetic;
+    await writeFile(join(directory, file), bytes);
+    await assert.rejects(
+      checkBuiltAssets(directory),
+      (error) =>
+        error.message.includes('Clerk server key') &&
+        !error.message.includes(synthetic),
+    );
+  });
+}

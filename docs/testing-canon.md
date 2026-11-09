@@ -59,6 +59,21 @@ Source configuration or header strings inside HTML never substitute for real
 response headers. Keep the existing 50/100/150/200-line test-body limits, required
 suite inventory, no skips/focus, and negative gate controls.
 
+Published smoke must also reject invalid bearer tokens, untrusted owner/Clerk/test
+identity headers, and their combination on representative private APIs. Require
+401 JSON errors, not redirects or HTML fallbacks. Require both GET and HEAD to
+return 404 for `/.env`, `/.git/config` and `/package.json`; production-serving
+contracts use real synthetic files to prove exclusion even when those files exist.
+
+Build and published-asset gates reject recognizable private-key, Clerk server-key,
+Google client-secret/access-token, GitHub-token and credential-bearing database-URL
+formats. Scan HTML, the reachable JS/CSS graph and unpacked extension entries.
+Error reports include only the resource path and credential category, never the
+matching value. Synthetic poison fixtures must prove rejection and redaction.
+Clerk publishable keys are public configuration, not server secrets. Pattern
+checks cannot prove arbitrary secrets are absent or replace rotation after a
+confirmed exposure; they never read secret environment values for comparison.
+
 `pnpm check:published https://glyph.rocks https://glyph-mail.replit.app` runs the
 complete safe smoke on both origins, including document GET/HEAD and edge HSTS.
 It attempts both even if one fails and exits nonzero if either fails. This is a

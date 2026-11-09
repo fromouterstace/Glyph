@@ -1,5 +1,31 @@
 import assert from 'node:assert/strict';
 
+const credentialPatterns = [
+  [
+    'private key',
+    /-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED )?PRIVATE KEY-----/,
+  ],
+  ['Clerk server key', /\bsk_(?:live|test)_[A-Za-z0-9]{20,}\b/],
+  ['Google client secret', /\bGOCSPX-[A-Za-z0-9_-]{20,}\b/],
+  ['Google access token', /\bya29\.[A-Za-z0-9_-]{30,}\b/],
+  [
+    'GitHub token',
+    /\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,})\b/,
+  ],
+  [
+    'database credentials',
+    /\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?):\/\/[^/\s"'<>]+:[^/\s"'<>]+@/i,
+  ],
+];
+
+/** Recognizable formats only: never inspect secret environment values or log matches. */
+export function assertNoPublicSecrets(source, path) {
+  for (const [kind, pattern] of credentialPatterns) {
+    if (pattern.test(source))
+      throw new Error(`${path}: recognizable ${kind} in public content`);
+  }
+}
+
 export function entryAssets(shell, origin) {
   const assets = [
     ...shell.matchAll(
@@ -70,6 +96,7 @@ export async function checkSmokeAssets(
       'Asset bytes exceed smoke safety budget',
     );
     const source = result.body.toString();
+    assertNoPublicSecrets(source, asset.pathname);
     assert.doesNotMatch(source, /^\s*(?:<!doctype html|<html)/i);
     // Dev TSX imports are transformed by Vite on demand; bundled JS gives
     // smoke a bounded, inspectable production dependency graph.

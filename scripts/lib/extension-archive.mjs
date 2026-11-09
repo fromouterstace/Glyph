@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { assertNoPublicSecrets } from './smoke-assets.mjs';
 import { crc32 } from 'node:zlib';
 
 function archiveFiles(bytes) {
@@ -68,6 +69,9 @@ function archiveFiles(bytes) {
 /** Validate the actual stored-file format emitted by extensions/build.mjs. */
 export function assertExtensionArchive(bytes) {
   const files = archiveFiles(bytes);
+  for (const [name, content] of files) {
+    assertNoPublicSecrets(content.toString(), name);
+  }
   const manifestBytes = files.get('glyph-extension/manifest.json');
   assert.ok(manifestBytes, 'Extension manifest is missing');
   const manifest = JSON.parse(manifestBytes.toString());

@@ -10,6 +10,7 @@ export async function productionWebFixture(t, basePath = '/') {
   const root = await mkdtemp(join(tmpdir(), 'glyph-web-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   await mkdir(join(root, 'assets'));
+  await mkdir(join(root, '.git'));
   const files = {
     'index.html': `<html><div id="root"></div><script type="module" src="${basePath}assets/app-abcdefgh.js"></script></html>`,
     'assets/app-abcdefgh.js': 'export const ready=true;',
@@ -17,6 +18,14 @@ export async function productionWebFixture(t, basePath = '/') {
     'assets/private.js.map': '{"synthetic":"source"}',
     'glyph-extension.zip': extensionZip(),
     '.env': 'synthetic-private',
+    '.git/config': 'synthetic-private-config',
+    'package.json': '{"synthetic":"private"}',
+    credentials: 'synthetic-private-extensionless',
+    'assets/package.json': '{"synthetic":"private"}',
+    'server.mjs': 'synthetic-private-server',
+    'favicon.svg': '<svg></svg>',
+    'logo.svg': '<svg></svg>',
+    'robots.txt': 'User-agent: *',
   };
   for (const [name, bytes] of Object.entries(files))
     await writeFile(join(root, name), bytes);

@@ -169,6 +169,15 @@ regression checks are specified in [web-composer.md](web-composer.md).
   URLs. Sanitize paths before logging them. Never serialize raw exception
   messages, stacks, SQL, parameters, provider responses, or nested causes; log
   only fixed error classifications and safe operation context.
+- Keep private configuration and repository metadata out of public serving,
+  including `/.env`, `/.git/config` and `/package.json`. Invalid bearer tokens
+  and caller-supplied owner, Clerk or test-identity headers never establish a
+  session. Preserve published-smoke negative controls for these boundaries.
+  Reject recognizable credentials in public build artifacts without logging
+  matches; a clean pattern scan is scoped evidence, not proof of secret absence.
+  Production static serving uses explicit public root files and supported asset
+  types, not arbitrary files found in the build directory. New public file types
+  require deliberate allowlist review and route-delivery tests.
 - Browser-extension storage may hold its selected Glyph origin, non-secret
   preferences, poll cursor, and notification deduplication state. It must not hold
   Gmail passwords, OAuth/access tokens, Clerk session cookies, or API credentials.
