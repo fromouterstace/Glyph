@@ -21,11 +21,19 @@ of a restorable production backup. Never overwrite production with development
 data to solve drift. See the dated [audit](database-safety-audit-2026-11-08.md)
 for inspected evidence and limits.
 
+Follow [database deletion protection](database-deletion-protection.md) for the
+approved block-deletion/allow-updates policy, retained-state behavior and exact
+activation boundary. Production restriction and operation-specific two-person
+approval remain unfinished; documentation and permission tests do not activate
+either safeguard.
+
 This document records the product rules and guardrails future changes must
 preserve. Read it before changing tracking behavior, Gmail access, ownership,
 event storage, notifications, test policy, or production operations.
 
-`replit.md` is the short, workspace-facing entry point. This canon governs durable
+`README.md` introduces the product and setup; it must not invent capabilities or
+turn audit results into production guarantees. `replit.md` is the short,
+workspace-facing entry point. This canon governs durable
 product and safety decisions; `docs/testing-canon.md` specifies the automated
 test gates and evidence. Read code, the database schema, and OpenAPI before editing:
 if they disagree with this document, do not guess which is current. Verify the
@@ -165,11 +173,20 @@ regression checks are specified in [web-composer.md](web-composer.md).
   preferences, poll cursor, and notification deduplication state. It must not hold
   Gmail passwords, OAuth/access tokens, Clerk session cookies, or API credentials.
   Use workspace-managed secret handling for server credentials.
-- Deleting a message must continue to remove its dependent links and events through
-  the database's foreign-key behavior. The repository does not define an automatic
-  message-retention window or a data-export contract. Do not promise either—or
-  claim a compliance certification—without a reviewed product decision and an
-  implemented, tested contract.
+- Removing an unsent web draft archives its row rather than physically deleting
+  it or its dependent history. Archived drafts must be excluded from active
+  messages, activity and contact views, and rejected by stale edits/send claims.
+  Superseded link rows remain stored but their tokens must no longer redirect;
+  unchanged active links retain their immutable token/destination mapping.
+- Retire unused valid attachment records without erasing their bytes. Count saved
+  and retired attachment metadata toward the owner's 100-file/100-MiB retention
+  budget; removal does not free that budget. Invalid rejected upload bytes are
+  cleaned up while their retired metadata remains. Expire retained OAuth states
+  and clear their verifiers on invalidation/consumption; never restore replay.
+- Foreign-key cascade definitions do not authorize routine physical deletion.
+  Destructive exceptions require the designated two-person policy and supported
+  operational process. No automated message-retention purge, retention window,
+  data-export contract or compliance certification is promised.
 - **Casing across boundaries:** PostgreSQL table/column identifiers use
   `snake_case`. Drizzle's TypeScript property names, server-side TypeScript,
   OpenAPI JSON property names, and frontend API models use `camelCase`. Drizzle
@@ -210,8 +227,10 @@ regression checks are specified in [web-composer.md](web-composer.md).
   silently replace user-edited links, body text, formatting, or recipients.
 - Escape message content when constructing HTML. Validate tracked destinations
   as safe HTTP(S) URLs; reject credentials and unsafe/malformed destinations. Keep
-  the original destination tied to its stored token and redirect only after
-  recording the click event.
+  the original destination tied to its stored token. Valid active links still
+  redirect when tracking is disabled or the event budget is exhausted; never
+  present that redirect as a committed event. Invalid or retired tokens must
+  not redirect.
 - Keep generated extension build output distinct from source. Updating the
   workspace does not update an already installed extension; communicate when a
   new package and Gmail-tab reload are actually required.
@@ -288,7 +307,7 @@ regression checks are specified in [web-composer.md](web-composer.md).
   HTTP build gate and the contract guard against reverting to static serving.
 - Browser security guardrails: require the unambiguous CSP
   `frame-ancestors 'none'; object-src 'none'; base-uri 'self'`, `X-Frame-Options:
-  DENY`, MIME sniffing protection, strict-origin referrer policy, disabled
+DENY`, MIME sniffing protection, strict-origin referrer policy, disabled
   camera/microphone/geolocation, and no-store documents. Duplicate critical CSP
   directives must fail verification. Hashed assets may retain immutable caching.
 - Release safetyrails: run read-only `pnpm check:published` against both verified

@@ -71,12 +71,17 @@ preventing concurrent recipient edits from sending a stale draft.
 
 - Body text and HTML: at most 50,000 characters each; JSON transport: 512 KiB.
 - Up to 10 attachments, 10 MiB per file, 15 MiB combined per message.
-- Unreferenced uploads are limited to 100 files / 100 MiB per account. Files
-  already referenced by saved messages do not consume this staging budget.
-- Newly uploaded, unreferenced files are cleaned up when their composer closes.
-  Cleanup is best-effort across network failure; an explicit owner-only DELETE
-  endpoint can remove unused uploads. Referenced files are never deleted by
-  composer cleanup, including files shared by another saved draft.
+- All attachment metadata, including saved and retired entries, counts toward
+  the 100-file / 100-MiB owner retention budget. Removing a valid upload does not
+  free this budget or erase its bytes.
+- Composer cleanup and the owner-only DELETE endpoint retire unused valid
+  attachment records; retired files cannot be downloaded or reused through the
+  ordinary routes. Cleanup is best-effort across network failure. Files retained
+  by saved or archived drafts cannot be retired by composer cleanup.
+- Invalid rejected uploads retain retired database metadata, but their malformed
+  bytes are cleaned up to prevent unbudgeted storage accumulation. See
+  [database deletion protection](database-deletion-protection.md) for the policy
+  and unfinished production enforcement.
 - Filenames, media types, counts, ownership and size are checked server-side.
   Download disposition and HTML sanitation are not malware scanning; Gmail's own
   attachment restrictions can still reject a send.

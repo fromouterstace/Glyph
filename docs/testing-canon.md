@@ -22,6 +22,25 @@ The [2026-11-08 coverage audit](test-coverage-audit-2026-11-08.md) records the
 expanded critical-suite inventory, built/lazy-asset and ZIP integrity gates,
 process-test correction, and remaining live-provider evidence boundaries.
 
+### Retained-state and permission boundaries
+
+The mandatory `retained-state.integration.test.mjs` suite proves draft archival,
+active-view exclusion, stale-send rejection, retired-link inaccessibility and
+immutable active link mappings against isolated PostgreSQL. OAuth and rich-composer
+suites additionally verify cleared consumed verifiers, retained attachment rows
+and valid bytes, rejected-upload cleanup and owner-specific retention quotas.
+
+Keep `test-database-access.mjs` and the actual restricted-role PostgreSQL tests.
+Configuration checks must prove fixtures refuse a configured runtime connection
+override and missing required runtime configuration fails before connecting.
+These subprocess/CLI checks are boundary tests in the fast runner, not evidence
+of a live connection. Neither the URL override nor a fixture role provisions or
+proves production least privilege, two-person approval or backup recovery.
+
+Fixed-window budget tests must control the clock across both budget setup and
+the request; do not weaken admission assertions to tolerate real minute changes.
+Preserve the 50/100/150/200-line limits and discovery negative controls.
+
 ## Route delivery
 
 ### HTML browser-security regression gates
@@ -126,7 +145,7 @@ They are included in `check:all`, not silently treated as CI-passing unit tests.
 
 | Command                            | Purpose                                                                                                                                                                      | Dependencies                                               |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `pnpm check`                       | Zero-warning lint, verified formatting, strict TypeScript, pure unit tests, local source-contract tests, mocked UI tests, critical coverage and build-gate negative-controls | Installed packages; no Gmail, database, or running app     |
+| `pnpm check`                       | Zero-warning lint, verified formatting, strict TypeScript, unit/CLI checks, local source-contract tests, mocked UI tests, critical coverage and build-gate negative-controls | Installed packages; no Gmail, database, or running app     |
 | `pnpm check:integration`           | Actual PostgreSQL constraints and production tracking router                                                                                                                 | Development/test PostgreSQL; schema create/drop permission |
 | `pnpm check:http`                  | Anonymous access, image responses, authentication/write boundary checks                                                                                                      | Running local app/proxy on port 80                         |
 | `pnpm check:smoke`                 | Read-only page, entry-asset, extension-download, anonymous API and invalid-token delivery checks                                                                             | Running local app/proxy; bounded startup-health preflight  |

@@ -2,6 +2,8 @@
 
 Gmail-connected sales email tracking: a glyph is the tracking pixel; tracked links and an engagement feed report pixel-load, link-click, and reply signals—not verified human reads.
 
+[`README.md`](README.md) is the product and setup introduction. The canon below governs durable decisions; neither introductory copy nor dated audits override it.
+
 ## Required product and safety canon
 
 - Read [`docs/glyph-canon.md`](docs/glyph-canon.md) before changing product behavior, ownership, Gmail/extension permissions, event data, tracking origins, security, or test policy.
@@ -17,7 +19,7 @@ Gmail-connected sales email tracking: a glyph is the tracking pixel; tracked lin
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `GLYPH_DATABASE_TARGET=development pnpm --filter @workspace/db run push` — reviewed development connection only, never production. Requires current versioned schema review. No force push; post-merge does not automatically mutate the schema.
 - Production schema application is owned exclusively by Replit Publish. Follow `docs/database-safety.md`; no custom production migration runners, deploy DDL, or startup DDL.
-- Required env: `DATABASE_URL` — obtain/configure it through the workspace secret flow; never print or commit it
+- PostgreSQL uses the platform-managed `DATABASE_URL`, or an explicitly configured `GLYPH_RUNTIME_DATABASE_URL` override. Never print/commit either or manually replace platform-managed settings. `GLYPH_REQUIRE_RESTRICTED_DATABASE=1` checks override presence, not permissions; fixtures reject a runtime override. See `docs/database-deletion-protection.md` for unfinished production provisioning and enforcement.
 
 ## Stack
 
@@ -46,6 +48,7 @@ Gmail-connected sales email tracking: a glyph is the tracking pixel; tracked lin
 - Never automatically retry uncertain Gmail sends: reconcile by RFC Message-ID with Gmail Sent, and require manual review if still uncertain.
 - API authentication uses validated Clerk sessions; public token-based tracking endpoints deliberately remain unauthenticated so recipient clients can load images and follow tracked links.
 - Use PostgreSQL as the source of truth for messages, tokens, links, events, preferences, and counts. Event counts must come from persisted events; never fabricate or infer opens.
+- Normal draft removal, obsolete links and unused valid attachments use retained-state updates, not physical database deletion. Exclude retired resources from active reads and reject stale mutations. Keep normal updates allowed; destructive exceptions require both designated approvers. Production deletion enforcement and the two-person workflow remain unfinished.
 - The extension must not store passwords, OAuth/access tokens, cookies, or API credentials. Request only the selected Glyph HTTPS origin; never expand site access without documented review.
 
 ## Product
@@ -57,7 +60,7 @@ The primary product is a desktop Gmail browser extension. Its Add glyph control 
 - Opt-in email alerts use each owner's verified Gmail mailbox, from and to itself, and work with Glyph closed while the API is running. Consent never backfills old signals. At most one open and one click alert per tracked message, excluding known automation; queued alerts expire after 24 hours and send at most once per minute per owner. Reply alerts remain in-app.
 - Notification sends use durable claims and stable RFC Message-IDs. Recover sending/uncertain jobs by searching that owner's Gmail Sent only; absence from search never authorizes a resend. No real test mail without explicit recipient/content approval.
 
-- Use a durable published HTTPS origin for reliable external tracking. A blank tracking origin follows the connection origin; a preview connection is still temporary.
+- Use the canonical published HTTPS origin for new real tracking. A blank tracking setting follows the approved connection origin; Preview supports draft editing/saving, not real tracked sends.
 - Do not seed live mailbox data or send test emails without the user's explicit confirmation of recipient and content.
 - Native extension source is in `extensions/glyph-gmail`; `node extensions/build.mjs` produces the downloadable ZIP at web app predev/prebuild time. Generated PNG icons and ZIP need not be committed.
 - The extension asks for optional access only to the selected Glyph origin, then uses an open signed-in Glyph tab as a same-origin cookie-auth bridge. No long-lived app/Gmail credentials are copied into the extension. Keep the tab open for preparation and notifications.

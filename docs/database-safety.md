@@ -167,8 +167,10 @@ There is no automated message/event retention purge or account-wide database
 erasure path. The product canon intentionally has not promised a retention
 window/export contract. Do not create a purge job until those requirements,
 legal/privacy review and attachment/App Storage cleanup semantics are defined.
-OAuth state expiry is checked when state is consumed and stale owner states are
-cleaned on a later OAuth initiation; no database-wide expiry worker was verified.
+OAuth state expiry is checked when state is consumed. Invalidation and successful
+consumption expire retained records and clear their encrypted verifier; later
+OAuth initiation also invalidates previous states for that owner. This is not
+physical row cleanup, and no database-wide expiry worker was verified.
 
 ## Mandatory pre-execution release checklist
 
