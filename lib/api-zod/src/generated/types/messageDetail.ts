@@ -6,9 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { Message } from './message';
+import type { PixelDiagnostics } from './pixelDiagnostics';
 import type { TrackedLink } from './trackedLink';
 
 export interface MessageDetail {
   message: Message;
+  diagnostics: PixelDiagnostics;
   links: TrackedLink[];
 }

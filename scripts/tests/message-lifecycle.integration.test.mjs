@@ -86,10 +86,18 @@ for (const [field, value] of [
 test('concurrent claims allow exactly one send and one set of stored links', async () => {
   const f = await draftScenario();
   const results = await Promise.all([
-    claimDraftForSend(f.snapshot, [f.link]),
-    claimDraftForSend(f.snapshot, [f.link]),
+    claimDraftForSend(f.snapshot, [f.link], 'https://glyph.example'),
+    claimDraftForSend(f.snapshot, [f.link], 'https://glyph.example'),
   ]);
   expect(results.sort()).toEqual([false, true]);
+  expect(
+    (
+      await h.sql(
+        'SELECT prepared_tracking_origin FROM glyph_messages WHERE id=$1',
+        [f.snapshot.id],
+      )
+    ).rows,
+  ).toEqual([{ prepared_tracking_origin: 'https://glyph.example' }]);
   expect(
     (
       await h.sql('SELECT token FROM glyph_links WHERE message_id=$1', [

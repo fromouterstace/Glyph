@@ -1,0 +1,16 @@
+{
+  "version": 5,
+  "phase": "expand",
+  "reason": "Persist privacy-preserving daily pixel request outcome aggregates and the actual origin used during message preparation, without altering message tokens or backfilling engagement.",
+  "compatibility": "Additive nullable origin and a new aggregate table only. Existing rows, tokens and numeric event counts are unchanged; old instances ignore the expansion. New code requires the reviewed expansion before serving detail reads and tracking. No startup, deploy or post-merge DDL. Cascades retain existing message deletion semantics. Review docs/pixel-diagnostics.md before schema application.",
+  "recovery": "No production DDL, backup or restore is claimed. Before schema application an authorized operator must verify the target, review the actual diff, record a restorable target-specific recovery point and rehearse on an isolated clone with mail workers disabled per docs/database-safety.md. Publish exclusively applies the managed-production diff. Roll back application code and retain additive schema/data, never overwrite production from development.",
+  "schema": {
+    "lib/db/src/schema/glyph-attachments.ts": "6edd814bbfe4c12e2be7f3c0b4d95429f6928cdf8a22275af4773304214ae830",
+    "lib/db/src/schema/glyph-contacts.ts": "8b467d8cdadae3a6addc010b4367f2451bf4c8313f736c194e09a8db92358197",
+    "lib/db/src/schema/glyph-gmail.ts": "b1c5b54b114fb0943fc94edbfd9c2ea0565f65176dfd33e6d54de9966057c363",
+    "lib/db/src/schema/glyph-system.ts": "2122e4d97147fdf2e837af1c1acf85a760d134587e6abee9c4d1f9977c735c91",
+    "lib/db/src/schema/glyph.ts": "c8c00cfd9ff2cf1922c3bd55965ded4d50a622e4db7733b63fcb820dbc475bfa",
+    "lib/db/src/schema/index.ts": "d9a05921b40c5f87d75fec66df855ad8f05eea1e6c2dd43c0c7205a8fdca1149"
+  },
+  "planSha256": "46a89f3ad8409a4d9d57f3d02af13a5caa1b50e8292481fb9cbe245d36f36003"
+}

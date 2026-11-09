@@ -37,6 +37,7 @@ import {
 } from '@/components/email-list-panel';
 import { MessageWorkflowActions } from '@/components/message-workflow-actions';
 import { SignalHistory } from '@/components/signal-history';
+import { PixelDiagnostics } from '@/components/pixel-diagnostics';
 import { errorText, usePoll, useInvalidateAll, useSession } from '@/lib/glyph';
 import { HISTORY_PAGE_SIZE } from '@/lib/history-pagination';
 import { useToast } from '@/hooks/use-toast';
@@ -256,6 +257,7 @@ function Detail({ id }: { id: string }) {
           )}
         </div>
         <div>
+          <PixelDiagnostics data={q.data.diagnostics} />
           <SignalHistory id={id} message={m} />
         </div>
       </div>

@@ -802,12 +802,37 @@ components:
         uploadUrl: { type: string }
     MessageDetail:
       type: object
-      required: [message, links]
+      required: [message, links, diagnostics]
       properties:
         message: { $ref: '#/components/schemas/Message' }
+        diagnostics: { $ref: '#/components/schemas/PixelDiagnostics' }
         links:
           type: array
           items: { $ref: '#/components/schemas/TrackedLink' }
+    PixelDiagnostics:
+      type: object
+      required: [preparedTrackingOrigin, pixelOutcomes]
+      properties:
+        preparedTrackingOrigin: { type: [string, 'null'] }
+        pixelOutcomes:
+          type: array
+          items: { $ref: '#/components/schemas/PixelOutcome' }
+    PixelOutcome:
+      type: object
+      required: [outcome, requests]
+      properties:
+        outcome:
+          type: string
+          enum:
+            - recorded
+            - sender_compose_ignored
+            - tracking_disabled
+            - send_not_confirmed
+            - unknown_token
+            - event_budget_exceeded
+            - native_reconciliation_budget_exceeded
+            - native_reconciliation_failed
+        requests: { type: [integer, 'null'], minimum: 0 }
     Pagination:
       type: object
       required: [limit, offset, total, hasMore]

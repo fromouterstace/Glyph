@@ -88,6 +88,13 @@ regression checks are specified in [web-composer.md](web-composer.md).
 - Sent, pixel, click, reply, automated, held/uncertain, and failed are independent
   states/signals. Never infer a pixel open from a click, send, reply, or elapsed
   time. Never create or backfill opens to make the interface appear consistent.
+- Pixel request diagnostics are daily, privacy-preserving outcome aggregates,
+  separate from numeric pixel-load events. Diagnostic writes are bounded,
+  best-effort lower bounds and cannot roll back committed events. Unknown tokens have no tenant or
+  message attribution and their counts are not exposed to account readers.
+  Prepared tracking origins are historical preparation facts, not current
+  settings inferred for older messages. See [pixel diagnostics](pixel-diagnostics.md)
+  for outcome meanings, missing-data caveats and the additive schema review.
 - A prepared draft is not sent. A button click is not proof of send. Confirm a
   native Gmail send from its verified Sent copy and marker; reconcile uncertain
   sends by RFC Message-ID. Do not automatically retry a possibly accepted send.

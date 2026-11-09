@@ -405,6 +405,10 @@ export const GetMessageParams = zod.object({
   "id": zod.coerce.string()
 })
 
+export const getMessageResponseDiagnosticsPixelOutcomesItemRequestsMin = 0;
+
+
+
 export const GetMessageResponse = zod.object({
   "message": zod.object({
   "id": zod.string(),
@@ -432,6 +436,13 @@ export const GetMessageResponse = zod.object({
   "replies": zod.int(),
   "lastActivityAt": zod.string().nullable(),
   "deliverySource": zod.enum(['web', 'gmail', 'import']).optional()
+}),
+  "diagnostics": zod.object({
+  "preparedTrackingOrigin": zod.string().nullable(),
+  "pixelOutcomes": zod.array(zod.object({
+  "outcome": zod.enum(['recorded', 'sender_compose_ignored', 'tracking_disabled', 'send_not_confirmed', 'unknown_token', 'event_budget_exceeded', 'native_reconciliation_budget_exceeded', 'native_reconciliation_failed']),
+  "requests": zod.int().min(getMessageResponseDiagnosticsPixelOutcomesItemRequestsMin).nullable()
+}))
 }),
   "links": zod.array(zod.object({
   "id": zod.string(),

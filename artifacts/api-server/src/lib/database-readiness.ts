@@ -12,7 +12,7 @@ const probeSql = `SELECT m.id, m.owner_id, m.recipient_email, m.recipient_name,
   m.to_emails, m.cc_emails, m.bcc_emails, m.subject, m.body, m.body_html,
   m.attachments, m.track_opens, m.track_clicks, m.status, m.pixel_token,
   m.gmail_id, m.rfc_message_id, m.delivery_source, m.native_compose_key,
-  m.created_at, m.sent_at, m.archived_at,
+  m.created_at, m.sent_at, m.archived_at, m.prepared_tracking_origin,
   e.id, e.message_id, e.type, e.url, e.automated, e.source, e.read, e.fingerprint, e.occurred_at,
   l.id, l.message_id, l.token, l.url, l.retired_at,
   s.id, s.owner_id, s.event_type, s.session_fingerprint, s.occurred_at,
@@ -27,7 +27,8 @@ const probeSql = `SELECT m.id, m.owner_id, m.recipient_email, m.recipient_name,
   contacts.email, contacts.email_suffix, contacts.created_at,
   imports.owner_id, imports.mailbox_identity, imports.page_token, imports.status, imports.last_synced_at,
   d.id, d.owner_id, d.message_id, d.event_id, d.type, d.consent_at,
-  d.mailbox, d.status, d.rfc_message_id, d.gmail_id, d.created_at, d.updated_at
+  d.mailbox, d.status, d.rfc_message_id, d.gmail_id, d.created_at, d.updated_at,
+  pd.scope, pd.message_id, pd.day, pd.outcome, pd.requests
   FROM glyph_messages m LEFT JOIN glyph_events e ON false
   LEFT JOIN glyph_links l ON false LEFT JOIN glyph_system_events s ON false
   LEFT JOIN glyph_gmail_connections g ON false
@@ -37,7 +38,8 @@ const probeSql = `SELECT m.id, m.owner_id, m.recipient_email, m.recipient_name,
   LEFT JOIN glyph_tracking_budgets b ON false
   LEFT JOIN glyph_contacts contacts ON false
   LEFT JOIN glyph_label_imports imports ON false
-  LEFT JOIN glyph_deliveries d ON false LIMIT 0`;
+  LEFT JOIN glyph_deliveries d ON false
+  LEFT JOIN glyph_pixel_diagnostics pd ON false LIMIT 0`;
 
 // A schema can contain every required column and still have lost the database
 // constraints that protect idempotency and prevent orphan activity. Inspect
@@ -58,6 +60,7 @@ const integritySql = `SELECT required.name FROM (VALUES
   ('primary', 'glyph_gmail_oauth_states_pkey', 'glyph_gmail_oauth_states', '', ''),
   ('primary', 'glyph_deliveries_pkey', 'glyph_deliveries', '', ''),
   ('primary', 'glyph_tracking_budgets_message_id_kind_pk', 'glyph_tracking_budgets', '', ''),
+  ('primary', 'glyph_pixel_diagnostics_scope_day_outcome_pk', 'glyph_pixel_diagnostics', '', ''),
   ('index', 'glyph_messages_pixel_token_unique', 'glyph_messages', '', ''),
   ('index', 'glyph_events_fingerprint_unique', 'glyph_events', '', ''),
   ('index', 'glyph_links_token_unique', 'glyph_links', '', ''),
@@ -68,6 +71,10 @@ const integritySql = `SELECT required.name FROM (VALUES
   ('foreign', 'glyph_events_message_id_glyph_messages_id_fk', 'glyph_events', 'c', 'glyph_messages'),
   ('foreign', 'glyph_links_message_id_glyph_messages_id_fk', 'glyph_links', 'c', 'glyph_messages'),
   ('foreign', 'glyph_tracking_budgets_message_id_glyph_messages_id_fk', 'glyph_tracking_budgets', 'c', 'glyph_messages'),
+  ('foreign_column', 'glyph_pixel_diagnostics_message_id_fkey', 'glyph_pixel_diagnostics', 'message_id', 'glyph_messages'),
+  ('check', 'glyph_pixel_diagnostics_scope_check', 'glyph_pixel_diagnostics', '', ''),
+  ('check', 'glyph_pixel_diagnostics_outcome_check', 'glyph_pixel_diagnostics', '', ''),
+  ('check', 'glyph_pixel_diagnostics_count_check', 'glyph_pixel_diagnostics', '', ''),
   ('foreign_column', 'glyph_deliveries_message_id_fkey', 'glyph_deliveries', 'message_id', 'glyph_messages'),
   ('foreign_column', 'glyph_deliveries_event_id_fkey', 'glyph_deliveries', 'event_id', 'glyph_events'),
   ('check', 'glyph_tracking_budgets_kind_check', 'glyph_tracking_budgets', '', ''),

@@ -106,6 +106,7 @@ router.post('/glyph/native/prepare', async (req, res): Promise<void> => {
       body: data.body,
       trackOpens: data.trackOpens,
       trackClicks: data.trackClicks,
+      preparedTrackingOrigin: base,
     };
     if (existing)
       await tx

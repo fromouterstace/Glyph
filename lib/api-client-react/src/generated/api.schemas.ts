@@ -326,6 +326,35 @@ export interface AttachmentUpload {
   uploadUrl: string;
 }
 
+export type PixelOutcomeOutcome = typeof PixelOutcomeOutcome[keyof typeof PixelOutcomeOutcome];
+
+
+export const PixelOutcomeOutcome = {
+  recorded: 'recorded',
+  sender_compose_ignored: 'sender_compose_ignored',
+  tracking_disabled: 'tracking_disabled',
+  send_not_confirmed: 'send_not_confirmed',
+  unknown_token: 'unknown_token',
+  event_budget_exceeded: 'event_budget_exceeded',
+  native_reconciliation_budget_exceeded: 'native_reconciliation_budget_exceeded',
+  native_reconciliation_failed: 'native_reconciliation_failed',
+} as const;
+
+export interface PixelOutcome {
+  outcome: PixelOutcomeOutcome;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  requests: number | null;
+}
+
+export interface PixelDiagnostics {
+  /** @nullable */
+  preparedTrackingOrigin: string | null;
+  pixelOutcomes: PixelOutcome[];
+}
+
 export interface TrackedLink {
   id: string;
   url: string;
@@ -334,6 +363,7 @@ export interface TrackedLink {
 
 export interface MessageDetail {
   message: Message;
+  diagnostics: PixelDiagnostics;
   links: TrackedLink[];
 }
 
