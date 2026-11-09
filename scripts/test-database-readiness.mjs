@@ -13,6 +13,8 @@ function assertProbeQuery(text) {
       'glyph_attachments',
       'glyph_settings',
       'glyph_tracking_budgets',
+      'glyph_contacts',
+      'glyph_label_imports',
       'm.body_html',
       'm.attachments',
       'a.generation',

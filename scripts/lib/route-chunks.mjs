@@ -6,6 +6,7 @@ export const protectedPages = [
   'activity',
   'settings',
   'gmail',
+  'contacts',
   'system',
 ].map((page) => `src/pages/${page}.tsx`);
 

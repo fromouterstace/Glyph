@@ -9,6 +9,17 @@ The user clarified: "It should be native to gmail in the browser."
 
 **How to apply:** Prioritize adding controls inside Gmail's compose and keeping Gmail's own sending behavior. Treat the web dashboard as the setup/reporting companion, not the required place to compose emails.
 
+## Labeled correspondence and contacts
+
+The user requires emails in the Gmail `Glyph` label to populate the app for
+that user and create contacts storing first name, last name, email and suffix.
+
+**Why:** The user explicitly requested automatic label-based imports and a
+Contacts page, not just manual tracking of newly composed messages.
+
+**How to apply:** Preserve per-user mailbox and contact isolation. Do not
+interpret importing historical correspondence as retroactive tracking.
+
 ## Individual sending accounts
 
 Each user must be able to connect their own Gmail account, with sending, sync,

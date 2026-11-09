@@ -11,6 +11,45 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /glyph/contacts:
+    get:
+      operationId: listContacts
+      parameters:
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, maximum: 1000000, default: 0 }
+        - in: query
+          name: search
+          schema: { type: string, maxLength: 200 }
+      responses:
+        '200':
+          description: Owner-scoped contacts imported from labeled Gmail messages
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContactPage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /glyph/label-import:
+    get:
+      operationId: getLabelImport
+      responses:
+        '200':
+          description: Current user's label import state
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LabelImportStatus' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      operationId: syncLabelImport
+      responses:
+        '200':
+          description: Import one bounded resumable page from the Glyph label
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LabelImportStatus' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '502':
+          description: Gmail import unavailable; previously imported data is preserved
   /glyph/system/access:
     get:
       operationId: getSystemAccess
@@ -430,6 +469,35 @@ components:
             properties:
               error: { type: string }
   schemas:
+    Contact:
+      type: object
+      required: [id, firstName, lastName, email, emailSuffix, createdAt]
+      properties:
+        id: { type: string }
+        firstName: { type: string }
+        lastName: { type: string }
+        email: { type: string }
+        emailSuffix: { type: string }
+        createdAt: { type: string, format: date-time }
+    ContactPage:
+      type: object
+      required: [contacts, total, offset, limit]
+      properties:
+        contacts:
+          { type: array, items: { $ref: '#/components/schemas/Contact' } }
+        total: { type: integer }
+        offset: { type: integer }
+        limit: { type: integer }
+    LabelImportStatus:
+      type: object
+      required: [status, lastSyncedAt]
+      properties:
+        status:
+          {
+            type: string,
+            enum: [pending, syncing, synced, label_missing, error],
+          }
+        lastSyncedAt: { type: [string, 'null'], format: date-time }
     ReadinessStatus:
       type: object
       required: [status]
@@ -605,7 +673,7 @@ components:
         clicks: { type: integer }
         replies: { type: integer }
         lastActivityAt: { type: [string, 'null'] }
-        deliverySource: { type: string, enum: [web, gmail] }
+        deliverySource: { type: string, enum: [web, gmail, import] }
     AttachmentInput:
       type: object
       required: [name, size, contentType]

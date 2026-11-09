@@ -12,6 +12,7 @@ import {
   LogIn,
   Menu,
   X,
+  Users,
 } from 'lucide-react';
 import {
   useListActivity,
@@ -28,6 +29,7 @@ import { basePath, usePoll, useSession } from '@/lib/glyph';
 import { GlyphMark } from '@/components/bits';
 import { useToast } from '@/hooks/use-toast';
 import { PUBLISHED_GLYPH_ORIGIN } from '@/lib/tracking-origin';
+import { LabelImportController } from '@/components/label-import';
 
 function SystemSessionRecorder() {
   const { isLoaded, isSignedIn, sessionId } = useAuth();
@@ -115,6 +117,7 @@ const nav = [
   { href: '/app', label: 'Signals', icon: LayoutGrid, publicHref: '/' },
   { href: '/gmail', label: 'Gmail', icon: Puzzle },
   { href: '/emails', label: 'Emails', icon: Mail },
+  { href: '/contacts', label: 'Contacts', icon: Users },
   { href: '/activity', label: 'Activity', icon: Radio, badge: true },
   { href: '/settings', label: 'Settings', icon: Settings2 },
 ];
@@ -234,6 +237,7 @@ export function Shell({ children }: { children: ReactNode }) {
     <div className="grain min-h-[100dvh] bg-background">
       {isSignedIn && <SystemSessionRecorder />}
       {isSignedIn && <AlertWatcher key={user?.id} />}
+      <LabelImportController />
       <aside className="fixed inset-y-0 left-0 hidden w-60 bg-sidebar md:block">
         {side}
       </aside>

@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import { db, glyphMessages, glyphEvents } from '@workspace/db';
 import {
   userGmailRequest,
@@ -105,6 +105,7 @@ async function scanReplies(
         and(
           eq(glyphMessages.ownerId, ownerId),
           eq(glyphMessages.status, 'sent'),
+          ne(glyphMessages.deliverySource, 'import'),
         ),
       );
     if (!originals.length) return result;

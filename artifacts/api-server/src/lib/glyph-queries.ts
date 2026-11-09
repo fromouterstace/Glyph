@@ -7,6 +7,7 @@ import {
   inArray,
   isNotNull,
   lt,
+  ne,
   or,
   sql,
   type SQL,
@@ -64,6 +65,7 @@ function messageConditions(
       conditions.push(
         and(
           eq(glyphMessages.status, 'sent'),
+          eq(glyphMessages.trackOpens, true),
           sql`not ${signalExists('open')}`,
         )!,
       );
@@ -124,7 +126,7 @@ export async function listOwnerMessages(
 export async function getOwnerOverview(ownerId: string) {
   const [summary] = await db
     .select({
-      totalSent: sql<number>`count(distinct ${glyphMessages.id}) filter (where ${glyphMessages.status} = 'sent')::int`,
+      totalSent: sql<number>`count(distinct ${glyphMessages.id}) filter (where ${glyphMessages.status} = 'sent' and ${glyphMessages.deliverySource} <> 'import')::int`,
       trackedSentForOpens: sql<number>`count(distinct ${glyphMessages.id}) filter (where ${glyphMessages.status} = 'sent' and ${glyphMessages.trackOpens} = true)::int`,
       trackedSentForClicks: sql<number>`count(distinct ${glyphMessages.id}) filter (where ${glyphMessages.status} = 'sent' and ${glyphMessages.trackClicks} = true)::int`,
       messagesOpened: sql<number>`count(distinct ${glyphMessages.id}) filter (where ${glyphMessages.status} = 'sent' and ${glyphMessages.trackOpens} = true and ${glyphEvents.type} = 'open' and ${glyphEvents.automated} = false)::int`,
@@ -155,6 +157,7 @@ export async function getOwnerOverview(ownerId: string) {
         and(
           eq(glyphMessages.ownerId, ownerId),
           eq(glyphMessages.status, 'sent'),
+          ne(glyphMessages.deliverySource, 'import'),
           gte(glyphMessages.sentAt, start),
           lt(glyphMessages.sentAt, end),
         ),

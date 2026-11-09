@@ -33,11 +33,14 @@ import type {
   BeginGmailAuthorization200,
   CompleteGmailAuthorizationParams,
   Connection,
+  ContactPage,
   DisconnectGmail200,
   ForbiddenResponse,
   GmailAuthorization,
   HealthStatus,
+  LabelImportStatus,
   ListActivityParams,
+  ListContactsParams,
   ListMessagesParams,
   Message,
   MessageDetail,
@@ -81,6 +84,271 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getListContactsUrl = (params?: ListContactsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/glyph/contacts?${stringifiedParams}` : `/api/glyph/contacts`
+}
+
+export const listContacts = async (params?: ListContactsParams, options?: Parameters<typeof customFetch>[1]): Promise<ContactPage> => {
+
+  return customFetch<ContactPage>(getListContactsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListContactsQueryKey = (params?: ListContactsParams,) => {
+    return [
+    `/api/glyph/contacts`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListContactsQueryOptions = <TData = Awaited<ReturnType<typeof listContacts>>, TError = ErrorType<UnauthorizedResponse>>(params?: ListContactsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listContacts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListContactsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listContacts>>> = ({ signal }) => listContacts(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listContacts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListContactsQueryResult = NonNullable<Awaited<ReturnType<typeof listContacts>>>
+export type ListContactsQueryError = ErrorType<UnauthorizedResponse>
+
+
+export function useListContacts<TData = Awaited<ReturnType<typeof listContacts>>, TError = ErrorType<UnauthorizedResponse>>(
+ params: undefined |  ListContactsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listContacts>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listContacts>>,
+          TError,
+          Awaited<ReturnType<typeof listContacts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListContacts<TData = Awaited<ReturnType<typeof listContacts>>, TError = ErrorType<UnauthorizedResponse>>(
+ params?: ListContactsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listContacts>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listContacts>>,
+          TError,
+          Awaited<ReturnType<typeof listContacts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListContacts<TData = Awaited<ReturnType<typeof listContacts>>, TError = ErrorType<UnauthorizedResponse>>(
+ params?: ListContactsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listContacts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListContacts<TData = Awaited<ReturnType<typeof listContacts>>, TError = ErrorType<UnauthorizedResponse>>(
+ params?: ListContactsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listContacts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListContactsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetLabelImportUrl = () => {
+
+
+
+
+  return `/api/glyph/label-import`
+}
+
+export const getLabelImport = async ( options?: Parameters<typeof customFetch>[1]): Promise<LabelImportStatus> => {
+
+  return customFetch<LabelImportStatus>(getGetLabelImportUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLabelImportQueryKey = () => {
+    return [
+    `/api/glyph/label-import`
+    ] as const;
+    }
+
+
+export const getGetLabelImportQueryOptions = <TData = Awaited<ReturnType<typeof getLabelImport>>, TError = ErrorType<UnauthorizedResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLabelImport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLabelImportQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLabelImport>>> = ({ signal }) => getLabelImport({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLabelImport>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetLabelImportQueryResult = NonNullable<Awaited<ReturnType<typeof getLabelImport>>>
+export type GetLabelImportQueryError = ErrorType<UnauthorizedResponse>
+
+
+export function useGetLabelImport<TData = Awaited<ReturnType<typeof getLabelImport>>, TError = ErrorType<UnauthorizedResponse>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLabelImport>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLabelImport>>,
+          TError,
+          Awaited<ReturnType<typeof getLabelImport>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLabelImport<TData = Awaited<ReturnType<typeof getLabelImport>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLabelImport>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLabelImport>>,
+          TError,
+          Awaited<ReturnType<typeof getLabelImport>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetLabelImport<TData = Awaited<ReturnType<typeof getLabelImport>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLabelImport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetLabelImport<TData = Awaited<ReturnType<typeof getLabelImport>>, TError = ErrorType<UnauthorizedResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLabelImport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetLabelImportQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSyncLabelImportUrl = () => {
+
+
+
+
+  return `/api/glyph/label-import`
+}
+
+export const syncLabelImport = async ( options?: Parameters<typeof customFetch>[1]): Promise<LabelImportStatus> => {
+
+  return customFetch<LabelImportStatus>(getSyncLabelImportUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getSyncLabelImportMutationKey = () => ['syncLabelImport'] as const;
+
+export const getSyncLabelImportMutationOptions = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncLabelImport>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof syncLabelImport>>, TError,void, TContext> => {
+
+const mutationKey = getSyncLabelImportMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncLabelImport>>, void> = () => {
+
+
+          return  syncLabelImport(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SyncLabelImportMutationResult = NonNullable<Awaited<ReturnType<typeof syncLabelImport>>>
+
+    export type SyncLabelImportMutationError = ErrorType<UnauthorizedResponse | ForbiddenResponse | void>
+
+
+    export const useSyncLabelImport = <TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncLabelImport>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof syncLabelImport>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getSyncLabelImportMutationOptions(options), queryClient);
+    }
 
 export const getGetSystemAccessUrl = () => {
 

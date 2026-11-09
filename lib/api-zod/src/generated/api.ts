@@ -8,6 +8,46 @@
 import * as zod from 'zod';
 
 
+export const listContactsQueryOffsetDefault = 0;
+export const listContactsQueryOffsetMin = 0;
+export const listContactsQueryOffsetMax = 1000000;
+
+export const listContactsQuerySearchMax = 200;
+
+
+
+export const ListContactsQueryParams = zod.object({
+  "offset": zod.coerce.number().int().min(listContactsQueryOffsetMin).max(listContactsQueryOffsetMax).default(listContactsQueryOffsetDefault),
+  "search": zod.coerce.string().max(listContactsQuerySearchMax).optional()
+})
+
+export const ListContactsResponse = zod.object({
+  "contacts": zod.array(zod.object({
+  "id": zod.string(),
+  "firstName": zod.string(),
+  "lastName": zod.string(),
+  "email": zod.string(),
+  "emailSuffix": zod.string(),
+  "createdAt": zod.coerce.date()
+})),
+  "total": zod.int(),
+  "offset": zod.int(),
+  "limit": zod.int()
+})
+
+
+export const GetLabelImportResponse = zod.object({
+  "status": zod.enum(['pending', 'syncing', 'synced', 'label_missing', 'error']),
+  "lastSyncedAt": zod.coerce.date().nullable()
+})
+
+
+export const SyncLabelImportResponse = zod.object({
+  "status": zod.enum(['pending', 'syncing', 'synced', 'label_missing', 'error']),
+  "lastSyncedAt": zod.coerce.date().nullable()
+})
+
+
 export const GetSystemAccessResponse = zod.object({
   "isSystemAdmin": zod.boolean()
 })
@@ -208,7 +248,7 @@ export const ListMessagesResponse = zod.object({
   "clicks": zod.int(),
   "replies": zod.int(),
   "lastActivityAt": zod.string().nullable(),
-  "deliverySource": zod.enum(['web', 'gmail']).optional()
+  "deliverySource": zod.enum(['web', 'gmail', 'import']).optional()
 })),
   "pagination": zod.object({
   "limit": zod.int().min(1).max(listMessagesResponsePaginationLimitMax),
@@ -284,7 +324,7 @@ export const CreateMessageResponse = zod.object({
   "clicks": zod.int(),
   "replies": zod.int(),
   "lastActivityAt": zod.string().nullable(),
-  "deliverySource": zod.enum(['web', 'gmail']).optional()
+  "deliverySource": zod.enum(['web', 'gmail', 'import']).optional()
 })
 
 
@@ -318,7 +358,7 @@ export const GetMessageResponse = zod.object({
   "clicks": zod.int(),
   "replies": zod.int(),
   "lastActivityAt": zod.string().nullable(),
-  "deliverySource": zod.enum(['web', 'gmail']).optional()
+  "deliverySource": zod.enum(['web', 'gmail', 'import']).optional()
 }),
   "links": zod.array(zod.object({
   "id": zod.string(),
@@ -397,7 +437,7 @@ export const UpdateMessageResponse = zod.object({
   "clicks": zod.int(),
   "replies": zod.int(),
   "lastActivityAt": zod.string().nullable(),
-  "deliverySource": zod.enum(['web', 'gmail']).optional()
+  "deliverySource": zod.enum(['web', 'gmail', 'import']).optional()
 })
 
 
@@ -479,7 +519,7 @@ export const SendMessageResponse = zod.object({
   "clicks": zod.int(),
   "replies": zod.int(),
   "lastActivityAt": zod.string().nullable(),
-  "deliverySource": zod.enum(['web', 'gmail']).optional()
+  "deliverySource": zod.enum(['web', 'gmail', 'import']).optional()
 })
 
 

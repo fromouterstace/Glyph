@@ -3,6 +3,7 @@ import { logger } from './lib/logger';
 import { pool } from '@workspace/db';
 import { startManagedServer } from './lib/server-lifecycle';
 import { startAlertWorker } from './lib/glyph-alerts';
+import { startLabelImportWorker } from './lib/gmail-label-worker';
 
 const rawPort = process.env['PORT'];
 
@@ -19,15 +20,18 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 let stopAlerts = () => {};
+let stopImports = () => {};
 const { server } = startManagedServer({
   app,
   port,
   logger,
   closeDependencies: async () => {
     stopAlerts();
+    stopImports();
     await pool.end();
   },
 });
 server.once('listening', () => {
   stopAlerts = startAlertWorker();
+  stopImports = startLabelImportWorker();
 });

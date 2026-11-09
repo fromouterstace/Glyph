@@ -1,0 +1,16 @@
+{
+  "version": 3,
+  "phase": "expand",
+  "reason": "Add owner-scoped contacts and durable Gmail Glyph-label import cursors. Imported correspondence uses existing message storage with tracking disabled.",
+  "compatibility": "Only two new tables and indexes; no existing table, row, column or constraint is removed or altered. Existing app instances ignore new tables. Apply expansion in development and review the Publish diff before production rollout. Import only explicitly labeled messages from the authenticated owner mailbox; no historical tracking is manufactured.",
+  "recovery": "Retain additive tables and all imported data on application rollback. Production uses Publish only; verify a recoverable snapshot and actual diff before rollout. No data deletion, contraction, production DDL, overwrite or backup restoration is authorized by this review.",
+  "schema": {
+    "lib/db/src/schema/glyph-attachments.ts": "994719e904e83bac6a23585a403354292ea841cf7f95898e1f359b966d060d94",
+    "lib/db/src/schema/glyph-contacts.ts": "8b467d8cdadae3a6addc010b4367f2451bf4c8313f736c194e09a8db92358197",
+    "lib/db/src/schema/glyph-gmail.ts": "b1c5b54b114fb0943fc94edbfd9c2ea0565f65176dfd33e6d54de9966057c363",
+    "lib/db/src/schema/glyph-system.ts": "2122e4d97147fdf2e837af1c1acf85a760d134587e6abee9c4d1f9977c735c91",
+    "lib/db/src/schema/glyph.ts": "d764e19eefef11b7153d71e1c3951133268ae859b105ca90a5eb4db6acf5e399",
+    "lib/db/src/schema/index.ts": "d9a05921b40c5f87d75fec66df855ad8f05eea1e6c2dd43c0c7205a8fdca1149"
+  },
+  "planSha256": "e198332edb953ae7a1905e2b81bf14d64853e98fc8032cc57a63cd2e58802455"
+}

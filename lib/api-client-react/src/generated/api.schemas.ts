@@ -5,6 +5,39 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface Contact {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  emailSuffix: string;
+  createdAt: string;
+}
+
+export interface ContactPage {
+  contacts: Contact[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export type LabelImportStatusStatus = typeof LabelImportStatusStatus[keyof typeof LabelImportStatusStatus];
+
+
+export const LabelImportStatusStatus = {
+  pending: 'pending',
+  syncing: 'syncing',
+  synced: 'synced',
+  label_missing: 'label_missing',
+  error: 'error',
+} as const;
+
+export interface LabelImportStatus {
+  status: LabelImportStatusStatus;
+  /** @nullable */
+  lastSyncedAt: string | null;
+}
+
 export type ReadinessStatusStatus = typeof ReadinessStatusStatus[keyof typeof ReadinessStatusStatus];
 
 
@@ -156,6 +189,7 @@ export type MessageDeliverySource = typeof MessageDeliverySource[keyof typeof Me
 export const MessageDeliverySource = {
   web: 'web',
   gmail: 'gmail',
+  import: 'import',
 } as const;
 
 export interface Attachment {
@@ -347,6 +381,16 @@ export type UnauthorizedResponse = {
 
 export type ForbiddenResponse = {
   error: string;
+};
+
+export type ListContactsParams = {
+  /**
+   * @minimum 0
+   * @maximum 1000000
+   */
+  offset?: number;
+  /** @maxLength 200 */
+  search?: string;
 };
 
 export type ListMessagesParams = {

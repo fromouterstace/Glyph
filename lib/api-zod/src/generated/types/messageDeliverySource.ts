@@ -12,4 +12,5 @@ export type MessageDeliverySource = typeof MessageDeliverySource[keyof typeof Me
 export const MessageDeliverySource = {
   web: 'web',
   gmail: 'gmail',
+  import: 'import',
 } as const;

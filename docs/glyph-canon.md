@@ -1,5 +1,12 @@
 # Glyph product, engineering, and safety canon
 
+## Labeled Gmail correspondence and contacts
+
+Follow [Gmail label imports](gmail-label-import.md) for owner-scoped automatic
+imports from the `Glyph` label, contact identity fields, deduplication, polling
+budgets, preservation of imported history, and the prohibition on retroactive
+tracking claims. Removing a label is not permission to erase stored records.
+
 ## Database data-loss prevention
 
 The [database safety canon](database-safety.md) is mandatory for schema and data

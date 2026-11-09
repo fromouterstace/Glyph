@@ -4,6 +4,7 @@ import type {
   ListMessagesQueryResult,
   Message,
 } from '@workspace/api-client-react';
+import { ImportedTag, isImported } from '@/components/label-import';
 import { Avatar, EmptyState, ErrorState, StatusPill } from '@/components/bits';
 import { MessageEngagement } from '@/components/engagement';
 import { HistoryPagination } from '@/components/history-pagination';
@@ -206,6 +207,7 @@ function MessageRows({
                 <span className="truncate text-sm font-medium">
                   {message.recipientName || message.recipientEmail}
                 </span>
+                {isImported(message) && <ImportedTag compact />}
                 {message.deliverySource === 'gmail' && (
                   <span className="rounded-sm bg-secondary px-1 font-mono text-[9px] uppercase text-muted-foreground">
                     gmail
@@ -218,17 +220,19 @@ function MessageRows({
               <div className="truncate text-xs text-foreground/80">
                 {message.subject}
               </div>
-              <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
-                {(message.deliverySource !== 'gmail' ||
-                  message.status === 'sent') &&
-                  message.status !== 'sent' && (
-                    <StatusPill status={message.status} />
+              {!isImported(message) && (
+                <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
+                  {(message.deliverySource !== 'gmail' ||
+                    message.status === 'sent') &&
+                    message.status !== 'sent' && (
+                      <StatusPill status={message.status} />
+                    )}
+                  {(message.status !== 'draft' ||
+                    message.deliverySource === 'gmail') && (
+                    <MessageEngagement m={message} compact />
                   )}
-                {(message.status !== 'draft' ||
-                  message.deliverySource === 'gmail') && (
-                  <MessageEngagement m={message} compact />
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </Link>
         </li>

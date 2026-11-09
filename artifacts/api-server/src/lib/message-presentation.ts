@@ -66,7 +66,7 @@ export function publicMessage(
     clicks: summary.clicks,
     replies: summary.replies,
     lastActivityAt: isoTimestamp(summary.lastActivityAt),
-    deliverySource: message.deliverySource as 'web' | 'gmail',
+    deliverySource: message.deliverySource as 'web' | 'gmail' | 'import',
   };
 }
 

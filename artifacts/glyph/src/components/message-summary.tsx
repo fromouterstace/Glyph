@@ -5,6 +5,7 @@ import { StatusPill } from '@/components/bits';
 import { MessageEngagement } from '@/components/engagement';
 import { stamp } from '@/lib/glyph';
 import { cn } from '@/lib/utils';
+import { ImportedTag, isImported } from '@/components/label-import';
 
 export function MessageSummary({
   m,
@@ -29,7 +30,9 @@ export function MessageSummary({
         <ArrowLeft className="size-3" /> All emails
       </Link>
       <div className="flex flex-wrap items-center gap-2">
-        {awaiting ? (
+        {isImported(m) ? (
+          <ImportedTag />
+        ) : awaiting ? (
           <span
             className="inline-flex items-center gap-1.5 rounded-sm bg-[hsl(40_70%_90%)] px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-[hsl(32_70%_28%)]"
             data-testid="status-awaiting-gmail"
@@ -80,25 +83,36 @@ export function MessageSummary({
         )}
       </div>
       <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden border border-border bg-border text-xs sm:grid-cols-5">
-        {[
-          ['Created', stamp(m.createdAt)],
-          ['Sent', stamp(m.sentAt)],
-          ['Pixel loads', m.trackOpens ? m.opens : 'off'],
-          ['Click signals', m.trackClicks ? m.clicks : 'off'],
-          ['Replies', m.replies ?? 0],
-        ].map(([key, value]) => (
-          <div
-            key={key as string}
-            className="min-w-0 bg-card p-3 last:col-span-2 sm:last:col-span-1"
+        {isImported(m) ? (
+          <p
+            className="col-span-2 bg-card p-3 text-muted-foreground sm:col-span-5"
+            data-testid="text-imported-note"
           >
-            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              {key}
+            Imported {stamp(m.createdAt)} from your Gmail label. Glyph did not
+            send this message and has no historical pixel, link, or open data
+            for it.
+          </p>
+        ) : (
+          [
+            ['Created', stamp(m.createdAt)],
+            ['Sent', stamp(m.sentAt)],
+            ['Pixel loads', m.trackOpens ? m.opens : 'off'],
+            ['Click signals', m.trackClicks ? m.clicks : 'off'],
+            ['Replies', m.replies ?? 0],
+          ].map(([key, value]) => (
+            <div
+              key={key as string}
+              className="min-w-0 bg-card p-3 last:col-span-2 sm:last:col-span-1"
+            >
+              <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                {key}
+              </div>
+              <div className="mt-1 font-mono text-sm tabular-nums">{value}</div>
             </div>
-            <div className="mt-1 font-mono text-sm tabular-nums">{value}</div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
-      {!awaiting && m.status === 'sent' && (
+      {!awaiting && m.status === 'sent' && !isImported(m) && (
         <div className="mt-3">
           <MessageEngagement m={m} />
         </div>
@@ -114,8 +128,9 @@ export function SignalTrail({
   events: Activity[];
   message: Message;
 }) {
-  const emptyText =
-    message.deliverySource === 'gmail' && message.status !== 'sent'
+  const emptyText = isImported(message)
+    ? 'Imported message. No historical tracking is available; only signals recorded after import would appear here.'
+    : message.deliverySource === 'gmail' && message.status !== 'sent'
       ? 'Waiting for Gmail Sent confirmation.'
       : message.status === 'draft'
         ? 'Not sent yet.'

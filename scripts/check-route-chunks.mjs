@@ -5,5 +5,5 @@ const path = process.argv[2];
 if (!path) throw new Error('Pass the built Vite manifest path.');
 checkRouteChunks(JSON.parse(await readFile(path, 'utf8')));
 console.log(
-  'Route chunk gate passed: six protected pages load separately from the entry.',
+  'Route chunk gate passed: protected pages load separately from the entry.',
 );

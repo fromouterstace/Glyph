@@ -15,6 +15,7 @@ export const criticalModules = [
   'html-links',
   'web-recipients',
   'system-admin',
+  'gmail-label-parser',
 ];
 
 // Discovery is a separate invariant from coverage percentages: absent tests
@@ -31,6 +32,7 @@ export const requiredUnitSuites = [
   'test-email-content.mjs',
   'test-extension-archive.mjs',
   'test-gmail-rate-limit.mjs',
+  'test-gmail-label-parser.mjs',
   'test-health-probe.mjs',
   'test-message-presentation.mjs',
   'test-native-verification.mjs',

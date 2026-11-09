@@ -12,20 +12,27 @@ const probeSql = `SELECT m.id, m.body_html, m.attachments, e.id, l.id,
   s.id, g.owner_id, g.encrypted_tokens, g.reply_identity, o.state_hash,
   a.id, a.owner_id, a.object_path, a.generation, a.size, a.content_type,
   pref.owner_id, pref.notify_opens, pref.notify_clicks, pref.notify_replies,
-  b.message_id, b.kind, b.window_bucket, b.window_count, b.day_bucket, b.day_count
+  b.message_id, b.kind, b.window_bucket, b.window_count, b.day_bucket, b.day_count,
+  contacts.owner_id, contacts.first_name, contacts.last_name, contacts.email, contacts.email_suffix,
+  imports.owner_id, imports.mailbox_identity, imports.page_token, imports.status, imports.last_synced_at
   FROM glyph_messages m LEFT JOIN glyph_events e ON false
   LEFT JOIN glyph_links l ON false LEFT JOIN glyph_system_events s ON false
   LEFT JOIN glyph_gmail_connections g ON false
   LEFT JOIN glyph_gmail_oauth_states o ON false
   LEFT JOIN glyph_attachments a ON false
   LEFT JOIN glyph_settings pref ON false
-  LEFT JOIN glyph_tracking_budgets b ON false LIMIT 0`;
+  LEFT JOIN glyph_tracking_budgets b ON false
+  LEFT JOIN glyph_contacts contacts ON false
+  LEFT JOIN glyph_label_imports imports ON false LIMIT 0`;
 
 // A schema can contain every required column and still have lost the database
 // constraints that protect idempotency and prevent orphan activity. Inspect
 // PostgreSQL catalogs only; never expose constraint names/details publicly.
 const integritySql = `SELECT required.name FROM (VALUES
   ('primary', 'glyph_messages_pkey', 'glyph_messages', ''),
+  ('primary', 'glyph_contacts_pkey', 'glyph_contacts', ''),
+  ('primary', 'glyph_label_imports_pkey', 'glyph_label_imports', ''),
+  ('index', 'glyph_contacts_owner_email_idx', 'glyph_contacts', ''),
   ('primary', 'glyph_events_pkey', 'glyph_events', ''),
   ('primary', 'glyph_links_pkey', 'glyph_links', ''),
   ('primary', 'glyph_settings_pkey', 'glyph_settings', ''),
